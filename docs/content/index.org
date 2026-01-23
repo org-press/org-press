@@ -1,0 +1,3487 @@
+#+TITLE: Org-Press
+#+DESCRIPTION: Static site generator for org-mode files
+#+LAYOUT: landing
+
+#+NAME: landing-styles
+#+begin_src css 
+/* Import component styles */
+
+/* Theme variables */
+:root {
+  --bg-color: #0a0a0f;
+  --text-color: #ffffff;
+  --text-muted: rgba(255, 255, 255, 0.7);
+  --text-subtle: rgba(255, 255, 255, 0.5);
+  --border-color: rgba(255, 255, 255, 0.08);
+  --border-hover: rgba(255, 255, 255, 0.15);
+  --card-bg: rgba(255, 255, 255, 0.03);
+  --card-hover: rgba(255, 255, 255, 0.06);
+  --sphere-color: #fff;
+  --sphere-glow: rgba(255, 255, 255, 0.6);
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    --bg-color: #f5f5f7;
+    --text-color: #1a1a1a;
+    --text-muted: rgba(0, 0, 0, 0.7);
+    --text-subtle: rgba(0, 0, 0, 0.5);
+    --border-color: rgba(0, 0, 0, 0.1);
+    --border-hover: rgba(0, 0, 0, 0.2);
+    --card-bg: rgba(0, 0, 0, 0.03);
+    --card-hover: rgba(0, 0, 0, 0.06);
+    --sphere-color: #4a4a4a;
+    --sphere-glow: rgba(100, 100, 100, 0.4);
+  }
+}
+
+body {
+  background: var(--bg-color);
+  color: var(--text-color);
+}
+
+/* Landing page header - transparent with blur */
+.top-nav {
+  background: rgba(10, 10, 15, 0.8) !important;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom-color: var(--border-color) !important;
+}
+
+.top-nav-logo .logo-text,
+.top-nav-link,
+.top-nav-social-link {
+  color: var(--text-color) !important;
+}
+
+.top-nav-link:hover,
+.top-nav-link.active {
+  color: var(--text-muted) !important;
+}
+
+@media (prefers-color-scheme: light) {
+  .top-nav {
+    background: rgba(245, 245, 247, 0.8) !important;
+    border-bottom-color: var(--border-color) !important;
+  }
+
+  .top-nav-logo .logo-text,
+  .top-nav-link,
+  .top-nav-social-link {
+    color: var(--text-color) !important;
+  }
+}
+
+/* Landing page container */
+.landing-page {
+  position: relative;
+  min-height: 100vh;
+}
+
+.landing-particles {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.landing-content {
+  position: relative;
+  z-index: 1;
+}
+
+/* Hero section */
+.hero-section {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  padding: 2rem;
+  position: relative;
+}
+
+/* Radial backdrop for hero - soft glowing circle */
+.hero-section::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: min(90vw, 700px);
+  height: min(70vh, 500px);
+  background: radial-gradient(
+    ellipse at center,
+    rgba(10, 10, 15, 0.9) 0%,
+    rgba(10, 10, 15, 0.85) 30%,
+    rgba(10, 10, 15, 0.6) 60%,
+    rgba(10, 10, 15, 0.2) 80%,
+    transparent 100%
+  );
+  border-radius: 50%;
+  filter: blur(20px);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.hero-section > * {
+  position: relative;
+  z-index: 1;
+}
+
+@media (prefers-color-scheme: light) {
+  .hero-section::before {
+    background: radial-gradient(
+      ellipse at center,
+      rgba(245, 245, 247, 0.95) 0%,
+      rgba(245, 245, 247, 0.9) 30%,
+      rgba(245, 245, 247, 0.6) 60%,
+      rgba(245, 245, 247, 0.2) 80%,
+      transparent 100%
+    );
+  }
+}
+
+.hero-logo {
+  font-family: "EB Garamond", Georgia, serif;
+  font-size: 4.5rem;
+  font-weight: 400;
+  letter-spacing: 0.08em;
+  color: var(--text-color);
+  margin-bottom: 1rem;
+}
+
+.hero-tagline {
+  font-size: 1.25rem;
+  color: var(--text-muted);
+  max-width: 600px;
+  line-height: 1.6;
+  margin: 0;
+}
+
+.hero-cta {
+  margin-top: 3rem;
+  display: flex;
+  gap: 1rem;
+}
+
+.hero-cta a {
+  padding: 0.75rem 2rem;
+  border-radius: 4px;
+  text-decoration: none;
+  font-size: 1rem;
+  transition: all 0.2s ease;
+}
+
+.hero-cta .primary {
+  background: var(--card-bg);
+  border: 1px solid var(--border-hover);
+  color: var(--text-color);
+}
+
+.hero-cta .primary:hover {
+  background: var(--card-hover);
+  border-color: var(--text-subtle);
+}
+
+.hero-cta .secondary {
+  background: transparent;
+  border: 1px solid var(--border-color);
+  color: var(--text-muted);
+}
+
+.hero-cta .secondary:hover {
+  border-color: var(--border-hover);
+  color: var(--text-color);
+}
+
+.scroll-indicator {
+  position: absolute;
+  bottom: 2rem;
+  left: 50%;
+  transform: translateX(-50%);
+  color: var(--text-subtle);
+  animation: bounce 2s infinite;
+  font-size: 1.5rem;
+}
+
+@keyframes bounce {
+  0%, 20%, 50%, 80%, 100% { transform: translateX(-50%) translateY(0); }
+  40% { transform: translateX(-50%) translateY(-10px); }
+  60% { transform: translateX(-50%) translateY(-5px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scroll-indicator {
+    animation: none;
+  }
+}
+
+/* Generic section styles */
+.landing-section {
+  position: relative;
+  z-index: 1;
+}
+
+.section-label {
+  display: inline-block;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--text-subtle);
+  margin-bottom: 1rem;
+}
+
+/* Backdrop cards for content sections - improves readability over halftone */
+.landing-section .section-content {
+  background: rgba(10, 10, 15, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  padding: 3rem;
+}
+
+@media (prefers-color-scheme: light) {
+  .landing-section .section-content {
+    background: rgba(245, 245, 247, 0.88);
+  }
+}
+
+/* Mobile portrait - reduce padding across all sections */
+@media (max-width: 480px) {
+  .landing-section .section-content {
+    padding: 1.5rem;
+    border-radius: 12px;
+    margin: 0 0.5rem;
+  }
+
+  .landing-section h2 {
+    font-size: 1.75rem;
+  }
+
+  .links-section {
+    padding: 3rem 1rem;
+  }
+
+  .links-grid {
+    gap: 1rem;
+  }
+
+  .link-card {
+    padding: 1.25rem;
+  }
+}
+
+/* Serif font for all section headings */
+.landing-section h2,
+.hero-section h2 {
+  font-family: "EB Garamond", Georgia, serif;
+  font-weight: 400;
+  letter-spacing: 0.02em;
+}
+
+/* Quick links footer */
+.links-section {
+  position: relative;
+  z-index: 1;
+  padding: 6rem 2rem;
+  background: linear-gradient(to bottom, transparent 0%, var(--bg-color) 20%);
+}
+
+.links-section-title {
+  text-align: center;
+  font-family: "EB Garamond", Georgia, serif;
+  font-size: 2rem;
+  font-weight: 400;
+  color: var(--text-color);
+  margin: 0 0 3rem 0;
+}
+
+.links-grid {
+  max-width: 900px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1.25rem;
+}
+
+.link-card {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.25rem 1.5rem;
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  text-decoration: none !important;
+  transition: all 0.25s ease;
+  overflow: hidden;
+}
+
+.link-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(100, 108, 255, 0.1) 0%, rgba(100, 108, 255, 0) 50%);
+  opacity: 0;
+  transition: opacity 0.25s ease;
+}
+
+.link-card:hover {
+  text-decoration: none !important;
+  border-color: rgba(100, 108, 255, 0.4);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(100, 108, 255, 0.15);
+}
+
+.link-card:hover::before {
+  opacity: 1;
+}
+
+.link-card-icon {
+  font-size: 1.5rem;
+  flex-shrink: 0;
+}
+
+.link-card-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.link-card h3 {
+  color: var(--text-color);
+  font-size: 1rem;
+  font-weight: 500;
+  margin: 0 0 0.25rem 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  text-decoration: none;
+}
+
+.link-card * {
+  text-decoration: none !important;
+}
+
+.link-card-arrow {
+  opacity: 0;
+  transform: translateX(-4px);
+  transition: all 0.25s ease;
+  color: var(--text-subtle);
+}
+
+.link-card:hover .link-card-arrow {
+  opacity: 1;
+  transform: translateX(0);
+  color: #646cff;
+}
+
+.link-card p {
+  color: var(--text-subtle);
+  font-size: 0.8rem;
+  margin: 0;
+  line-height: 1.4;
+}
+
+@media (max-width: 600px) {
+  .links-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .links-section-title {
+    font-size: 1.5rem;
+    margin-bottom: 2rem;
+  }
+
+  .link-card {
+    padding: 1rem 1.25rem;
+  }
+
+  .link-card-icon {
+    font-size: 1.25rem;
+  }
+
+  .hero-logo {
+    font-size: 2.5rem;
+    letter-spacing: 0.1em;
+  }
+}
+
+/* Mobile: hide particles, show static */
+@media (max-width: 768px) {
+  .landing-particles {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .landing-particles {
+    display: none;
+  }
+}
+#+end_src
+
+#+NAME: sphere-styles
+#+begin_src css 
+/* Glowing sphere for hero section */
+.hero-sphere {
+  display: inline-block;
+  width: var(--sphere-size, 28px);
+  height: var(--sphere-size, 28px);
+  border-radius: 50%;
+  background: radial-gradient(
+    circle at 35% 35%,
+    var(--sphere-highlight, rgba(255, 255, 255, 0.95)) 0%,
+    var(--sphere-color, #fff) 30%,
+    var(--sphere-shadow, rgba(200, 200, 200, 0.8)) 100%
+  );
+  box-shadow:
+    0 0 calc(var(--sphere-size, 28px) * 0.4 * var(--glow-intensity, 1)) var(--sphere-glow, rgba(255, 255, 255, 0.6)),
+    0 0 calc(var(--sphere-size, 28px) * 0.8 * var(--glow-intensity, 1)) var(--sphere-glow, rgba(255, 255, 255, 0.4)),
+    0 0 calc(var(--sphere-size, 28px) * 1.2 * var(--glow-intensity, 1)) var(--sphere-glow, rgba(255, 255, 255, 0.2)),
+    inset 0 0 calc(var(--sphere-size, 28px) * 0.15) rgba(0, 0, 0, 0.1);
+  animation: sphere-pulse 3s ease-in-out infinite;
+  vertical-align: middle;
+  margin: 0 0.1em;
+  position: relative;
+  transform-origin: center;
+}
+
+@keyframes sphere-pulse {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow:
+      0 0 calc(var(--sphere-size, 28px) * 0.4) var(--sphere-glow, rgba(255, 255, 255, 0.6)),
+      0 0 calc(var(--sphere-size, 28px) * 0.8) var(--sphere-glow, rgba(255, 255, 255, 0.4)),
+      0 0 calc(var(--sphere-size, 28px) * 1.2) var(--sphere-glow, rgba(255, 255, 255, 0.2)),
+      inset 0 0 calc(var(--sphere-size, 28px) * 0.15) rgba(0, 0, 0, 0.1);
+  }
+  50% {
+    transform: scale(1.08);
+    box-shadow:
+      0 0 calc(var(--sphere-size, 28px) * 0.6) var(--sphere-glow, rgba(255, 255, 255, 0.7)),
+      0 0 calc(var(--sphere-size, 28px) * 1.0) var(--sphere-glow, rgba(255, 255, 255, 0.5)),
+      0 0 calc(var(--sphere-size, 28px) * 1.5) var(--sphere-glow, rgba(255, 255, 255, 0.3)),
+      inset 0 0 calc(var(--sphere-size, 28px) * 0.15) rgba(0, 0, 0, 0.1);
+  }
+}
+
+@media (prefers-color-scheme: dark) {
+  .hero-sphere {
+    --sphere-highlight: rgba(255, 255, 255, 1);
+    --sphere-shadow: rgba(180, 180, 180, 0.9);
+    --sphere-glow: rgba(255, 255, 255, 0.7);
+  }
+}
+
+@media (prefers-color-scheme: light) {
+  .hero-sphere {
+    --sphere-color: #4a4a4a;
+    --sphere-highlight: rgba(120, 120, 120, 0.95);
+    --sphere-shadow: rgba(30, 30, 30, 0.9);
+    --sphere-glow: rgba(100, 100, 100, 0.4);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-sphere {
+    animation: none;
+  }
+}
+#+end_src
+
+#+NAME: code-preview-styles
+#+begin_src css 
+/* Code Preview Section Styles */
+.code-preview-section {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem 2rem;
+}
+
+.code-preview-section .section-content {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4rem;
+  max-width: 1100px;
+  width: 100%;
+  align-items: center;
+}
+
+.code-preview-section .section-text {
+  text-align: left;
+}
+
+.code-preview-section h2 {
+  font-size: 2.5rem;
+  font-weight: 300;
+  color: var(--text-color);
+  margin: 0 0 1.5rem 0;
+  letter-spacing: 0.02em;
+}
+
+.code-preview-section p {
+  font-size: 1.1rem;
+  line-height: 1.7;
+  color: var(--text-muted);
+  margin: 0 0 2rem 0;
+}
+
+.demo-button-area {
+  margin-top: 1.5rem;
+}
+
+.confetti-btn {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  padding: 0.875rem 2rem;
+  font-size: 1rem;
+  font-weight: 600;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+}
+
+.confetti-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.5);
+}
+
+.confetti-btn:active {
+  transform: translateY(0);
+}
+
+.code-block-preview {
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  overflow: hidden;
+  font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+  font-size: 0.85rem;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.15);
+}
+
+.code-header {
+  background: var(--border-color);
+  padding: 0.5rem 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.code-lang {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-subtle);
+  background: var(--card-bg);
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+}
+
+.code-content {
+  margin: 0;
+  padding: 1.25rem;
+  overflow-x: auto;
+  line-height: 1.6;
+}
+
+.code-content code {
+  color: var(--text-muted);
+}
+
+.code-keyword { color: #c678dd; }
+.code-type { color: #e5c07b; }
+.code-attr { color: #98c379; }
+.code-var { color: #61afef; }
+.code-tag { color: #e06c75; }
+
+.confetti-particle {
+  will-change: transform, opacity;
+}
+
+@media (max-width: 900px) {
+  .code-preview-section .section-content {
+    grid-template-columns: 1fr;
+    gap: 2rem;
+  }
+
+  .code-preview-section .section-text {
+    text-align: center;
+  }
+
+  .code-preview-section h2 {
+    font-size: 2rem;
+  }
+
+  .code-block-preview {
+    max-width: 400px;
+    margin: 0 auto;
+  }
+}
+
+/* Mobile portrait */
+@media (max-width: 480px) {
+  .code-block-preview {
+    max-width: 100%;
+    margin: 0;
+    font-size: 0.75rem;
+    border-radius: 8px;
+  }
+
+  .code-content {
+    padding: 1rem;
+  }
+
+  .code-preview-section {
+    padding: 3rem 1rem;
+  }
+}
+#+end_src
+
+#+NAME: terminal-styles
+#+begin_src css 
+/* Terminal Demo Section Styles */
+.terminal-demo-section {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem 2rem;
+}
+
+.terminal-demo-section .section-content {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4rem;
+  max-width: 1100px;
+  width: 100%;
+  align-items: center;
+}
+
+.terminal-demo-section .section-text {
+  text-align: left;
+}
+
+.terminal-demo-section h2 {
+  font-size: 2.5rem;
+  font-weight: 300;
+  color: var(--text-color);
+  margin: 0 0 1.5rem 0;
+  letter-spacing: 0.02em;
+}
+
+.terminal-demo-section p {
+  font-size: 1.1rem;
+  line-height: 1.7;
+  color: var(--text-muted);
+  margin: 0 0 1.5rem 0;
+}
+
+.feature-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.feature-list li {
+  position: relative;
+  padding-left: 1.5rem;
+  margin-bottom: 0.75rem;
+  color: var(--text-muted);
+  font-size: 0.95rem;
+}
+
+.feature-list li::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0.55em;
+  width: 6px;
+  height: 6px;
+  background: var(--text-subtle);
+  border-radius: 50%;
+}
+
+.terminal-window {
+  background: #1e1e2e;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+  font-size: 0.9rem;
+}
+
+.terminal-header {
+  background: #313244;
+  padding: 0.75rem 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.terminal-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+}
+
+.terminal-dot.red { background: #f38ba8; }
+.terminal-dot.yellow { background: #f9e2af; }
+.terminal-dot.green { background: #a6e3a1; }
+
+.terminal-title {
+  flex: 1;
+  text-align: center;
+  font-size: 0.8rem;
+  color: #6c7086;
+  margin-right: 48px;
+}
+
+.terminal-body {
+  padding: 1.25rem;
+  min-height: 160px;
+}
+
+.terminal-line {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.terminal-prompt {
+  color: #a6e3a1;
+  font-weight: 600;
+}
+
+.terminal-command {
+  color: #cdd6f4;
+}
+
+.terminal-cursor {
+  color: #cdd6f4;
+  animation: cursor-blink 1s step-end infinite;
+}
+
+@keyframes cursor-blink {
+  0%, 50% { opacity: 1; }
+  51%, 100% { opacity: 0; }
+}
+
+.terminal-output {
+  color: #cdd6f4;
+}
+
+.output-line {
+  opacity: 0;
+  transform: translateY(5px);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+  margin-bottom: 0.4rem;
+  line-height: 1.5;
+}
+
+.output-line.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.output-line .dim { color: #6c7086; }
+.output-line .url-link { color: #89b4fa; }
+.output-line .key {
+  color: #cdd6f4;
+  background: #45475a;
+  padding: 0.1rem 0.4rem;
+  border-radius: 3px;
+  font-size: 0.85em;
+}
+
+@media (max-width: 900px) {
+  .terminal-demo-section .section-content {
+    grid-template-columns: 1fr;
+    gap: 2rem;
+    display: flex;
+    flex-direction: column-reverse;
+  }
+
+  .terminal-demo-section .section-text {
+    text-align: center;
+  }
+
+  .terminal-demo-section h2 {
+    font-size: 2rem;
+  }
+
+  .terminal-window {
+    max-width: 420px;
+    margin: 0 auto;
+  }
+
+  .feature-list {
+    text-align: left;
+    max-width: 320px;
+    margin: 0 auto;
+  }
+}
+#+end_src
+
+#+NAME: community-styles
+#+begin_src css 
+/* Community Section Styles */
+.community-section {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem 2rem;
+}
+
+.community-section .section-content {
+  max-width: 1000px;
+  width: 100%;
+  text-align: center;
+}
+
+.community-section h2 {
+  font-size: 2.5rem;
+  font-weight: 300;
+  color: var(--text-color);
+  margin: 0 0 1rem 0;
+  letter-spacing: 0.02em;
+}
+
+.community-section > .section-content > p {
+  font-size: 1.1rem;
+  line-height: 1.7;
+  color: var(--text-muted);
+  max-width: 650px;
+  margin: 0 auto 3rem auto;
+}
+
+/* Community cards grid */
+.community-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1.25rem;
+  margin-top: 2rem;
+}
+
+.community-card {
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 1.5rem;
+  text-align: left;
+  transition: all 0.25s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.community-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: var(--card-accent, var(--border-hover));
+  opacity: 0;
+  transition: opacity 0.25s ease;
+}
+
+.community-card:hover {
+  background: var(--card-hover);
+  border-color: var(--border-hover);
+  transform: translateY(-3px);
+}
+
+.community-card:hover::before {
+  opacity: 1;
+}
+
+.community-card .card-icon {
+  font-size: 1.5rem;
+  margin-bottom: 0.75rem;
+  display: block;
+}
+
+.community-card h3 {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-color);
+  margin: 0 0 0.5rem 0;
+}
+
+.community-card p {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  margin: 0;
+  line-height: 1.5;
+}
+
+.community-card code {
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  font-size: 0.8rem;
+  background: var(--border-color);
+  padding: 0.15rem 0.4rem;
+  border-radius: 4px;
+  color: var(--text-color);
+}
+
+/* Card accent colors */
+.community-card.components { --card-accent: #60a5fa; }
+.community-card.design { --card-accent: #f472b6; }
+.community-card.diagrams { --card-accent: #fb923c; }
+.community-card.printing { --card-accent: #22d3ee; }
+.community-card.data { --card-accent: #34d399; }
+.community-card.music { --card-accent: #a78bfa; }
+.community-card.ai { --card-accent: linear-gradient(135deg, #fbbf24, #f59e0b); }
+
+/* Responsive */
+@media (max-width: 1100px) {
+  .community-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 900px) {
+  .community-section h2 {
+    font-size: 2rem;
+  }
+}
+
+@media (max-width: 550px) {
+  .community-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .community-card {
+    text-align: center;
+  }
+}
+#+end_src
+
+#+NAME: carousel-styles
+#+begin_src css 
+/* CLI Carousel Section Styles */
+.cli-carousel-section {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem 2rem;
+}
+
+.cli-carousel-section .section-content {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4rem;
+  max-width: 1100px;
+  width: 100%;
+  align-items: center;
+}
+
+.cli-carousel-section .section-text {
+  text-align: left;
+}
+
+.cli-carousel-section h2 {
+  font-size: 2.5rem;
+  font-weight: 300;
+  color: var(--text-color);
+  margin: 0 0 1.5rem 0;
+  letter-spacing: 0.02em;
+}
+
+.cli-carousel-section p {
+  font-size: 1.1rem;
+  line-height: 1.7;
+  color: var(--text-muted);
+  margin: 0 0 2rem 0;
+}
+
+.cli-features {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.cli-feature {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+}
+
+.cli-feature strong {
+  color: var(--text-color);
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  font-size: 0.85rem;
+  background: var(--card-bg);
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  margin-right: 0.5rem;
+}
+
+.cli-window {
+  background: #1e1e2e;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+}
+
+.cli-header {
+  background: #313244;
+  padding: 0.75rem 1.25rem;
+}
+
+.cli-prompt {
+  color: #a6e3a1;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.cli-carousel-container {
+  position: relative;
+  height: 260px;
+  overflow: hidden;
+  padding: 0 1rem;
+}
+
+.cli-carousel {
+  transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  padding-top: 104px;
+}
+
+.cli-item {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  height: 44px;
+  margin-bottom: 8px;
+  padding: 0 1rem;
+  border-radius: 6px;
+  transition: all 0.3s ease;
+  opacity: 0.4;
+  transform: scale(0.95);
+}
+
+.cli-item.active {
+  opacity: 1;
+  transform: scale(1);
+  background: rgba(166, 227, 161, 0.1);
+}
+
+.cli-cmd {
+  color: #89b4fa;
+  font-weight: 600;
+  min-width: 90px;
+}
+
+.cli-desc {
+  color: #6c7086;
+  font-size: 0.85rem;
+}
+
+.cli-item.active .cli-cmd { color: #a6e3a1; }
+.cli-item.active .cli-desc { color: #cdd6f4; }
+
+.cli-highlight {
+  position: absolute;
+  top: 50%;
+  left: 0.5rem;
+  right: 0.5rem;
+  height: 44px;
+  transform: translateY(-50%);
+  border: 1px solid rgba(166, 227, 161, 0.3);
+  border-radius: 6px;
+  pointer-events: none;
+}
+
+.cli-carousel-container::before,
+.cli-carousel-container::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 60px;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.cli-carousel-container::before {
+  top: 0;
+  background: linear-gradient(to bottom, #1e1e2e 0%, transparent 100%);
+}
+
+.cli-carousel-container::after {
+  bottom: 0;
+  background: linear-gradient(to top, #1e1e2e 0%, transparent 100%);
+}
+
+@media (max-width: 900px) {
+  .cli-carousel-section .section-content {
+    grid-template-columns: 1fr;
+    gap: 2rem;
+  }
+
+  .cli-carousel-section .section-text {
+    text-align: center;
+  }
+
+  .cli-carousel-section h2 {
+    font-size: 2rem;
+  }
+
+  .cli-window {
+    max-width: 380px;
+    margin: 0 auto;
+  }
+
+  .cli-features {
+    align-items: center;
+  }
+}
+#+end_src
+
+#+NAME: ai-chat-styles
+#+begin_src css 
+/* AI Chat Section Styles */
+.ai-chat-section {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem 2rem;
+}
+
+.ai-chat-section .section-content {
+  max-width: 900px;
+  width: 100%;
+  text-align: center;
+}
+
+.ai-header {
+  position: relative;
+  margin-bottom: 3rem;
+}
+
+.ai-glow {
+  display: none; /* Removed glowing dot */
+}
+
+.ai-titles {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.ai-titles h2 {
+  font-size: 2.5rem;
+  font-weight: 300;
+  color: var(--text-color);
+  margin: 0;
+  letter-spacing: 0.02em;
+}
+
+.ai-titles h2.gold {
+  background: linear-gradient(135deg, #ffd700 0%, #ffaa00 50%, #ffd700 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.ai-subtitle {
+  font-size: 1.1rem;
+  line-height: 1.7;
+  color: var(--text-muted);
+  max-width: 550px;
+  margin: 0 auto;
+}
+
+.chat-demo {
+  margin: 2.5rem 0;
+}
+
+.chat-window {
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 1.5rem;
+  max-width: 600px;
+  margin: 0 auto;
+  text-align: left;
+}
+
+.chat-messages {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.chat-message {
+  display: flex;
+  align-items: flex-start; /* Align icon to top of text */
+  gap: 0.75rem;
+  opacity: 0;
+  transform: translateY(10px);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.chat-message.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.message-icon {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.65rem;
+  font-weight: 700;
+}
+
+.error-icon {
+  background: rgba(239, 68, 68, 0.2);
+  color: #ef4444;
+}
+
+.ai-icon {
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.3), rgba(139, 92, 246, 0.3));
+  color: #a78bfa;
+  font-size: 0.65rem;
+}
+
+.user-icon {
+  background: var(--border-color);
+  color: var(--text-muted);
+  font-family: monospace;
+}
+
+.success-icon {
+  background: rgba(34, 197, 94, 0.2);
+  color: #22c55e;
+}
+
+.message-content {
+  flex: 1;
+  padding: 0;
+  min-height: 20px; /* Match icon height */
+  display: flex;
+  align-items: flex-start;
+}
+
+.message-text {
+  font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  line-height: 1.5;
+}
+
+.chat-message.error .message-text {
+  color: #ef4444;
+}
+
+.chat-message.user .message-text {
+  color: var(--text-subtle);
+}
+
+.chat-message.success .message-text {
+  color: #22c55e;
+}
+
+.ai-features {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 2rem;
+  margin-top: 3rem;
+}
+
+.ai-feature {
+  text-align: center;
+}
+
+.ai-feature h3 {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-color);
+  margin: 0 0 0.5rem 0;
+}
+
+.ai-feature p {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  margin: 0;
+  line-height: 1.5;
+}
+
+@media (max-width: 768px) {
+  .ai-titles h2 {
+    font-size: 1.8rem;
+  }
+
+  .ai-features {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+
+  .chat-window {
+    padding: 1rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ai-glow {
+    animation: none;
+  }
+
+  .chat-message {
+    transition: none;
+  }
+}
+#+end_src
+
+#+NAME: halftone-bg-styles
+#+begin_src css 
+/* Halftone background - Three.js canvas */
+.landing-particles canvas {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw !important;
+  height: 100vh !important;
+  z-index: 0;
+  pointer-events: none;
+}
+
+/* Hide on mobile or reduced motion */
+@media (max-width: 768px), (prefers-reduced-motion: reduce) {
+  .landing-particles {
+    display: none;
+  }
+}
+#+end_src
+
+#+NAME: landing-controller
+#+begin_src typescript 
+/**
+ * Landing Page Controller
+ *
+ * Orchestrates all landing page components:
+ * 1. Three.js sphere grid background with mouse-driven camera rotation
+ * 2. Hero section with character display
+ * 3. Interactive sections
+ */
+
+import * as THREE from 'three';
+
+// =============================================================================
+// 3D Sphere Grid Background
+// =============================================================================
+
+interface SphereGridOptions {
+  gridCols: number;      // Number of columns in the grid
+  gridRows: number;      // Number of rows in the grid
+  sphereRadius: number;  // Base radius of each sphere
+  spacing: number;       // Space between sphere centers
+  backgroundColor: number;
+  sphereColor: number;
+}
+
+function createSphereGridBackground(
+  container: HTMLElement,
+  options: Partial<SphereGridOptions> = {}
+) {
+  const {
+    gridCols = 40,
+    gridRows = 30,
+    sphereRadius = 0.3,
+    spacing = 1.2,
+    backgroundColor = 0x0a0a0f,
+    sphereColor = 0xffffff,
+  } = options;
+
+  // Scene setup
+  const scene = new THREE.Scene();
+  scene.background = new THREE.Color(backgroundColor);
+
+  // Camera - perspective, centered on grid
+  const camera = new THREE.PerspectiveCamera(50, 1, 0.1, 1000);
+  const cameraDistance = 50;
+  camera.position.set(0, 0, cameraDistance);
+  camera.lookAt(0, 0, 0);
+
+  // Renderer
+  const renderer = new THREE.WebGLRenderer({ antialias: true });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  container.appendChild(renderer.domElement);
+
+  // Style the canvas
+  renderer.domElement.style.position = 'fixed';
+  renderer.domElement.style.top = '0';
+  renderer.domElement.style.left = '0';
+  renderer.domElement.style.width = '100vw';
+  renderer.domElement.style.height = '100vh';
+  renderer.domElement.style.zIndex = '0';
+  renderer.domElement.style.pointerEvents = 'none';
+
+  // Create instanced mesh for performance
+  // Use low segment count for small spheres
+  const sphereGeometry = new THREE.SphereGeometry(sphereRadius, 8, 6);
+  const sphereMaterial = new THREE.MeshBasicMaterial({
+    color: sphereColor,
+  });
+
+  const totalSpheres = gridCols * gridRows;
+  const instancedMesh = new THREE.InstancedMesh(sphereGeometry, sphereMaterial, totalSpheres);
+
+  // Set up instance colors for highlight effects
+  const baseColor = new THREE.Color(sphereColor);
+  const instanceColors = new Float32Array(totalSpheres * 3);
+  for (let i = 0; i < totalSpheres; i++) {
+    instanceColors[i * 3] = baseColor.r;
+    instanceColors[i * 3 + 1] = baseColor.g;
+    instanceColors[i * 3 + 2] = baseColor.b;
+  }
+  instancedMesh.instanceColor = new THREE.InstancedBufferAttribute(instanceColors, 3);
+
+  scene.add(instancedMesh);
+
+  // Calculate grid dimensions to fill viewport
+  // At distance 50 with FOV 50, visible width ≈ 2 * tan(25°) * 50 ≈ 46.6
+  const visibleHeight = 2 * Math.tan((50 / 2) * Math.PI / 180) * cameraDistance;
+  const aspect = window.innerWidth / window.innerHeight;
+  const visibleWidth = visibleHeight * aspect;
+
+  // Adjust spacing to fill the viewport
+  const effectiveSpacing = Math.max(visibleWidth / gridCols, visibleHeight / gridRows) * 1.1;
+  const gridWidth = (gridCols - 1) * effectiveSpacing;
+  const gridHeight = (gridRows - 1) * effectiveSpacing;
+
+  // Store sphere states for animation
+  interface SphereState {
+    targetX: number;
+    targetY: number;
+    targetZ: number;
+    targetScale: number;
+    currentX: number;
+    currentY: number;
+    currentZ: number;
+    currentScale: number;
+    delay: number;
+    isCharacter: boolean; // True if this sphere is part of a character
+    wordGroup: number; // Which background word group this sphere belongs to (-1 = none/main text)
+    baseZ: number; // Base Z position before highlight animation
+    baseScale: number; // Base scale before highlight animation
+    highlightAmount: number; // 0-1, how much this sphere is highlighted
+    targetHighlight: number; // Target highlight amount
+    highlightDelay: number; // Random delay for staggered animation within word
+  }
+
+  // Track background word groups for highlight animation
+  interface WordGroup {
+    word: string;
+    sphereIndices: number[];
+    isHighlighted: boolean;
+    highlightStartTime: number;
+    highlightDuration: number; // Randomized duration for this highlight
+  }
+  const wordGroups: WordGroup[] = [];
+
+  const sphereStates: SphereState[] = [];
+  const matrix = new THREE.Matrix4();
+
+  // Initialize all spheres - they start hidden and will be revealed by setText
+  let index = 0;
+  for (let row = 0; row < gridRows; row++) {
+    for (let col = 0; col < gridCols; col++) {
+      const targetX = col * effectiveSpacing - gridWidth / 2;
+      const targetY = row * effectiveSpacing - gridHeight / 2;
+
+      // Calculate delay based on distance from center (for entrance animation)
+      const distFromCenter = Math.sqrt(
+        Math.pow(col - gridCols / 2, 2) + Math.pow(row - gridRows / 2, 2)
+      );
+      const maxDist = Math.sqrt(Math.pow(gridCols / 2, 2) + Math.pow(gridRows / 2, 2));
+      const delay = (distFromCenter / maxDist) * 1.5;
+
+      sphereStates.push({
+        targetX,
+        targetY,
+        targetZ: 0,
+        targetScale: 0.15, // Start hidden, will be set by setText
+        currentX: targetX,
+        currentY: targetY - visibleHeight * 1.5, // Start below viewport
+        currentZ: 0,
+        currentScale: 0.15,
+        delay,
+        isCharacter: false,
+        wordGroup: -1,
+        baseZ: 0,
+        baseScale: 0.15,
+        highlightAmount: 0,
+        targetHighlight: 0,
+        highlightDelay: Math.random(), // Random delay 0-1
+      });
+
+      matrix.makeTranslation(targetX, targetY - visibleHeight * 1.5, 0);
+      instancedMesh.setMatrixAt(index, matrix);
+      index++;
+    }
+  }
+  instancedMesh.instanceMatrix.needsUpdate = true;
+
+  // Mouse tracking for camera rotation
+  let mouseX = 0;
+  let mouseY = 0;
+  let targetMouseX = 0;
+  let targetMouseY = 0;
+  const rotationSmoothing = 0.05;
+  const maxRotation = 0.15; // Max Z rotation in radians
+
+  const handleMouseMove = (e: MouseEvent) => {
+    // Normalize to -1 to 1
+    targetMouseX = (e.clientX / window.innerWidth) * 2 - 1;
+    targetMouseY = (e.clientY / window.innerHeight) * 2 - 1;
+  };
+  window.addEventListener('mousemove', handleMouseMove, { passive: true });
+
+  // Handle resize
+  const handleResize = () => {
+    const width = window.innerWidth;
+    const height = window.innerHeight;
+    camera.aspect = width / height;
+    camera.updateProjectionMatrix();
+    renderer.setSize(width, height);
+  };
+  window.addEventListener('resize', handleResize);
+  handleResize();
+
+  // Animation loop
+  let animationId: number | null = null;
+  let startTime: number | null = null;
+  const entranceDuration = 2.0; // seconds for entrance animation
+
+  // Highlight animation state
+  let lastHighlightTime = 0;
+  const highlightInterval = 1500; // ms between triggering individual highlights
+  const baseRiseDuration = 1200; // Base ms for spheres to rise
+  const baseHoldDuration = 800; // Base ms to hold at peak
+  const baseFallDuration = 1200; // Base ms for spheres to fall back
+  const durationVariance = 0.4; // ±40% random variance on durations
+  const highlightZOffset = 5; // How much to move forward on Z
+  const highlightScaleMultiplier = 1.6; // How much bigger when highlighted
+  const highlightDarkness = 0.35; // How dark (0 = black, 1 = original color)
+  const maxSimultaneousHighlights = 3; // Max words highlighted at once
+  const darkColor = new THREE.Color(sphereColor).multiplyScalar(highlightDarkness);
+  const tempColor = new THREE.Color();
+
+  function easeOutCubic(t: number): number {
+    return 1 - Math.pow(1 - t, 3);
+  }
+
+  function easeInOutSine(t: number): number {
+    return -(Math.cos(Math.PI * t) - 1) / 2;
+  }
+
+  function animate(timestamp: number) {
+    animationId = requestAnimationFrame(animate);
+
+    if (startTime === null) startTime = timestamp;
+    const elapsed = (timestamp - startTime) / 1000; // seconds
+
+    // Smooth mouse tracking
+    mouseX += (targetMouseX - mouseX) * rotationSmoothing;
+    mouseY += (targetMouseY - mouseY) * rotationSmoothing;
+
+    // Smooth formation transition
+    const formationLerpSpeed = 0.04;
+    formationProgress += (targetFormationProgress - formationProgress) * formationLerpSpeed;
+
+    // Update ripple effect for pipeline mode
+    if (currentFormation === 'pipeline') {
+      // Spawn new ripples
+      if (timestamp - lastRippleTime > rippleInterval && activeRipples.length < maxRipples) {
+        lastRippleTime = timestamp;
+        activeRipples.push({
+          x: (Math.random() - 0.5) * visibleWidth * 0.8,
+          y: (Math.random() - 0.5) * visibleHeight * 0.8,
+          radius: 0,
+          maxRadius: Math.max(visibleWidth, visibleHeight) * 0.6,
+          strength: 1,
+          speed: 0.03 + Math.random() * 0.02, // Much slower expansion
+        });
+      }
+
+      // Update existing ripples
+      for (let i = activeRipples.length - 1; i >= 0; i--) {
+        const ripple = activeRipples[i];
+        ripple.radius += ripple.speed;
+
+        // Fade out as it expands
+        ripple.strength = 1 - (ripple.radius / ripple.maxRadius);
+
+        // Remove finished ripples
+        if (ripple.radius > ripple.maxRadius) {
+          activeRipples.splice(i, 1);
+        }
+      }
+    }
+
+    // Update globe rotation
+    if (currentFormation === 'globe') {
+      globeRotation += globeRotationSpeed;
+    }
+
+    // Update prism rotation
+    if (currentFormation === 'prism') {
+      prismRotation += prismRotationSpeed;
+    }
+
+    // Update star travel effect - very slow drift through space
+    if (currentFormation === 'warp') {
+      // Very slow acceleration, caps at low intensity
+      warpIntensity = Math.min(warpIntensity + 0.0005, 0.15); // Cap at 15% intensity
+
+      // Very slow speed - gentle drift
+      const currentSpeed = 0.008 + warpIntensity * 0.06;
+
+      // Update each star
+      for (const star of warpStars) {
+        // Move toward camera (positive Z)
+        star.z += currentSpeed * star.speedMultiplier;
+
+        // Gentle stretch based on proximity (not too extreme)
+        const zNorm = (star.z + warpDepth * 0.5) / warpDepth;
+        star.stretch = 1 + zNorm * warpIntensity * 2;
+
+        // Brightness based on proximity
+        star.brightness = 0.4 + zNorm * 0.6;
+
+        // Recycle stars that pass the camera
+        if (star.z > warpNearPlane) {
+          resetWarpStar(star);
+        }
+      }
+    } else {
+      // Gradually reset when leaving warp mode
+      warpIntensity = Math.max(0, warpIntensity - 0.01);
+    }
+
+    // Grid mode: trigger word highlights
+    if (formationProgress < 0.5) {
+      const currentHighlightCount = wordGroups.filter(g => g.isHighlighted).length;
+      if (timestamp - lastHighlightTime > highlightInterval &&
+          wordGroups.length > 0 &&
+          currentHighlightCount < maxSimultaneousHighlights) {
+        lastHighlightTime = timestamp;
+
+        const availableGroups = wordGroups.filter(g => !g.isHighlighted);
+        if (availableGroups.length > 0) {
+          const randomIdx = Math.floor(Math.random() * availableGroups.length);
+          const group = availableGroups[randomIdx];
+          group.isHighlighted = true;
+          group.highlightStartTime = timestamp;
+
+          const variance = 1 + (Math.random() - 0.5) * 2 * durationVariance;
+          group.highlightDuration = (baseRiseDuration + baseHoldDuration + baseFallDuration) * variance;
+        }
+      }
+
+      // Update word highlight targets
+      for (const group of wordGroups) {
+        if (!group.isHighlighted) continue;
+
+        const groupElapsed = timestamp - group.highlightStartTime;
+        const totalDuration = group.highlightDuration;
+        const riseDuration = totalDuration * 0.35;
+        const holdDuration = totalDuration * 0.25;
+        const sphereStagger = totalDuration * 0.15;
+
+        if (groupElapsed > totalDuration + sphereStagger + 300) {
+          group.isHighlighted = false;
+          for (const idx of group.sphereIndices) {
+            sphereStates[idx].targetHighlight = 0;
+          }
+          continue;
+        }
+
+        for (const idx of group.sphereIndices) {
+          const state = sphereStates[idx];
+          const sphereDelay = state.highlightDelay * sphereStagger;
+          const sphereElapsed = groupElapsed - sphereDelay;
+
+          if (sphereElapsed < 0) {
+            state.targetHighlight = 0;
+          } else if (sphereElapsed < riseDuration) {
+            state.targetHighlight = 1;
+          } else if (sphereElapsed < riseDuration + holdDuration) {
+            state.targetHighlight = 1;
+          } else {
+            state.targetHighlight = 0;
+          }
+        }
+      }
+    } else {
+      // Clear grid highlights when transitioning to cube
+      for (const group of wordGroups) {
+        group.isHighlighted = false;
+        for (const idx of group.sphereIndices) {
+          sphereStates[idx].targetHighlight = 0;
+        }
+      }
+    }
+
+    // Cube mode: trigger cube highlights (one at a time, slower)
+    if (formationProgress > 0.5) {
+      const currentCubeHighlightCount = cubeStates.filter(s => s.isHighlighted).length;
+      if (timestamp - lastCubeHighlightTime > cubeHighlightInterval &&
+          currentCubeHighlightCount < 1) { // Only one cube at a time
+        lastCubeHighlightTime = timestamp;
+
+        const availableCubes = cubeStates
+          .map((s, i) => ({ state: s, idx: i }))
+          .filter(s => !s.state.isHighlighted);
+
+        if (availableCubes.length > 0) {
+          const randomIdx = Math.floor(Math.random() * availableCubes.length);
+          const cube = availableCubes[randomIdx];
+          cube.state.isHighlighted = true;
+          cube.state.highlightStartTime = timestamp;
+          cube.state.highlightDuration = 4000 + Math.random() * 2000; // Slower: 4-6 seconds
+        }
+      }
+
+      // Update cube highlight states
+      for (const cubeState of cubeStates) {
+        if (!cubeState.isHighlighted) continue;
+
+        const cubeElapsed = timestamp - cubeState.highlightStartTime;
+        if (cubeElapsed > cubeState.highlightDuration) {
+          cubeState.isHighlighted = false;
+        }
+      }
+    }
+
+    // Animate spheres
+    let colorsChanged = false;
+    const cubeScale = 1.2; // Sphere scale when in cube formation (larger spheres)
+    const cubeHighlightZOffset = 8; // Z offset for highlighted cubes (move toward camera)
+    const cubeHighlightScaleBoost = 0.6; // Scale increase for highlighted cubes (60%)
+
+    sphereStates.forEach((state, i) => {
+      const adjustedTime = Math.max(0, elapsed - state.delay);
+      const progress = Math.min(1, adjustedTime / entranceDuration);
+      const entranceEased = easeOutCubic(progress);
+
+      // Get cube mapping for this sphere
+      const cubeMapping = sphereToCube[i];
+      const cubeState = cubeMapping && cubeMapping.isInCube ? cubeStates[cubeMapping.cubeIdx] : null;
+
+      // Calculate cube highlight amount
+      let cubeHighlightAmount = 0;
+      if (cubeState && cubeState.isHighlighted) {
+        const cubeElapsed = timestamp - cubeState.highlightStartTime;
+        const halfDuration = cubeState.highlightDuration / 2;
+        if (cubeElapsed < halfDuration) {
+          cubeHighlightAmount = easeInOutSine(cubeElapsed / halfDuration);
+        } else {
+          cubeHighlightAmount = easeInOutSine(1 - (cubeElapsed - halfDuration) / halfDuration);
+        }
+      }
+
+      // Grid position (original)
+      const gridX = state.targetX;
+      const gridY = state.targetY;
+      const gridZ = state.baseZ;
+      const gridScale = state.baseScale;
+
+      // Calculate formation-specific position
+      let formationX = gridX;
+      let formationY = gridY;
+      let formationZ = 0;
+      let formationScale = gridScale;
+
+      if (currentFormation === 'cube') {
+        // Cube position
+        if (cubeMapping && cubeMapping.isInCube) {
+          formationX = cubeMapping.cubeCenterX +
+                  (cubeMapping.localX - (spheresPerCubeSide - 1) / 2) * sphereSpacingInCube;
+          formationY = cubeMapping.cubeCenterY +
+                  (cubeMapping.localY - (spheresPerCubeSide - 1) / 2) * sphereSpacingInCube;
+          formationZ = (cubeMapping.localZ - (spheresPerCubeSide - 1) / 2) * sphereSpacingInCube +
+                  cubeHighlightAmount * cubeHighlightZOffset;
+        }
+        formationScale = cubeScale * (1 + cubeHighlightAmount * cubeHighlightScaleBoost);
+      } else if (currentFormation === 'pipeline') {
+        // Ripple effect - drops creating expanding circles
+        formationX = gridX;
+        formationY = gridY;
+        formationZ = 0;
+        formationScale = 1.0; // Uniform grid
+
+        // Calculate ripple effect from active ripples
+        let totalRippleEffect = 0;
+        for (const ripple of activeRipples) {
+          const dx = gridX - ripple.x;
+          const dy = gridY - ripple.y;
+          const distFromCenter = Math.sqrt(dx * dx + dy * dy);
+
+          // Ripple ring properties
+          const rippleRadius = ripple.radius;
+          const ringWidth = 2.5;
+          const distFromRing = Math.abs(distFromCenter - rippleRadius);
+
+          if (distFromRing < ringWidth) {
+            // Sphere is on the ripple ring
+            const rippleStrength = (1 - distFromRing / ringWidth) * ripple.strength;
+            totalRippleEffect = Math.max(totalRippleEffect, rippleStrength);
+          }
+        }
+
+        // Apply ripple effect
+        formationZ = totalRippleEffect * 4;
+        formationScale = 1.0 + totalRippleEffect * 0.5;
+      } else if (currentFormation === 'globe') {
+        // Globe formation - spheres on a rotating sphere with lat/long grid
+        const globeMapping = sphereToGlobe[i];
+
+        if (globeMapping && globeMapping.isOnGlobe) {
+          // Spherical to Cartesian conversion with rotation
+          const rotatedTheta = globeMapping.theta + globeRotation;
+
+          // x = r * sin(phi) * cos(theta)
+          // y = r * cos(phi)
+          // z = r * sin(phi) * sin(theta)
+          formationX = globeRadius * Math.sin(globeMapping.phi) * Math.cos(rotatedTheta);
+          formationY = globeRadius * Math.cos(globeMapping.phi);
+          formationZ = globeRadius * Math.sin(globeMapping.phi) * Math.sin(rotatedTheta);
+
+          formationScale = 1.0;
+        } else {
+          // Hide non-globe spheres by moving them far away and scaling down
+          formationX = gridX;
+          formationY = gridY;
+          formationZ = -50;
+          formationScale = 0.01;
+        }
+      } else if (currentFormation === 'prism') {
+        // Prism formation - rotating triangular prism wireframe
+        const prismMapping = sphereToPrism[i];
+
+        if (prismMapping && prismMapping.isOnPrism) {
+          // Apply rotation around Y axis
+          const cosR = Math.cos(prismRotation);
+          const sinR = Math.sin(prismRotation);
+          formationX = prismMapping.x * cosR - prismMapping.z * sinR;
+          formationY = prismMapping.y;
+          formationZ = prismMapping.x * sinR + prismMapping.z * cosR;
+          formationScale = 1.2;
+        } else {
+          // Hide non-prism spheres
+          formationX = gridX;
+          formationY = gridY;
+          formationZ = -50;
+          formationScale = 0.01;
+        }
+      } else if (currentFormation === 'warp') {
+        // Simple star travel - stars drifting toward camera
+        const star = warpStars[i];
+
+        if (star && star.isActive) {
+          // Depth normalization (0 = far back, 1 = at camera)
+          const zNorm = (star.z + warpDepth * 0.5) / warpDepth;
+
+          // Simple perspective - stars spread out as they get closer
+          const perspectiveFactor = 0.3 + zNorm * 1.5;
+          formationX = star.baseX * perspectiveFactor;
+          formationY = star.baseY * perspectiveFactor;
+          formationZ = star.z;
+
+          // Scale: stars grow as they approach
+          formationScale = 0.6 + zNorm * 1.0;
+
+          // Keep stars white
+          instancedMesh.setColorAt(i, baseColor);
+          colorsChanged = true;
+        } else {
+          // Hide inactive stars
+          formationX = 0;
+          formationY = 0;
+          formationZ = -100;
+          formationScale = 0;
+        }
+      }
+
+      const formEased = easeInOutSine(formationProgress);
+
+      // Target position based on formation
+      const targetX = gridX * (1 - formEased) + formationX * formEased;
+      const targetY = gridY * (1 - formEased) + formationY * formEased;
+      const targetScale = gridScale * (1 - formEased) + formationScale * formEased;
+
+      // Grid highlight effect (only when in grid mode)
+      const gridHighlightEffect = state.highlightAmount * (1 - formEased);
+      const highlightEased = easeInOutSine(gridHighlightEffect);
+      const effectiveTargetZ = gridZ * (1 - formEased) + formationZ * formEased +
+                               highlightEased * highlightZOffset;
+      const effectiveTargetScale = targetScale * (1 + highlightEased * (highlightScaleMultiplier - 1));
+
+      // Smooth interpolation for highlight amount
+      state.highlightAmount += (state.targetHighlight - state.highlightAmount) * 0.12;
+
+      // Entrance animation for Y
+      const startY = state.targetY - visibleHeight * 1.5;
+      const entranceY = startY + (targetY - startY) * entranceEased;
+      const finalTargetY = formationProgress < 0.1 ? entranceY : targetY;
+
+      // Smooth interpolation for position and scale
+      const baseLerpSpeed = 0.08;
+      const lerpSpeed = baseLerpSpeed;
+      state.currentX += (targetX - state.currentX) * lerpSpeed;
+      state.currentY += (finalTargetY - state.currentY) * lerpSpeed;
+      state.currentZ += (effectiveTargetZ - state.currentZ) * lerpSpeed;
+      state.currentScale += (effectiveTargetScale - state.currentScale) * lerpSpeed;
+
+      // Update color based on highlight (grid or cube)
+      const totalHighlight = Math.max(gridHighlightEffect, cubeHighlightAmount * formEased);
+      if (totalHighlight > 0.01) {
+        tempColor.copy(baseColor).lerp(darkColor, totalHighlight);
+        instancedMesh.setColorAt(i, tempColor);
+        colorsChanged = true;
+      } else if (state.highlightAmount < 0.01 && cubeHighlightAmount < 0.01) {
+        // Reset to base color
+        instancedMesh.setColorAt(i, baseColor);
+        colorsChanged = true;
+      }
+
+      // Update matrix
+      matrix.makeTranslation(state.currentX, state.currentY, state.currentZ);
+      matrix.scale(new THREE.Vector3(state.currentScale, state.currentScale, state.currentScale));
+      instancedMesh.setMatrixAt(i, matrix);
+    });
+
+    instancedMesh.instanceMatrix.needsUpdate = true;
+    if (colorsChanged && instancedMesh.instanceColor) {
+      instancedMesh.instanceColor.needsUpdate = true;
+    }
+
+    // Reset camera and apply X-axis rotation based on mouse
+    // Camera orbits around the center point
+    const rotationX = -mouseY * maxRotation; // Vertical mouse = tilt up/down
+    const rotationY = -mouseX * maxRotation; // Horizontal mouse = rotate left/right
+
+    // Calculate camera position on a sphere around the origin
+    const camX = cameraDistance * Math.sin(rotationY) * Math.cos(rotationX);
+    const camY = cameraDistance * Math.sin(rotationX);
+    const camZ = cameraDistance * Math.cos(rotationY) * Math.cos(rotationX);
+
+    camera.position.set(camX, camY, camZ);
+    camera.lookAt(0, 0, 0);
+
+    renderer.render(scene, camera);
+  }
+
+  // Start animation
+  requestAnimationFrame(animate);
+
+  // Formation types
+  type Formation = 'grid' | 'cube' | 'pipeline' | 'globe' | 'prism' | 'warp';
+  let currentFormation: Formation = 'grid';
+  let formationProgress = 0; // 0 = grid, 1 = other formation
+  let targetFormationProgress = 0;
+
+  // Ripple effect state - drops creating expanding circles
+  interface Ripple {
+    x: number;
+    y: number;
+    radius: number;
+    maxRadius: number;
+    strength: number;
+    speed: number;
+  }
+
+  const activeRipples: Ripple[] = [];
+  let lastRippleTime = 0;
+  const rippleInterval = 2500; // New ripple every 2.5 seconds
+  const maxRipples = 3;
+
+  // Cube grid formation - fewer, larger cubes that fill the viewport
+  const cubeGridCols = 7; // Number of cubes horizontally
+  const cubeGridRows = 5; // Number of cubes vertically
+  const spheresPerCubeSide = 4; // Each cube is 4x4x4 = 64 spheres
+  const totalCubes = cubeGridCols * cubeGridRows;
+
+  // Calculate region size (how many grid cells per cube)
+  const gridCellsPerCubeX = Math.floor(gridCols / cubeGridCols);
+  const gridCellsPerCubeY = Math.floor(gridRows / cubeGridRows);
+
+  // Bucket sizes for mapping grid cells to cube positions
+  const xBucketSize = Math.floor(gridCellsPerCubeX / spheresPerCubeSide);
+  const yBucketSize = Math.floor(gridCellsPerCubeY / spheresPerCubeSide);
+
+  // Cube size in world units - use 70% of region for cube, 30% for gap between cubes
+  const regionWidth = gridCellsPerCubeX * effectiveSpacing;
+  const regionHeight = gridCellsPerCubeY * effectiveSpacing;
+  const cubeSize = Math.min(regionWidth, regionHeight) * 0.7;
+  const sphereSpacingInCube = cubeSize / (spheresPerCubeSide - 1);
+
+  // Map each grid sphere to its cube region and local position within that cube
+  interface CubeMapping {
+    cubeIdx: number;
+    localX: number; // 0 to spheresPerCubeSide-1
+    localY: number;
+    localZ: number;
+    cubeCenterX: number;
+    cubeCenterY: number;
+    isInCube: boolean; // Whether this sphere participates in cube formation
+  }
+
+  const sphereToCube: CubeMapping[] = [];
+
+  for (let row = 0; row < gridRows; row++) {
+    for (let col = 0; col < gridCols; col++) {
+      // Which cube region does this sphere belong to?
+      const cubeCol = Math.floor(col / gridCellsPerCubeX);
+      const cubeRow = Math.floor(row / gridCellsPerCubeY);
+
+      // Local position within the cube region
+      const localCol = col % gridCellsPerCubeX;
+      const localRow = row % gridCellsPerCubeY;
+
+      // Map to cube's 3D local coordinates (4x4x4 uniform distribution)
+      // X and Y are determined by which bucket the sphere falls into
+      const localX = Math.min(Math.floor(localCol / xBucketSize), spheresPerCubeSide - 1);
+      const localY = Math.min(Math.floor(localRow / yBucketSize), spheresPerCubeSide - 1);
+
+      // Z is determined by position within the bucket
+      // This distributes spheres uniformly across all Z layers
+      const bucketCol = localCol % xBucketSize;
+      const bucketRow = localRow % yBucketSize;
+      const bucketIndex = bucketRow * xBucketSize + bucketCol;
+      const localZ = bucketIndex % spheresPerCubeSide;
+
+      // Check if within valid cube bounds
+      const isValidCube = cubeCol < cubeGridCols && cubeRow < cubeGridRows;
+      const cubeIdx = isValidCube ? cubeRow * cubeGridCols + cubeCol : -1;
+
+      // Cube center in world space (same as grid region center)
+      const cubeCenterX = (cubeCol + 0.5) * gridCellsPerCubeX * effectiveSpacing - gridWidth / 2;
+      const cubeCenterY = (cubeRow + 0.5) * gridCellsPerCubeY * effectiveSpacing - gridHeight / 2;
+
+      sphereToCube.push({
+        cubeIdx,
+        localX,
+        localY,
+        localZ,
+        cubeCenterX,
+        cubeCenterY,
+        isInCube: isValidCube,
+      });
+    }
+  }
+
+  // Cube highlight animation (cubes pop out on z-axis)
+  interface CubeState {
+    isHighlighted: boolean;
+    highlightStartTime: number;
+    highlightDuration: number;
+  }
+  const cubeStates: CubeState[] = Array(totalCubes).fill(null).map(() => ({
+    isHighlighted: false,
+    highlightStartTime: 0,
+    highlightDuration: 0,
+  }));
+
+  let lastCubeHighlightTime = 0;
+  const cubeHighlightInterval = 800; // Interval between cube highlights
+
+  // Globe formation - rotating sphere with lat/long grid
+  const globeRadius = Math.min(visibleWidth, visibleHeight) * 0.35;
+  const latLines = 12; // Number of latitude lines
+  const longLines = 24; // Number of longitude lines
+  const spheresPerLatLine = 40; // Spheres per latitude circle
+  const spheresPerLongLine = 20; // Spheres per longitude arc
+  let globeRotation = 0; // Current rotation angle (radians)
+  const globeRotationSpeed = 0.0008; // Rotation speed
+
+  // Map each grid sphere to a position on the globe
+  interface GlobeMapping {
+    theta: number; // Longitude angle (0 to 2π)
+    phi: number;   // Latitude angle (0 to π, 0=north pole, π=south pole)
+    isOnGlobe: boolean; // Whether this sphere participates in globe
+    isLatLine: boolean; // Is this part of a latitude line
+    isLongLine: boolean; // Is this part of a longitude line
+  }
+
+  const sphereToGlobe: GlobeMapping[] = [];
+  let globeSphereCount = 0;
+
+  // Create lat/long grid points
+  const globePoints: { theta: number; phi: number; isLat: boolean; isLong: boolean }[] = [];
+
+  // Latitude lines (horizontal circles)
+  for (let lat = 1; lat < latLines; lat++) {
+    const phi = (lat / latLines) * Math.PI; // 0 to π
+    for (let i = 0; i < spheresPerLatLine; i++) {
+      const theta = (i / spheresPerLatLine) * Math.PI * 2;
+      globePoints.push({ theta, phi, isLat: true, isLong: false });
+    }
+  }
+
+  // Longitude lines (vertical arcs)
+  for (let long = 0; long < longLines; long++) {
+    const theta = (long / longLines) * Math.PI * 2;
+    for (let i = 1; i < spheresPerLongLine; i++) {
+      const phi = (i / spheresPerLongLine) * Math.PI;
+      // Check if this point already exists from lat lines
+      const exists = globePoints.some(p =>
+        Math.abs(p.theta - theta) < 0.1 && Math.abs(p.phi - phi) < 0.1
+      );
+      if (!exists) {
+        globePoints.push({ theta, phi, isLat: false, isLong: true });
+      } else {
+        // Mark existing point as both lat and long
+        const existing = globePoints.find(p =>
+          Math.abs(p.theta - theta) < 0.1 && Math.abs(p.phi - phi) < 0.1
+        );
+        if (existing) existing.isLong = true;
+      }
+    }
+  }
+
+  // Assign globe points to grid spheres
+  for (let i = 0; i < totalSpheres; i++) {
+    if (i < globePoints.length) {
+      const point = globePoints[i];
+      sphereToGlobe.push({
+        theta: point.theta,
+        phi: point.phi,
+        isOnGlobe: true,
+        isLatLine: point.isLat,
+        isLongLine: point.isLong,
+      });
+      globeSphereCount++;
+    } else {
+      // Extra spheres - hide them in globe mode
+      sphereToGlobe.push({
+        theta: 0,
+        phi: 0,
+        isOnGlobe: false,
+        isLatLine: false,
+        isLongLine: false,
+      });
+    }
+  }
+
+  // Crystal formation - double-terminated hexagonal crystal (like quartz)
+  const crystalHeight = Math.min(visibleWidth, visibleHeight) * 0.55;
+  const crystalRadius = crystalHeight * 0.25; // Hex radius
+  const crystalPointHeight = crystalHeight * 0.25; // Height of pointed ends
+  const spheresPerEdge = 12; // Spheres along each edge
+  let prismRotation = 0;
+  const prismRotationSpeed = 0.0005;
+
+  // Generate crystal edge points
+  const prismPoints: { x: number; y: number; z: number }[] = [];
+
+  // Hexagonal vertices at the middle band
+  const hexSides = 6;
+  const midTopY = crystalHeight / 2 - crystalPointHeight;
+  const midBottomY = -crystalHeight / 2 + crystalPointHeight;
+  const topPoint = { x: 0, y: crystalHeight / 2, z: 0 };
+  const bottomPoint = { x: 0, y: -crystalHeight / 2, z: 0 };
+
+  // Generate hex vertices at two levels
+  const hexTopVertices: { x: number; y: number; z: number }[] = [];
+  const hexBottomVertices: { x: number; y: number; z: number }[] = [];
+
+  for (let i = 0; i < hexSides; i++) {
+    const angle = (i / hexSides) * Math.PI * 2;
+    hexTopVertices.push({
+      x: crystalRadius * Math.cos(angle),
+      y: midTopY,
+      z: crystalRadius * Math.sin(angle),
+    });
+    hexBottomVertices.push({
+      x: crystalRadius * Math.cos(angle),
+      y: midBottomY,
+      z: crystalRadius * Math.sin(angle),
+    });
+  }
+
+  // Helper to add edge points
+  function addEdgePoints(v1: { x: number; y: number; z: number }, v2: { x: number; y: number; z: number }) {
+    for (let i = 0; i < spheresPerEdge; i++) {
+      const t = i / (spheresPerEdge - 1);
+      prismPoints.push({
+        x: v1.x + (v2.x - v1.x) * t,
+        y: v1.y + (v2.y - v1.y) * t,
+        z: v1.z + (v2.z - v1.z) * t,
+      });
+    }
+  }
+
+  // Top point to hex top (6 edges)
+  for (let i = 0; i < hexSides; i++) {
+    addEdgePoints(topPoint, hexTopVertices[i]);
+  }
+
+  // Hex top ring (6 edges)
+  for (let i = 0; i < hexSides; i++) {
+    addEdgePoints(hexTopVertices[i], hexTopVertices[(i + 1) % hexSides]);
+  }
+
+  // Vertical edges connecting hex top to hex bottom (6 edges)
+  for (let i = 0; i < hexSides; i++) {
+    addEdgePoints(hexTopVertices[i], hexBottomVertices[i]);
+  }
+
+  // Hex bottom ring (6 edges)
+  for (let i = 0; i < hexSides; i++) {
+    addEdgePoints(hexBottomVertices[i], hexBottomVertices[(i + 1) % hexSides]);
+  }
+
+  // Bottom point to hex bottom (6 edges)
+  for (let i = 0; i < hexSides; i++) {
+    addEdgePoints(bottomPoint, hexBottomVertices[i]);
+  }
+
+  // Map grid spheres to prism positions
+  interface PrismMapping {
+    x: number;
+    y: number;
+    z: number;
+    isOnPrism: boolean;
+  }
+
+  const sphereToPrism: PrismMapping[] = [];
+  for (let i = 0; i < totalSpheres; i++) {
+    if (i < prismPoints.length) {
+      const point = prismPoints[i];
+      sphereToPrism.push({
+        x: point.x,
+        y: point.y,
+        z: point.z,
+        isOnPrism: true,
+      });
+    } else {
+      sphereToPrism.push({
+        x: 0,
+        y: 0,
+        z: -50,
+        isOnPrism: false,
+      });
+    }
+  }
+
+  // ============================================================================
+  // HYPERSPACE JUMP EFFECT - Star Wars style
+  // ============================================================================
+
+  // Tunnel geometry
+  const warpTunnelRadius = Math.max(visibleWidth, visibleHeight) * 0.8;
+  const warpDepth = 150; // Depth of star field
+  const warpNearPlane = 5; // Stars disappear when closer than this
+
+  // Phase timing (in milliseconds)
+  const PHASE_IDLE_DURATION = 1500;      // Normal stars before jump
+  const PHASE_ACCELERATE_DURATION = 2000; // Acceleration phase
+  const PHASE_CRUISE_DURATION = 4000;     // Full hyperspace
+  const PHASE_EXIT_DURATION = 800;        // Snap-back to normal
+
+  // Animation state
+  type WarpPhase = 'idle' | 'accelerating' | 'cruising' | 'exiting';
+  let warpPhase: WarpPhase = 'idle';
+  let warpPhaseTime = 0;
+  let warpIntensity = 0; // 0 = normal space, 1 = full hyperspace
+
+  // Camera FOV animation
+  const baseFOV = 75;
+  const maxFOV = 120; // Wider FOV during hyperspace
+  let currentFOV = baseFOV;
+
+  // Color transition (white -> blue core with white edges)
+  const warpColorNormal = new THREE.Color(1, 1, 1);       // White
+  const warpColorHyper = new THREE.Color(0.4, 0.6, 1.0);  // Blue tint
+
+  // Each star has position, velocity, and visual properties
+  interface WarpStar {
+    // Position
+    x: number;
+    y: number;
+    z: number;
+    // Base position for reset
+    baseX: number;
+    baseY: number;
+    initialZ: number;
+    // Individual properties
+    speedMultiplier: number;  // 0.7 - 1.3 variation
+    distanceFromCenter: number; // For tunnel effect
+    // Visual state
+    stretch: number; // Current stretch factor (1 = sphere, >1 = elongated)
+    brightness: number; // 0-1
+    isActive: boolean; // Only some stars are visible
+  }
+
+  const warpStars: WarpStar[] = [];
+  const warpStarDensity = 0.04; // Only 4% of spheres become stars
+
+  // Distribute stars in a cylindrical volume
+  for (let i = 0; i < totalSpheres; i++) {
+    const angle = Math.random() * Math.PI * 2;
+    const t = Math.random();
+    const distance = (0.3 + t * 0.7) * warpTunnelRadius;
+    const x = Math.cos(angle) * distance;
+    const y = Math.sin(angle) * distance;
+    const z = Math.random() * warpDepth - warpDepth * 0.5;
+
+    warpStars.push({
+      x, y, z,
+      baseX: x,
+      baseY: y,
+      initialZ: z,
+      speedMultiplier: 0.7 + Math.random() * 0.6,
+      distanceFromCenter: distance / warpTunnelRadius,
+      stretch: 1,
+      brightness: 0.3 + Math.random() * 0.7,
+      isActive: Math.random() < warpStarDensity, // Only 4% are active
+    });
+  }
+
+  // Easing functions for smooth transitions
+  function easeInQuad(t: number): number { return t * t; }
+  function easeOutQuad(t: number): number { return 1 - (1 - t) * (1 - t); }
+  function easeInOutCubic(t: number): number {
+    return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+  }
+
+  // Reset a star to back of tunnel
+  function resetWarpStar(star: WarpStar) {
+    const angle = Math.random() * Math.PI * 2;
+    const t = Math.random();
+    const distance = (0.2 + t * 0.8) * warpTunnelRadius;
+    star.x = Math.cos(angle) * distance;
+    star.y = Math.sin(angle) * distance;
+    star.baseX = star.x;
+    star.baseY = star.y;
+    star.z = -warpDepth * 0.5;
+    star.distanceFromCenter = distance / warpTunnelRadius;
+    star.brightness = 0.3 + Math.random() * 0.7;
+  }
+
+  // Return controls
+  return {
+    canvas: renderer.domElement,
+
+    // Set formation (grid, cube, or pipeline)
+    setFormation: (formation: Formation, immediate = false) => {
+      currentFormation = formation;
+      targetFormationProgress = formation === 'grid' ? 0 : 1;
+      if (immediate) {
+        formationProgress = targetFormationProgress;
+      }
+    },
+
+    // Get current formation progress (0-1)
+    getFormationProgress: () => formationProgress,
+
+    // Update sphere visibility based on a bitmap pattern
+    setPattern: (pattern: boolean[][]) => {
+      for (let row = 0; row < gridRows; row++) {
+        for (let col = 0; col < gridCols; col++) {
+          const index = row * gridCols + col;
+          const visible = pattern[gridRows - 1 - row]?.[col] ?? false; // Flip Y for display
+          const state = sphereStates[index];
+          if (state) {
+            state.targetScale = visible ? 1 : 0.15;
+            state.targetZ = visible ? 2 : 0;
+            state.isCharacter = visible;
+          }
+        }
+      }
+    },
+
+    // Display text using a simple bitmap font in type case style
+    // The grid is filled with "ORG", "PRESS", and random letters
+    setText: (_text: string) => {
+      const charPatterns = getCharPatterns();
+      const charWidth = 5;
+      const charHeight = 7;
+      const charSpacingCells = 1; // Spacing between characters in grid cells
+      const rowSpacing = 8; // Vertical spacing between word rows
+
+      // Words that can be highlighted (ORG and PRESS)
+      const highlightableWords = ['ORG', 'PRESS'];
+      // Random filler letters
+      const fillerLetters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+
+      // Create pattern with word group tracking
+      const letterPattern: boolean[][] = Array(gridRows).fill(null).map(() =>
+        Array(gridCols).fill(false)
+      );
+
+      // Track which sphere indices belong to which word group
+      const sphereWordGroup: number[][] = Array(gridRows).fill(null).map(() =>
+        Array(gridCols).fill(-1)
+      );
+
+      // Clear existing word groups
+      wordGroups.length = 0;
+
+      let wordGroupIndex = 0;
+
+      // Fill the entire grid row by row
+      for (let rowStart = 0; rowStart < gridRows; rowStart += rowSpacing) {
+        let colPos = 0;
+
+        while (colPos < gridCols) {
+          // Randomly decide: ORG/PRESS word (20%) or random letters (80%)
+          const useHighlightableWord = Math.random() < 0.2;
+
+          if (useHighlightableWord) {
+            // Pick a random highlightable word
+            const word = highlightableWords[Math.floor(Math.random() * highlightableWords.length)];
+            const wordWidthCells = word.length * (charWidth + charSpacingCells) - charSpacingCells;
+
+            // Check if word fits
+            if (colPos + wordWidthCells > gridCols) {
+              break;
+            }
+
+            // Create a word group for this word instance
+            const group: WordGroup = {
+              word,
+              sphereIndices: [],
+              isHighlighted: false,
+              highlightStartTime: 0,
+              highlightDuration: 0,
+            };
+
+            // Draw the word
+            let charCol = colPos;
+            for (const char of word) {
+              const pattern = charPatterns[char.toUpperCase()];
+              if (!pattern) {
+                charCol += charWidth + charSpacingCells;
+                continue;
+              }
+
+              for (let r = 0; r < charHeight; r++) {
+                for (let c = 0; c < charWidth; c++) {
+                  if (pattern[r]?.[c]) {
+                    const gridRow = rowStart + r;
+                    const gridCol = charCol + c;
+                    if (gridRow >= 0 && gridRow < gridRows && gridCol >= 0 && gridCol < gridCols) {
+                      letterPattern[gridRow][gridCol] = true;
+                      sphereWordGroup[gridRow][gridCol] = wordGroupIndex;
+                    }
+                  }
+                }
+              }
+              charCol += charWidth + charSpacingCells;
+            }
+
+            wordGroups.push(group);
+            wordGroupIndex++;
+
+            // Move to next position
+            colPos += wordWidthCells + 2;
+          } else {
+            // Draw 2-5 random filler letters (not in a word group, won't highlight)
+            const numLetters = 2 + Math.floor(Math.random() * 4);
+
+            for (let i = 0; i < numLetters; i++) {
+              if (colPos + charWidth > gridCols) break;
+
+              const letter = fillerLetters[Math.floor(Math.random() * fillerLetters.length)];
+              const pattern = charPatterns[letter];
+              if (!pattern) {
+                colPos += charWidth + charSpacingCells;
+                continue;
+              }
+
+              // Draw the letter (no word group assignment)
+              for (let r = 0; r < charHeight; r++) {
+                for (let c = 0; c < charWidth; c++) {
+                  if (pattern[r]?.[c]) {
+                    const gridRow = rowStart + r;
+                    const gridCol = colPos + c;
+                    if (gridRow >= 0 && gridRow < gridRows && gridCol >= 0 && gridCol < gridCols) {
+                      letterPattern[gridRow][gridCol] = true;
+                      // No word group (-1) - these won't animate
+                    }
+                  }
+                }
+              }
+
+              colPos += charWidth + charSpacingCells;
+            }
+          }
+        }
+      }
+
+      // Apply patterns to sphere states
+      const letterScale = 0.8;   // Letter spheres scale
+      const letterDepth = 0;     // Letter spheres Z position
+      const emptyScale = 0.15;   // Empty cells
+
+      for (let row = 0; row < gridRows; row++) {
+        for (let c = 0; c < gridCols; c++) {
+          const index = row * gridCols + c;
+          const state = sphereStates[index];
+          if (!state) continue;
+
+          const flippedRow = gridRows - 1 - row; // Flip Y for display
+          const isLetter = letterPattern[flippedRow]?.[c] ?? false;
+          const groupIdx = sphereWordGroup[flippedRow]?.[c] ?? -1;
+
+          if (isLetter) {
+            state.targetScale = letterScale;
+            state.baseScale = letterScale;
+            state.targetZ = letterDepth;
+            state.baseZ = letterDepth;
+            state.isCharacter = true;
+            state.wordGroup = groupIdx;
+            state.highlightDelay = Math.random(); // Randomize for staggered animation
+
+            // Add to word group's sphere indices
+            if (groupIdx >= 0 && groupIdx < wordGroups.length) {
+              wordGroups[groupIdx].sphereIndices.push(index);
+            }
+          } else {
+            // Empty cells - very small
+            state.targetScale = emptyScale;
+            state.baseScale = emptyScale;
+            state.targetZ = 0;
+            state.baseZ = 0;
+            state.isCharacter = false;
+            state.wordGroup = -1;
+          }
+        }
+      }
+    },
+
+    dispose: () => {
+      if (animationId) cancelAnimationFrame(animationId);
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('resize', handleResize);
+      renderer.dispose();
+      sphereGeometry.dispose();
+      sphereMaterial.dispose();
+    },
+  };
+}
+
+// Simple 5x7 bitmap font patterns
+function getCharPatterns(): Record<string, boolean[][]> {
+  const patterns: Record<string, boolean[][]> = {};
+
+  // Helper to convert string pattern to boolean array
+  const p = (rows: string[]): boolean[][] =>
+    rows.map(row => row.split('').map(c => c === '#'));
+
+  patterns['A'] = p([
+    '.###.',
+    '#...#',
+    '#...#',
+    '#####',
+    '#...#',
+    '#...#',
+    '#...#',
+  ]);
+
+  patterns['B'] = p([
+    '####.',
+    '#...#',
+    '#...#',
+    '####.',
+    '#...#',
+    '#...#',
+    '####.',
+  ]);
+
+  patterns['C'] = p([
+    '.####',
+    '#....',
+    '#....',
+    '#....',
+    '#....',
+    '#....',
+    '.####',
+  ]);
+
+  patterns['D'] = p([
+    '####.',
+    '#...#',
+    '#...#',
+    '#...#',
+    '#...#',
+    '#...#',
+    '####.',
+  ]);
+
+  patterns['E'] = p([
+    '#####',
+    '#....',
+    '#....',
+    '####.',
+    '#....',
+    '#....',
+    '#####',
+  ]);
+
+  patterns['F'] = p([
+    '#####',
+    '#....',
+    '#....',
+    '####.',
+    '#....',
+    '#....',
+    '#....',
+  ]);
+
+  patterns['G'] = p([
+    '.###.',
+    '#....',
+    '#....',
+    '#.###',
+    '#...#',
+    '#...#',
+    '.###.',
+  ]);
+
+  patterns['H'] = p([
+    '#...#',
+    '#...#',
+    '#...#',
+    '#####',
+    '#...#',
+    '#...#',
+    '#...#',
+  ]);
+
+  patterns['I'] = p([
+    '#####',
+    '..#..',
+    '..#..',
+    '..#..',
+    '..#..',
+    '..#..',
+    '#####',
+  ]);
+
+  patterns['J'] = p([
+    '.####',
+    '...#.',
+    '...#.',
+    '...#.',
+    '...#.',
+    '#..#.',
+    '.##..',
+  ]);
+
+  patterns['K'] = p([
+    '#...#',
+    '#..#.',
+    '#.#..',
+    '##...',
+    '#.#..',
+    '#..#.',
+    '#...#',
+  ]);
+
+  patterns['L'] = p([
+    '#....',
+    '#....',
+    '#....',
+    '#....',
+    '#....',
+    '#....',
+    '#####',
+  ]);
+
+  patterns['M'] = p([
+    '#...#',
+    '##.##',
+    '#.#.#',
+    '#...#',
+    '#...#',
+    '#...#',
+    '#...#',
+  ]);
+
+  patterns['N'] = p([
+    '#...#',
+    '##..#',
+    '#.#.#',
+    '#..##',
+    '#...#',
+    '#...#',
+    '#...#',
+  ]);
+
+  patterns['O'] = p([
+    '.###.',
+    '#...#',
+    '#...#',
+    '#...#',
+    '#...#',
+    '#...#',
+    '.###.',
+  ]);
+
+  patterns['P'] = p([
+    '####.',
+    '#...#',
+    '#...#',
+    '####.',
+    '#....',
+    '#....',
+    '#....',
+  ]);
+
+  patterns['Q'] = p([
+    '.###.',
+    '#...#',
+    '#...#',
+    '#...#',
+    '#.#.#',
+    '#..#.',
+    '.##.#',
+  ]);
+
+  patterns['R'] = p([
+    '####.',
+    '#...#',
+    '#...#',
+    '####.',
+    '#.#..',
+    '#..#.',
+    '#...#',
+  ]);
+
+  patterns['S'] = p([
+    '.####',
+    '#....',
+    '#....',
+    '.###.',
+    '....#',
+    '....#',
+    '####.',
+  ]);
+
+  patterns['T'] = p([
+    '#####',
+    '..#..',
+    '..#..',
+    '..#..',
+    '..#..',
+    '..#..',
+    '..#..',
+  ]);
+
+  patterns['U'] = p([
+    '#...#',
+    '#...#',
+    '#...#',
+    '#...#',
+    '#...#',
+    '#...#',
+    '.###.',
+  ]);
+
+  patterns['V'] = p([
+    '#...#',
+    '#...#',
+    '#...#',
+    '#...#',
+    '.#.#.',
+    '.#.#.',
+    '..#..',
+  ]);
+
+  patterns['W'] = p([
+    '#...#',
+    '#...#',
+    '#...#',
+    '#.#.#',
+    '#.#.#',
+    '##.##',
+    '#...#',
+  ]);
+
+  patterns['X'] = p([
+    '#...#',
+    '#...#',
+    '.#.#.',
+    '..#..',
+    '.#.#.',
+    '#...#',
+    '#...#',
+  ]);
+
+  patterns['Y'] = p([
+    '#...#',
+    '#...#',
+    '.#.#.',
+    '..#..',
+    '..#..',
+    '..#..',
+    '..#..',
+  ]);
+
+  patterns['Z'] = p([
+    '#####',
+    '....#',
+    '...#.',
+    '..#..',
+    '.#...',
+    '#....',
+    '#####',
+  ]);
+
+  patterns['-'] = p([
+    '.....',
+    '.....',
+    '.....',
+    '#####',
+    '.....',
+    '.....',
+    '.....',
+  ]);
+
+  patterns[' '] = p([
+    '.....',
+    '.....',
+    '.....',
+    '.....',
+    '.....',
+    '.....',
+    '.....',
+  ]);
+
+  patterns['.'] = p([
+    '.....',
+    '.....',
+    '.....',
+    '.....',
+    '.....',
+    '..#..',
+    '.....',
+  ]);
+
+  return patterns;
+}
+
+// =============================================================================
+// Confetti Implementation
+// =============================================================================
+
+// Confetti implementation
+function createConfetti(originX: number, originY: number) {
+  const colors = ['#ff6b6b', '#4ecdc4', '#45b7d1', '#96ceb4', '#ffeaa7', '#dfe6e9', '#fd79a8'];
+  const particleCount = 80;
+
+  for (let i = 0; i < particleCount; i++) {
+    const particle = document.createElement('div');
+    particle.className = 'confetti-particle';
+
+    const color = colors[Math.floor(Math.random() * colors.length)];
+    const size = 6 + Math.random() * 6;
+    const angle = (Math.random() * 120 - 60) * (Math.PI / 180);
+    const velocity = 8 + Math.random() * 8;
+    const spin = (Math.random() - 0.5) * 720;
+
+    particle.style.cssText = `
+      position: fixed;
+      width: ${size}px;
+      height: ${size * 0.6}px;
+      background: ${color};
+      left: ${originX}px;
+      top: ${originY}px;
+      pointer-events: none;
+      z-index: 9999;
+      border-radius: 2px;
+    `;
+
+    document.body.appendChild(particle);
+
+    let x = 0;
+    let y = 0;
+    let vy = -velocity * Math.sin(Math.PI / 3 + angle * 0.5);
+    let vx = velocity * Math.cos(Math.PI / 3) * (Math.random() > 0.5 ? 1 : -1) * (0.5 + Math.random());
+    let rotation = 0;
+    let opacity = 1;
+    const gravity = 0.3;
+    const startTime = performance.now();
+
+    function animateParticle() {
+      const elapsed = performance.now() - startTime;
+      if (elapsed > 2000 || opacity <= 0) {
+        particle.remove();
+        return;
+      }
+
+      vy += gravity;
+      x += vx;
+      y += vy;
+      rotation += spin / 60;
+      opacity = Math.max(0, 1 - elapsed / 2000);
+
+      particle.style.transform = `translate(${x}px, ${y}px) rotate(${rotation}deg)`;
+      particle.style.opacity = String(opacity);
+
+      requestAnimationFrame(animateParticle);
+    }
+
+    requestAnimationFrame(animateParticle);
+  }
+}
+
+// Helper functions
+function sleep(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+async function typewrite(
+  element: HTMLElement,
+  text: string,
+  speed: number = 50
+): Promise<void> {
+  element.textContent = '';
+  for (const char of text) {
+    element.textContent += char;
+    await sleep(speed + Math.random() * 20);
+  }
+}
+
+// CLI commands for carousel
+const CLI_COMMANDS = [
+  { cmd: 'fmt', desc: 'Format org files and code blocks' },
+  { cmd: 'lint', desc: 'Check for style and syntax issues' },
+  { cmd: 'test', desc: 'Run tests from code blocks' },
+  { cmd: 'type-check', desc: 'TypeScript type validation' },
+  { cmd: 'build', desc: 'Build for production' },
+];
+
+// Chat script for AI section
+const CHAT_SCRIPT = [
+  { type: 'error', content: "Error: Cannot find module './utils'", delay: 0 },
+  { type: 'ai', content: "I found the issue. The utils.ts file is missing. Want me to create it with the required exports?", delay: 800 },
+  { type: 'user', content: "Yes, fix it", delay: 1600 },
+  { type: 'success', content: "Done! Created utils.ts with the missing formatDate and parseConfig exports.", delay: 2200 },
+];
+
+// Create the landing page
+const container = document.createElement('div');
+container.className = 'landing-page';
+
+container.innerHTML = `
+  <!-- 3D Background container -->
+  <div id="sphere-grid-container"></div>
+
+  <!-- Content layer -->
+  <div class="landing-content">
+    <!-- Hero Section -->
+    <section class="hero-section" id="hero">
+      <h1 class="hero-logo">ORG-PRESS</h1>
+      <p class="hero-tagline">
+        Literate computing in plain text.<br/>
+        Write prose and code together. Everything executes.
+      </p>
+      <div class="hero-cta">
+        <a href="./guide/getting-started.html" class="primary">Get Started</a>
+        <a href="https://github.com/org-press/org-press" class="secondary">GitHub</a>
+      </div>
+      <div class="scroll-indicator">&#8595;</div>
+    </section>
+
+    <!-- Section 1: Code Blocks -->
+    <section class="landing-section code-preview-section" id="code-blocks">
+      <div class="section-content">
+        <div class="section-text">
+          <span class="section-label">Executable Code</span>
+          <h2>Codeblocks with Superpowers</h2>
+          <p>
+            Your code blocks aren't just syntax-highlighted text.
+            They execute in the browser with full TypeScript, JSX, and CSS support.
+            Click the button to see it in action.
+          </p>
+          <div class="demo-button-area">
+            <button class="confetti-btn" type="button" id="confetti-trigger">
+              Click Me!
+            </button>
+          </div>
+        </div>
+        <div class="section-visual">
+          <div class="code-block-preview">
+            <div class="code-header">
+              <span class="code-lang">tsx</span>
+            </div>
+            <pre class="code-content"><code><span class="code-keyword">#+begin_src</span> <span class="code-type">tsx</span> <span class="code-attr">:use preview</span>
+<span class="code-keyword">const</span> <span class="code-var">ConfettiBtn</span> = () => (
+  <span class="code-tag">&lt;button</span> <span class="code-attr">onClick</span>={<span class="code-var">fireConfetti</span>}<span class="code-tag">&gt;</span>
+    Click Me!
+  <span class="code-tag">&lt;/button&gt;</span>
+);
+
+<span class="code-keyword">export const</span> <span class="code-var">Preview</span> = () => <span class="code-tag">&lt;ConfettiBtn /&gt;</span>;
+<span class="code-keyword">#+end_src</span></code></pre>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Section 2: SSG / Terminal -->
+    <section class="landing-section terminal-demo-section" id="ssg">
+      <div class="section-content">
+        <div class="section-visual">
+          <div class="terminal-window">
+            <div class="terminal-header">
+              <span class="terminal-dot red"></span>
+              <span class="terminal-dot yellow"></span>
+              <span class="terminal-dot green"></span>
+              <span class="terminal-title">Terminal</span>
+            </div>
+            <div class="terminal-body">
+              <div class="terminal-line">
+                <span class="terminal-prompt">$</span>
+                <span class="terminal-command">orgp dev</span>
+              </div>
+              <div class="terminal-output">
+                <div class="output-line visible">Ready in 127ms</div>
+                <div class="output-line visible"><span class="dim">Local:</span>   <span class="url-link">http://localhost:3000/</span></div>
+                <div class="output-line visible"><span class="dim">press</span> <span class="key">h + enter</span> <span class="dim">to show help</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="section-text">
+          <span class="section-label">Static Site Generator</span>
+          <h2>Document Format for Web Development</h2>
+          <p>
+            Org-press is a static site generator built for literate programming.
+            Hot module replacement, instant preview, and production builds
+            with a single command.
+          </p>
+          <ul class="feature-list">
+            <li>Lightning-fast Vite-powered dev server</li>
+            <li>TypeScript, JSX, CSS out of the box</li>
+            <li>Server-side execution at build time</li>
+            <li>Automatic syntax highlighting</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- Section 3: Community -->
+    <section class="landing-section community-section" id="community">
+      <div class="section-content">
+        <span class="section-label">Extensible Platform</span>
+        <h2>Build Your Community</h2>
+        <p>
+          With custom themes and the <code>:use</code> directive for block plugins,
+          org-press becomes a foundation for specialized communities.
+          Create and share domain-specific toolkits.
+        </p>
+
+        <div class="community-grid">
+          <div class="community-card components">
+            <span class="card-icon">&#9645;</span>
+            <h3>Component Libraries</h3>
+            <p>Build and document React, Vue, or Web Components with live previews and interactive examples.</p>
+          </div>
+
+          <div class="community-card design">
+            <span class="card-icon">&#9670;</span>
+            <h3>Design Systems</h3>
+            <p>Create living style guides with tokens, patterns, and design elements that execute and render.</p>
+          </div>
+
+          <div class="community-card diagrams">
+            <span class="card-icon">&#9633;</span>
+            <h3>Architecture Docs</h3>
+            <p>Technical diagrams with Excalidraw, Mermaid, or PlantUML. Living documentation that stays in sync.</p>
+          </div>
+
+          <div class="community-card printing">
+            <span class="card-icon">&#9649;</span>
+            <h3>3D Printing</h3>
+            <p>Parametric models with JSCAD. Document, customize, and export STL files directly from org blocks.</p>
+          </div>
+
+          <div class="community-card data">
+            <span class="card-icon">&#9651;</span>
+            <h3>Data Science</h3>
+            <p>Literate notebooks with D3, Observable Plot, or custom visualizations. Reproducible analysis.</p>
+          </div>
+
+          <div class="community-card music">
+            <span class="card-icon">&#9835;</span>
+            <h3>Live Coding Music</h3>
+            <p>Integrate Strudel, Tone.js, or other audio libraries. Compose and perform with executable scores.</p>
+          </div>
+
+          <div class="community-card ai">
+            <span class="card-icon">&#10022;</span>
+            <h3>AI Prompt Engineering</h3>
+            <p>Compose, version, and test prompts. Build reusable prompt libraries with structured context.</p>
+          </div>
+
+          <div class="community-card">
+            <span class="card-icon">&#43;</span>
+            <h3>Your Domain</h3>
+            <p>Create custom block handlers for any use case. The <code>:use</code> system makes anything possible.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Section 4: CLI Tools -->
+    <section class="landing-section cli-carousel-section" id="cli">
+      <div class="section-content">
+        <div class="section-text">
+          <span class="section-label">Developer Tools</span>
+          <h2>Super-Charge Literate Programming</h2>
+          <p>
+            A complete CLI toolkit for working with org files.
+            Format, lint, test, and build your literate documents
+            with powerful command-line tools.
+          </p>
+          <div class="cli-features">
+            <div class="cli-feature">
+              <strong>orgp fmt</strong> - Auto-format code blocks
+            </div>
+            <div class="cli-feature">
+              <strong>orgp test</strong> - Run inline tests with Vitest
+            </div>
+            <div class="cli-feature">
+              <strong>orgp build</strong> - Production-ready static sites
+            </div>
+          </div>
+        </div>
+        <div class="section-visual">
+          <div class="cli-window">
+            <div class="cli-header">
+              <span class="cli-prompt">&gt; orgp</span>
+            </div>
+            <div class="cli-carousel-container">
+              <div class="cli-carousel" id="cli-carousel">
+                ${CLI_COMMANDS.map((item, i) => `
+                  <div class="cli-item${i === 0 ? ' active' : ''}" data-index="${i}">
+                    <span class="cli-cmd">${item.cmd}</span>
+                    <span class="cli-desc">${item.desc}</span>
+                  </div>
+                `).join('')}
+              </div>
+              <div class="cli-highlight"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Section 5: AI Powers -->
+    <section class="landing-section ai-chat-section" id="ai">
+      <div class="section-content">
+        <div class="ai-header">
+          <div class="ai-glow"></div>
+          <div class="ai-titles">
+            <h2>Built for Humans</h2>
+            <h2 class="gold">with AI Powers</h2>
+          </div>
+          <p class="ai-subtitle">
+            Org-press is designed to work seamlessly with AI assistants.
+            Literate programming creates perfect context for AI understanding.
+          </p>
+        </div>
+
+        <div class="chat-demo">
+          <div class="chat-window">
+            <div class="chat-messages" id="chat-messages">
+              <div class="chat-message error" data-index="0">
+                <div class="message-icon error-icon">!</div>
+                <div class="message-content">
+                  <span class="message-text"></span>
+                </div>
+              </div>
+              <div class="chat-message ai" data-index="1">
+                <div class="message-icon ai-icon">AI</div>
+                <div class="message-content">
+                  <span class="message-text"></span>
+                </div>
+              </div>
+              <div class="chat-message user" data-index="2">
+                <div class="message-icon user-icon">&gt;</div>
+                <div class="message-content">
+                  <span class="message-text"></span>
+                </div>
+              </div>
+              <div class="chat-message success" data-index="3">
+                <div class="message-icon success-icon">&#10003;</div>
+                <div class="message-content">
+                  <span class="message-text"></span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="ai-features">
+          <div class="ai-feature">
+            <h3>Context-Aware</h3>
+            <p>Prose and code together provide rich context for AI understanding</p>
+          </div>
+          <div class="ai-feature">
+            <h3>Executable Specs</h3>
+            <p>AI can run, test, and validate changes in real-time</p>
+          </div>
+          <div class="ai-feature">
+            <h3>Self-Documenting</h3>
+            <p>Changes are naturally documented in literate style</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Quick Links -->
+    <section class="links-section">
+      <h2 class="links-section-title">Get Started</h2>
+      <div class="links-grid">
+        <a href="./guide/getting-started.html" class="link-card">
+          <span class="link-card-icon">&#9889;</span>
+          <div class="link-card-content">
+            <h3>Quick Start <span class="link-card-arrow">&#8594;</span></h3>
+            <p>Create your first org-press project in minutes</p>
+          </div>
+        </a>
+        <a href="./guide/features.html" class="link-card">
+          <span class="link-card-icon">&#10024;</span>
+          <div class="link-card-content">
+            <h3>Features <span class="link-card-arrow">&#8594;</span></h3>
+            <p>Interactive code blocks, live preview, and more</p>
+          </div>
+        </a>
+        <a href="./guide/block-imports.html" class="link-card">
+          <span class="link-card-icon">&#128279;</span>
+          <div class="link-card-content">
+            <h3>Block Imports <span class="link-card-arrow">&#8594;</span></h3>
+            <p>Share and reuse code across your documentation</p>
+          </div>
+        </a>
+        <a href="./plugins/index.html" class="link-card">
+          <span class="link-card-icon">&#128640;</span>
+          <div class="link-card-content">
+            <h3>Plugins <span class="link-card-arrow">&#8594;</span></h3>
+            <p>Extend with Excalidraw, JSCAD, and more</p>
+          </div>
+        </a>
+      </div>
+    </section>
+  </div>
+`;
+
+// Set up interactions after DOM is ready
+requestAnimationFrame(() => {
+  // Confetti button
+  const confettiBtn = container.querySelector('#confetti-trigger');
+  if (confettiBtn) {
+    confettiBtn.addEventListener('click', (e) => {
+      const rect = (confettiBtn as HTMLElement).getBoundingClientRect();
+      createConfetti(
+        rect.left + rect.width / 2,
+        rect.top + rect.height / 2
+      );
+    });
+  }
+
+  // CLI Carousel scroll-linked animation
+  const cliSection = container.querySelector('#cli');
+  let currentCliIndex = 0;
+
+  function updateCarousel() {
+    if (!cliSection) return;
+
+    const rect = cliSection.getBoundingClientRect();
+    const sectionProgress = Math.max(0, Math.min(1,
+      (window.innerHeight / 2 - rect.top) / rect.height
+    ));
+
+    const newIndex = Math.min(
+      CLI_COMMANDS.length - 1,
+      Math.floor(sectionProgress * CLI_COMMANDS.length)
+    );
+
+    if (newIndex !== currentCliIndex) {
+      currentCliIndex = newIndex;
+
+      const items = container.querySelectorAll('.cli-item');
+      items.forEach((item, i) => {
+        item.classList.toggle('active', i === currentCliIndex);
+      });
+
+      const carousel = container.querySelector('#cli-carousel') as HTMLElement;
+      if (carousel) {
+        const offset = -currentCliIndex * 52;
+        carousel.style.transform = `translateY(${offset}px)`;
+      }
+    }
+  }
+
+  let carouselTicking = false;
+  window.addEventListener('scroll', () => {
+    if (!carouselTicking) {
+      requestAnimationFrame(() => {
+        updateCarousel();
+        carouselTicking = false;
+      });
+      carouselTicking = true;
+    }
+  }, { passive: true });
+
+  // AI Chat animation
+  let chatAnimated = false;
+  const chatSection = container.querySelector('#ai');
+
+  const chatObserver = new IntersectionObserver(
+    (entries) => {
+      for (const entry of entries) {
+        if (entry.isIntersecting && !chatAnimated) {
+          chatAnimated = true;
+          runChatAnimation();
+          chatObserver.disconnect();
+        }
+      }
+    },
+    { threshold: 0.3 }
+  );
+
+  if (chatSection) {
+    chatObserver.observe(chatSection);
+  }
+
+  async function runChatAnimation() {
+    const messages = container.querySelectorAll('.chat-message');
+
+    for (let i = 0; i < CHAT_SCRIPT.length; i++) {
+      const script = CHAT_SCRIPT[i];
+      const messageEl = messages[i] as HTMLElement;
+      const textEl = messageEl?.querySelector('.message-text') as HTMLElement;
+
+      if (!messageEl || !textEl) continue;
+
+      await sleep(script.delay);
+      messageEl.classList.add('visible');
+      await typewrite(textEl, script.content, script.type === 'user' ? 40 : 20);
+      await sleep(300);
+    }
+  }
+
+  // Initialize 3D sphere grid background
+  const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const isMobile = window.innerWidth <= 768;
+
+  let sphereGrid: ReturnType<typeof createSphereGridBackground> | null = null;
+
+  if (!prefersReducedMotion && !isMobile) {
+    const bgContainer = container.querySelector('#sphere-grid-container');
+    if (bgContainer) {
+      const prefersDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches;
+
+      sphereGrid = createSphereGridBackground(bgContainer as HTMLElement, {
+        gridCols: 140,
+        gridRows: 100,
+        sphereRadius: 0.08,
+        spacing: 0.4,
+        backgroundColor: prefersDarkMode ? 0x0a0a0f : 0xf5f5f7,
+        sphereColor: prefersDarkMode ? 0x999999 : 0x777777, // Dimmed 40% total for softer contrast
+      });
+
+      // Display letters on the first screen
+      sphereGrid.setText('ORG-PRESS');
+    }
+  }
+
+  // Scroll-based formation switching
+  const heroSection = container.querySelector('#hero');
+  const codeBlocksSection = container.querySelector('#code-blocks');
+  const ssgSection = container.querySelector('#ssg');
+  const communitySection = container.querySelector('#community');
+  const aiSection = container.querySelector('#ai');
+
+  function updateFormationOnScroll() {
+    if (!sphereGrid || !heroSection || !codeBlocksSection) return;
+
+    const heroRect = heroSection.getBoundingClientRect();
+    const codeRect = codeBlocksSection.getBoundingClientRect();
+    const ssgRect = ssgSection?.getBoundingClientRect();
+    const communityRect = communitySection?.getBoundingClientRect();
+    const cliRect = cliSection?.getBoundingClientRect();
+    const aiRect = aiSection?.getBoundingClientRect();
+
+    const viewportCenter = window.innerHeight / 2;
+
+    if (heroRect.bottom > viewportCenter) {
+      // Section 1: Hero - grid formation with letters
+      sphereGrid.setFormation('grid');
+    } else if (aiRect && aiRect.top < viewportCenter) {
+      // Section 6: AI - warp/hyperspace formation
+      sphereGrid.setFormation('warp');
+    } else if (cliRect && cliRect.top < viewportCenter) {
+      // Section 5: CLI - crystal formation
+      sphereGrid.setFormation('prism');
+    } else if (communityRect && communityRect.top < viewportCenter) {
+      // Section 4: Community - globe formation
+      sphereGrid.setFormation('globe');
+    } else if (ssgRect && ssgRect.top < viewportCenter) {
+      // Section 3: SSG - pipeline formation (ripple effect)
+      sphereGrid.setFormation('pipeline');
+    } else if (codeRect.top < viewportCenter) {
+      // Section 2: Code Blocks - cube formation
+      sphereGrid.setFormation('cube');
+    } else {
+      // Transitioning from hero to code-blocks
+      const transitionProgress = 1 - (heroRect.bottom / viewportCenter);
+      if (transitionProgress > 0.5) {
+        sphereGrid.setFormation('cube');
+      } else {
+        sphereGrid.setFormation('grid');
+      }
+    }
+  }
+
+  let scrollTicking = false;
+  window.addEventListener('scroll', () => {
+    if (!scrollTicking) {
+      requestAnimationFrame(() => {
+        updateFormationOnScroll();
+        scrollTicking = false;
+      });
+      scrollTicking = true;
+    }
+  }, { passive: true });
+
+  // Initial check
+  updateFormationOnScroll();
+});
+
+export default container;
+#+end_src

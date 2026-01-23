@@ -1,0 +1,492 @@
+#+TITLE: ECharts Plugin for Org-Press
+#+DESCRIPTION: Interactive charts using Apache ECharts - literate plugin implementation
+
+* ECharts Plugin
+
+This is a literate plugin implementation for Apache ECharts integration with org-press.
+The plugin source code, documentation, and examples all live together in this file.
+
+** Features
+
+- *JSON mode*: Simple chart configuration directly in org blocks
+- *JavaScript mode*: Dynamic charts with imports from other blocks
+- *Responsive*: Automatic resize handling
+- *Memory safe*: Proper cleanup on navigation
+- *Theme support*: Light and dark themes via parameters
+
+** Installation
+
+Install the plugin and echarts as peer dependencies:
+
+#+begin_example
+npm install @org-press/block-echarts echarts
+#+end_example
+
+Add to your org-press config:
+
+#+begin_export html
+<pre><code class="language-typescript">// .org-press/config.ts
+import { echartsPlugin } from "@org-press/block-echarts";
+
+export default {
+  plugins: [echartsPlugin],
+};
+</code></pre>
+#+end_export
+
+** Usage
+
+*** JSON Mode (Simple)
+
+For static charts, use JSON directly:
+
+#+begin_export html
+<pre><code class="language-org">#+begin_src json :use echarts :height 400px
+{
+  "xAxis": { "type": "category", "data": ["Mon", "Tue", "Wed", "Thu", "Fri"] },
+  "yAxis": { "type": "value" },
+  "series": [{ "data": [150, 230, 224, 218, 135], "type": "line" }]
+}
+#+end_src
+</code></pre>
+#+end_export
+
+*** JavaScript Mode (Dynamic)
+
+For dynamic data or imports:
+
+#+begin_export html
+<pre><code class="language-org">#+NAME: sales-data
+#+begin_src json
+{ "months": ["Jan", "Feb", "Mar"], "values": [100, 200, 150] }
+#+end_src
+
+#+begin_src javascript :use echarts
+import data from './index.org?name=sales-data';
+
+export default {
+  xAxis: { type: 'category', data: data.months },
+  yAxis: { type: 'value' },
+  series: [{ data: data.values, type: 'bar' }]
+};
+#+end_src
+</code></pre>
+#+end_export
+
+*** Parameters
+
+- =:height= - Chart height (default: "400px")
+- =:theme= - ECharts theme: "light" | "dark" (default: "light")
+- =:renderer= - Renderer: "canvas" | "svg" (default: "canvas")
+
+Example with parameters:
+
+#+begin_export html
+<pre><code class="language-org">#+begin_src json :use echarts :height 600px :theme dark :renderer svg
+{ ... }
+#+end_src
+</code></pre>
+#+end_export
+
+* Plugin Implementation
+
+The plugin transforms ECharts blocks into executable JavaScript that renders
+interactive charts using the ECharts library.
+
+#+begin_export html
+<details>
+<summary>View plugin source code</summary>
+#+end_export
+
+#+NAME: plugin
+#+begin_src typescript :use sourceOnly
+import type {
+  BlockPlugin,
+  CodeBlock,
+  TransformContext,
+  TransformResult,
+} from "org-press";
+import { createBlockId, parseBlockParameters } from "org-press";
+
+/**
+ * Check if the block content is JavaScript (has imports or exports)
+ */
+function isJavaScriptBlock(content: string, language: string): boolean {
+  // Explicit JavaScript language
+  if (['javascript', 'js', 'typescript', 'ts'].includes(language.toLowerCase())) {
+    return true;
+  }
+  // JSON with import/export statements (user wants JS mode)
+  if (content.includes('import ') || content.includes('export ')) {
+    return true;
+  }
+  return false;
+}
+
+/**
+ * Generate the render function code for ECharts
+ */
+function generateRenderCode(options: {
+  containerId: string;
+  height: string;
+  theme: string;
+  renderer: string;
+  dataCode: string;
+  isModule: boolean;
+  moduleId?: string;
+}): string {
+  const { height, theme, renderer, dataCode, isModule, moduleId } = options;
+
+  const initCode = isModule
+    ? `import('${moduleId}').then((module) => {
+        try {
+          initChart(module.default);
+        } catch (err) {
+          showError(err);
+        }
+      }).catch(showError);`
+    : `try {
+        const chartOption = ${dataCode};
+        initChart(chartOption);
+      } catch (err) {
+        showError(err);
+      }`;
+
+  return `
+import * as echarts from 'echarts';
+
+// Track chart instances for cleanup
+const chartRegistry = new Map();
+
+// Export render function - exporter will call this with container ID
+export default function render(containerId) {
+  const container = document.getElementById(containerId);
+  if (!container) {
+    console.error('[ECharts] Container not found:', containerId);
+    return;
+  }
+
+  // Style the container
+  container.className = 'echarts-wrapper';
+  container.style.cssText = 'position: relative; width: 100%; height: ${height};';
+
+  // Create inner container for chart
+  const chartContainer = document.createElement('div');
+  chartContainer.style.cssText = 'width: 100%; height: 100%;';
+  container.appendChild(chartContainer);
+
+  function showError(err) {
+    console.error('[ECharts] Failed to render chart:', err);
+    container.innerHTML = '<div style="color: red; padding: 1rem; border: 1px solid red;">Error rendering chart: ' + (err.message || err) + '</div>';
+  }
+
+  function initChart(chartOption) {
+    // Dispose existing chart if any (for HMR)
+    if (chartRegistry.has(containerId)) {
+      chartRegistry.get(containerId).dispose();
+    }
+
+    // Initialize ECharts
+    const chart = echarts.init(chartContainer, '${theme}', {
+      renderer: '${renderer}',
+    });
+
+    // Set option
+    chart.setOption(chartOption);
+
+    // Handle resize
+    const resizeObserver = new ResizeObserver(() => {
+      chart.resize();
+    });
+    resizeObserver.observe(container);
+
+    // Also handle window resize for containers that don't trigger ResizeObserver
+    const handleResize = () => chart.resize();
+    window.addEventListener('resize', handleResize);
+
+    // Store for cleanup
+    chartRegistry.set(containerId, chart);
+
+    // Cleanup on navigation (for SPA)
+    const cleanup = () => {
+      resizeObserver.disconnect();
+      window.removeEventListener('resize', handleResize);
+      chart.dispose();
+      chartRegistry.delete(containerId);
+    };
+
+    // Watch for container removal (works with most SPA routers)
+    const observer = new MutationObserver((mutations) => {
+      for (const mutation of mutations) {
+        for (const removed of mutation.removedNodes) {
+          if (removed === container || (removed instanceof Element && removed.contains(container))) {
+            cleanup();
+            observer.disconnect();
+            return;
+          }
+        }
+      }
+    });
+
+    if (container.parentElement) {
+      observer.observe(container.parentElement, { childList: true, subtree: true });
+    }
+  }
+
+  ${initCode}
+}
+`;
+}
+
+/**
+ * ECharts block plugin for org-press
+ *
+ * Supports both JSON (inline data) and JavaScript (imports) modes
+ *
+ * Preview API compatible:
+ * - :use echarts -> renders interactive chart
+ * - :use echarts | sourceOnly -> shows source code only
+ * - :use echarts | withSourceCode -> shows both code and chart
+ */
+export const echartsPlugin: BlockPlugin = {
+  name: 'echarts',
+  defaultExtension: 'js',
+
+  /**
+   * Transform returns code that renders the ECharts chart
+   * - JSON mode: embeds data directly
+   * - JS mode: imports data from a separate virtual module (supports imports)
+   */
+  async transform(block: CodeBlock, context: TransformContext): Promise<TransformResult> {
+    // Create stable ID for this block using utility
+    const stableId = createBlockId(context.orgFilePath, context.blockIndex);
+
+    // Parse block parameters
+    const params = parseBlockParameters(block.meta || "");
+
+    // Check for mode from :use parameter (e.g., :use echarts | sourceOnly)
+    const useValue = params.use || 'echarts';
+    const useParts = useValue.split('|').map((s: string) => s.trim());
+    const mode = useParts.length > 1 ? useParts[1] : 'preview';
+
+    // Handle sourceOnly mode - just return the source code
+    if (mode === 'sourceOnly') {
+      return {
+        code: `// ECharts configuration source (display only)\nexport default ${JSON.stringify(block.value)};`,
+      };
+    }
+
+    // Get parameters with defaults
+    const height = params.height || '400px';
+    const theme = params.theme || 'light';
+    const renderer = params.renderer || 'canvas';
+
+    // Check if this is JavaScript mode (has imports)
+    const isJsMode = isJavaScriptBlock(block.value, block.language);
+
+    if (isJsMode) {
+      // JavaScript mode: import data from a virtual module
+      // The virtual-blocks plugin will serve the user's code as a module
+      const dataModuleId = params.name
+        ? `virtual:org-press:block:echarts-data:${context.orgFilePath}:NAME:${params.name}`
+        : `virtual:org-press:block:echarts-data:${context.orgFilePath}:${context.blockIndex}`;
+
+      return {
+        code: generateRenderCode({
+          containerId: stableId,
+          height,
+          theme,
+          renderer,
+          dataCode: '',
+          isModule: true,
+          moduleId: dataModuleId,
+        }),
+      };
+    } else {
+      // JSON mode: embed data directly
+      return {
+        code: generateRenderCode({
+          containerId: stableId,
+          height,
+          theme,
+          renderer,
+          dataCode: block.value,
+          isModule: false,
+        }),
+      };
+    }
+  },
+};
+
+// Default export for convenience
+export default echartsPlugin;
+#+end_src
+
+#+begin_export html
+</details>
+#+end_export
+
+* Examples
+
+** Line Chart
+
+A simple line chart showing weekly data:
+
+#+begin_src json :use echarts
+{
+  "title": { "text": "Weekly Sales" },
+  "tooltip": { "trigger": "axis" },
+  "xAxis": {
+    "type": "category",
+    "data": ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+  },
+  "yAxis": { "type": "value" },
+  "series": [{
+    "name": "Sales",
+    "type": "line",
+    "smooth": true,
+    "data": [150, 230, 224, 218, 135, 147, 260]
+  }]
+}
+#+end_src
+
+** Bar Chart with Multiple Series
+
+Comparing data across years with grouped bars:
+
+#+begin_src json :use echarts :height 500px
+{
+  "title": { "text": "Quarterly Revenue" },
+  "legend": { "data": ["2023", "2024"] },
+  "xAxis": {
+    "type": "category",
+    "data": ["Q1", "Q2", "Q3", "Q4"]
+  },
+  "yAxis": { "type": "value", "name": "Revenue ($K)" },
+  "series": [
+    { "name": "2023", "type": "bar", "data": [320, 332, 301, 334] },
+    { "name": "2024", "type": "bar", "data": [420, 482, 391, 484] }
+  ]
+}
+#+end_src
+
+** Pie Chart
+
+Distribution of traffic sources:
+
+#+begin_src json :use echarts
+{
+  "title": { "text": "Traffic Sources", "left": "center" },
+  "tooltip": { "trigger": "item" },
+  "legend": { "orient": "vertical", "left": "left" },
+  "series": [{
+    "name": "Source",
+    "type": "pie",
+    "radius": "50%",
+    "data": [
+      { "value": 1048, "name": "Search Engine" },
+      { "value": 735, "name": "Direct" },
+      { "value": 580, "name": "Email" },
+      { "value": 484, "name": "Social Media" },
+      { "value": 300, "name": "Other" }
+    ]
+  }]
+}
+#+end_src
+
+** Area Chart
+
+A chart with filled area under the line:
+
+#+begin_src json :use echarts
+{
+  "title": { "text": "Monthly Performance" },
+  "tooltip": { "trigger": "axis" },
+  "xAxis": {
+    "type": "category",
+    "boundaryGap": false,
+    "data": ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+  },
+  "yAxis": { "type": "value" },
+  "series": [{
+    "name": "Revenue",
+    "type": "line",
+    "data": [150, 232, 201, 354, 290, 330, 410, 382, 401, 434, 490, 530],
+    "areaStyle": { "opacity": 0.3 }
+  }]
+}
+#+end_src
+
+** Dark Theme
+
+Using the dark theme parameter:
+
+#+begin_src json :use echarts :theme dark
+{
+  "backgroundColor": "#100c2a",
+  "title": { "text": "Dark Theme Chart", "textStyle": { "color": "#fff" } },
+  "tooltip": { "trigger": "axis" },
+  "xAxis": {
+    "type": "category",
+    "data": ["Mon", "Tue", "Wed", "Thu", "Fri"],
+    "axisLine": { "lineStyle": { "color": "#fff" } }
+  },
+  "yAxis": {
+    "type": "value",
+    "axisLine": { "lineStyle": { "color": "#fff" } },
+    "splitLine": { "lineStyle": { "color": "#333" } }
+  },
+  "series": [{
+    "type": "bar",
+    "data": [120, 200, 150, 80, 70],
+    "itemStyle": {
+      "color": {
+        "type": "linear",
+        "x": 0, "y": 0, "x2": 0, "y2": 1,
+        "colorStops": [
+          { "offset": 0, "color": "#83bff6" },
+          { "offset": 1, "color": "#188df0" }
+        ]
+      }
+    }
+  }]
+}
+#+end_src
+
+* API Reference
+
+** BlockPlugin Properties
+
+| Property | Type | Description |
+|----------|------|-------------|
+| =name= | =string= | Plugin identifier: "echarts" |
+| =defaultExtension= | =string= | File extension for virtual modules: "js" |
+| =transform= | =function= | Transforms block to executable code |
+
+** Block Parameters
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| =:height= | =string= | "400px" | Chart container height |
+| =:theme= | =string= | "light" | ECharts theme ("light" or "dark") |
+| =:renderer= | =string= | "canvas" | Rendering mode ("canvas" or "svg") |
+
+** ECharts Option Reference
+
+The block content is an ECharts option object. See the full documentation at:
+https://echarts.apache.org/en/option.html
+
+Common properties:
+
+- =title= - Chart title configuration
+- =legend= - Legend component
+- =tooltip= - Tooltip configuration
+- =xAxis= / =yAxis= - Axis configuration
+- =series= - Data series (line, bar, pie, etc.)
+- =grid= - Grid layout
+
+* See Also
+
+- [[https://echarts.apache.org/][Apache ECharts]] - Official ECharts documentation
+- [[/plugins/creating-plugins.html][Creating Plugins]] - How to create org-press plugins
+- [[/plugins/index.html][All Plugins]] - Available org-press plugins

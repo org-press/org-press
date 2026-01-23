@@ -1,0 +1,153 @@
+#+TITLE: Getting Started
+#+DESCRIPTION: Set up your first org-press project in minutes
+
+* Getting Started
+
+Get up and running with org-press in under 5 minutes.
+
+** Prerequisites
+
+- Node.js 18+ or Bun
+- npm, pnpm, or yarn
+
+** Quick Start
+
+*** 1. Create a New Project
+
+#+begin_src bash
+mkdir my-docs
+cd my-docs
+npm init -y
+npm install org-press
+#+end_src
+
+*** 2. Create Configuration
+
+Create =.org-press/config.ts=:
+
+#+begin_export html
+<pre class="src-block"><code class="language-typescript">import type { OrgPressUserConfig } from "org-press/config-types";
+
+const config: OrgPressUserConfig = {
+  contentDir: "content",
+  outDir: "dist",
+};
+
+export default config;</code></pre>
+#+end_export
+
+*** 3. Create Your First Page
+
+Create =content/index.org=:
+
+#+begin_export html
+<pre class="example"><code class="language-org">&#35;+TITLE: My Documentation
+&#35;+DESCRIPTION: Welcome to my site
+
+&#42; Welcome
+
+This is my first org-press page!
+
+&#42;&#42; Code Example
+
+&#35;+begin_src javascript :use preview | withSourceCode
+const greeting = "Hello from org-press!";
+greeting;
+&#35;+end_src</code></pre>
+#+end_export
+
+*** 4. Start Development Server
+
+#+begin_src bash
+npx orgp dev
+#+end_src
+
+Open http://localhost:5173 to see your site with hot reload.
+
+*** 5. Build for Production
+
+#+begin_src bash
+npx orgp build
+#+end_src
+
+Your site is now in =dist/= ready for deployment.
+
+** Project Structure
+
+#+begin_example
+my-docs/
+├── .org-press/
+│   └── config.ts        # Configuration
+├── content/
+│   ├── index.org        # Homepage
+│   └── guide/           # Additional pages
+│       └── intro.org
+├── dist/                # Built output
+└── package.json
+#+end_example
+
+** Add Scripts to package.json
+
+For convenience, add these scripts:
+
+#+begin_src json
+{
+  "scripts": {
+    "dev": "orgp dev",
+    "build": "orgp build",
+    "preview": "orgp preview"
+  }
+}
+#+end_src
+
+Then use =npm run dev=, =npm run build=, etc.
+
+** Writing Content
+
+*** Basic Syntax
+
+#+begin_export html
+<pre class="example"><code class="language-org">&#35;+TITLE: Page Title
+&#35;+DESCRIPTION: SEO description
+
+&#42; Heading 1
+
+Paragraph text with &#42;bold&#42;, /italic/, =code=, and ~verbatim~.
+
+&#42;&#42; Heading 2
+
+- Bullet list
+- Another item
+
+1. Numbered list
+2. Second item
+
+&#42;&#42;&#42; Heading 3
+
+[[https://example.com][Link text]]</code></pre>
+#+end_export
+
+*** Code Blocks
+
+#+begin_export html
+<pre class="example"><code class="language-org">&#35;+begin_src javascript
+console.log("Hello world");
+&#35;+end_src
+
+&#35;+begin_src typescript :use preview | withSourceCode
+const x: number = 42;
+x * 2;
+&#35;+end_src
+
+&#35;+begin_src css
+.highlight { color: blue; }
+&#35;+end_src</code></pre>
+#+end_export
+
+** Next Steps
+
+- [[/guide/zero-config.html][Zero-Config Mode]] - Run without configuration
+- [[/guide/features.html][Features]] - Explore what org-press can do
+- [[/guide/cli.html][CLI Reference]] - All available commands
+- [[/guide/block-imports.html][Block Imports]] - Share code between files
+- [[/config/index.html][Configuration]] - Customize your setup
