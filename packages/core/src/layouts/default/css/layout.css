@@ -1,0 +1,119 @@
+/* @import "./playlist.scss"; */
+/* //@import url("https://gongzhitaao.org/orgcss/org.css"); */
+@import url("https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,600;1,400;1,600&display=swap");
+
+body {
+    font-display: block;
+    font-family: "EB Garamond", serif;
+    background: #fcfcf9;
+
+    line-height: 1.25em;
+    font-size: 3em;
+
+    /* Mobile -landscape */
+    @media (min-device-width: 40em) {
+        font-size: 1.25em;
+    }
+}
+
+.content {
+    max-width: 62.5e m;
+}
+
+pre {
+    overflow-x: scroll;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+h7,
+h8 {
+    font-family: "EB Garamond", serif;
+    line-height: 1em;
+    margin: 1em auto 0.5em;
+    color: #309ac9;
+}
+
+h1 {
+    color: #267ba1;
+}
+
+a {
+    color: #527d9a;
+    font-weight: 500;
+    text-decoration: inherit;
+}
+
+a:hover {
+    color: #003355;
+}
+
+nav {
+    max-width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-wrap: wrap;
+    @media (min-width: 80em) {
+        flex-wrap: nowrap;
+    }
+}
+
+nav .logo {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+}
+
+nav .logo img {
+    margin-right: 0.5rem;
+}
+
+nav h1 {
+    font-size: 1.2em;
+    line-height: 1em;
+    margin: 0;
+}
+
+nav ul {
+    padding: 0;
+    margin: 0;
+    list-style: none;
+    display: flex;
+    flex-wrap: wrap;
+    width: 100%;
+    justify-content: center;
+    gap: 0;
+
+    li {
+        margin: 0.5rem 2rem;
+    }
+
+    @media (min-width: 80em) {
+        justify-content: flex-end;
+        flex-wrap: nowrap;
+
+        li {
+            margin: 0 2rem;
+        }
+    }
+}
+
+ul {
+    margin-left: 2em;
+}
+
+#content > div:not(nav) {
+    padding-bottom: 2em;
+}
+
+footer {
+    text-align: center;
+    font-size: 0.624em;
+    line-height: 1.2;
+}

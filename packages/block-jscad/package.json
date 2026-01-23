@@ -1,0 +1,52 @@
+{
+  "name": "@org-press/block-jscad",
+  "version": "0.9.3",
+  "description": "JSCad 3D modeling block plugin for org-press - literate programming example",
+  "license": "GPL-2.0",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./wrapper": {
+      "types": "./dist/wrapper.d.ts",
+      "import": "./dist/wrapper.js"
+    }
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist",
+    "index.org",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "orgp build index.org --block plugin,wrapper --out dist/",
+    "test": "vitest",
+    "test:ci": "vitest --run",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@jscad/modeling": "^2.12.0",
+    "@jscad/regl-renderer": "^2.6.0"
+  },
+  "peerDependencies": {
+    "org-press": "^0.9.0"
+  },
+  "devDependencies": {
+    "org-press": "workspace:*",
+    "vitest": "^3.1.4"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "homepage": "https://orgp.dev",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/org-press/org-press.git"
+  },
+  "bugs": {
+    "url": "https://github.com/org-press/org-press/issues"
+  }
+}

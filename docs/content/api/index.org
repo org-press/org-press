@@ -1,0 +1,76 @@
+#+TITLE: API Overview
+#+DESCRIPTION: Org-press API reference
+
+* API Reference
+
+Org-press exposes several APIs for different use cases.
+
+** APIs
+
+- [[/api/preview-api.html][Preview API]] - Unified composable block rendering system
+- [[/api/plugin-api.html][Plugin API]] - Create custom block plugins
+- [[/api/javascript-api.html][JavaScript API]] - Programmatic usage
+- [[/api/hmr-api.html][HMR API]] - Hot module replacement
+- [[/api/cli-plugins.html][CLI Plugins]] - Extend the CLI
+
+** Quick Links
+
+*** For Block Rendering
+
+#+begin_export html
+<pre><code>#+begin_src javascript :use preview | withSourceCode
+// Execute code and show both source and result
+console.log("Hello World");
+#+end_src
+
+#+begin_src javascript :use sourceOnly
+// Display code without execution
+const x = 1;
+#+end_src</code></pre>
+#+end_export
+
+See [[/api/preview-api.html][Preview API]].
+
+*** For Plugin Authors
+
+#+begin_export html
+<pre><code>import type { BlockPlugin } from "org-press";
+
+export const myPlugin: BlockPlugin = {
+  name: "my-plugin",
+  // ...
+};
+</code></pre>
+#+end_export
+
+See [[/api/plugin-api.html][Plugin API]].
+
+*** For Programmatic Usage
+
+#+begin_export html
+<pre><code>import { parseOrgContent, renderOrg } from "org-press";
+
+const parsed = await parseOrgContent(content, context);
+const result = await renderOrg(parsed.ast, renderContext);
+</code></pre>
+#+end_export
+
+See [[/api/javascript-api.html][JavaScript API]].
+
+*** For CLI Extensions
+
+#+begin_export html
+<pre><code>export const myPlugin: BlockPlugin = {
+  name: "my-plugin",
+  cli: {
+    command: "mycommand",
+    description: "Do something",
+    action: async (args, config) => {
+      // ...
+    },
+  },
+};
+</code></pre>
+#+end_export
+
+See [[/api/cli-plugins.html][CLI Plugins]].

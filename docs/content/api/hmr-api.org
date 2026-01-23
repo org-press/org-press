@@ -1,0 +1,59 @@
+#+TITLE: HMR API
+#+DESCRIPTION: Hot Module Replacement in org-press
+
+* HMR API
+
+Org-press uses Vite's HMR system for instant updates during development.
+
+** Automatic HMR
+
+Changes to org files automatically trigger HMR:
+- Content changes reload the page content
+- CSS changes apply instantly
+- Code block changes re-execute
+
+** Custom HMR Handling
+
+In your code blocks, you can handle HMR:
+
+#+begin_export html
+<pre><code>if (import.meta.hot) {
+  import.meta.hot.accept((newModule) => {
+    // Handle update
+  });
+
+  import.meta.hot.dispose(() => {
+    // Cleanup before update
+  });
+}
+</code></pre>
+#+end_export
+
+** HMR Events
+
+#+begin_export html
+<pre><code>if (import.meta.hot) {
+  import.meta.hot.on('vite:beforeUpdate', () => {
+    console.log('About to update');
+  });
+
+  import.meta.hot.on('vite:afterUpdate', () => {
+    console.log('Update complete');
+  });
+}
+</code></pre>
+#+end_export
+
+** Plugin HMR
+
+Plugins can implement custom HMR behavior in their wrappers:
+
+#+begin_export html
+<pre><code>// In wrapper component
+useEffect(() => {
+  if (import.meta.hot) {
+    import.meta.hot.accept();
+  }
+}, []);
+</code></pre>
+#+end_export

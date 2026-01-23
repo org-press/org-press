@@ -1,0 +1,163 @@
+/**
+ * Top navigation styles
+ *
+ * Header with: [Logo]  [Guide|Config|Plugins|API]  [GitHub]
+ */
+
+.top-nav {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: var(--docs-header-height);
+  background: var(--docs-header-bg);
+  border-bottom: 1px solid var(--docs-header-border);
+  z-index: var(--docs-z-header);
+}
+
+.top-nav-container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  max-width: var(--docs-max-width);
+  margin: 0 auto;
+  height: 100%;
+  padding: 0 var(--docs-spacing-lg);
+}
+
+/* Logo */
+.top-nav-logo {
+  display: flex;
+  align-items: center;
+  text-decoration: none;
+  color: var(--docs-text);
+  font-family: "EB Garamond", Georgia, serif;
+  font-weight: 500;
+  font-size: 1.25rem;
+  letter-spacing: 0.01em;
+}
+
+.top-nav-logo:hover {
+  opacity: 0.8;
+}
+
+.logo-text {
+  /* Add logo icon via ::before if needed */
+}
+
+/* Main navigation links */
+.top-nav-links {
+  display: flex;
+  align-items: center;
+  gap: var(--docs-spacing-xs);
+}
+
+.top-nav-link {
+  display: block;
+  padding: var(--docs-spacing-sm) var(--docs-spacing-md);
+  font-size: var(--docs-font-size-sm);
+  font-weight: 500;
+  color: var(--docs-text-light);
+  text-decoration: none;
+  border-radius: var(--docs-radius-sm);
+  transition: color var(--docs-transition-fast),
+    background var(--docs-transition-fast);
+}
+
+.top-nav-link:hover {
+  color: var(--docs-text);
+  background: var(--docs-bg-soft);
+}
+
+.top-nav-link.active {
+  color: var(--docs-brand);
+}
+
+/* Social/external links */
+.top-nav-social {
+  display: flex;
+  align-items: center;
+  gap: var(--docs-spacing-sm);
+}
+
+.top-nav-social-link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  color: var(--docs-text-light);
+  border-radius: var(--docs-radius-sm);
+  transition: color var(--docs-transition-fast),
+    background var(--docs-transition-fast);
+}
+
+.top-nav-social-link:hover {
+  color: var(--docs-text);
+  background: var(--docs-bg-soft);
+}
+
+/* Mobile hamburger button */
+.mobile-menu-button {
+  display: none;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  background: none;
+  border: none;
+  cursor: pointer;
+  border-radius: var(--docs-radius-sm);
+  transition: background var(--docs-transition-fast);
+}
+
+.mobile-menu-button:hover {
+  background: var(--docs-bg-soft);
+}
+
+.hamburger-line {
+  display: block;
+  width: 18px;
+  height: 2px;
+  background: var(--docs-text);
+  border-radius: 1px;
+  transition: transform var(--docs-transition-fast),
+    opacity var(--docs-transition-fast);
+}
+
+.hamburger-line + .hamburger-line {
+  margin-top: 4px;
+}
+
+/* Hamburger animation when open */
+body.sidebar-open .hamburger-line:nth-child(1) {
+  transform: translateY(6px) rotate(45deg);
+}
+
+body.sidebar-open .hamburger-line:nth-child(2) {
+  opacity: 0;
+}
+
+body.sidebar-open .hamburger-line:nth-child(3) {
+  transform: translateY(-6px) rotate(-45deg);
+}
+
+/* Mobile: show hamburger, hide main nav */
+@media (max-width: 959px) {
+  .top-nav-links {
+    display: none;
+  }
+
+  .mobile-menu-button {
+    display: flex;
+  }
+}
+
+/* Tablet: keep nav links visible but may need adjustments */
+@media (min-width: 960px) and (max-width: 1279px) {
+  .top-nav-container {
+    padding: 0 var(--docs-spacing-md);
+  }
+}

@@ -1,0 +1,401 @@
+#+TITLE: Test Plugin
+#+DATE: 2025-01-19
+
+* Overview
+
+The Test plugin enables literate testing directly within your org-mode documents using [[https://vitest.dev/][Vitest]]. Write tests alongside your code, run them from the CLI, and see results rendered inline in your documents.
+
+** Features
+
+- 🧪 *Literate Testing* - Write tests in the same document as your code
+- ⚡ *Vitest Powered* - Fast, modern test runner with excellent DX
+- 📊 *Inline Results* - Test results render directly in your documents
+- 🔍 *Coverage Support* - Optional code coverage reporting
+- 👀 *Watch Mode* - Re-run tests automatically on changes
+- 🎯 *Filtering* - Run tests by file or block name
+
+* Installation
+
+#+begin_src bash :use sourceOnly
+npm install @org-press/block-test vitest
+#+end_src
+
+Register in =.org-press/config.ts=:
+
+#+begin_src typescript :use sourceOnly
+import { testPlugin } from '@org-press/block-test';
+
+export default {
+  plugins: [testPlugin]
+};
+#+end_src
+
+* Basic Usage
+
+** Simple Example
+
+Write tests directly in your org file:
+
+#+begin_src typescript :use sourceOnly :name simple-test
+describe('Math Operations', () => {
+  it('adds numbers correctly', () => {
+    expect(1 + 2).toBe(3);
+  });
+
+  it('multiplies numbers correctly', () => {
+    expect(3 * 4).toBe(12);
+  });
+});
+#+end_src
+
+** Syntax
+
+#+begin_export html
+<pre><code>#+NAME: my-tests
+#+begin_src typescript :use test
+import { describe, it, expect } from 'vitest';
+
+describe('feature', () => {
+  it('works correctly', () => {
+    expect(true).toBe(true);
+  });
+});
+#+end_src
+</code></pre>
+#+end_export
+
+** Parameters
+
+| Parameter    | Required | Description                       | Example          |
+|--------------+----------+-----------------------------------+------------------|
+| =:use test=  | Yes      | Activates test block processing   | =:use test=      |
+| =:name=      | No       | Block name for filtering          | =:name my-tests= |
+| =:coverage=  | No       | Enable coverage display           | =:coverage=      |
+
+* CLI Commands
+
+** Running All Tests
+
+#+begin_src bash :use sourceOnly
+orgp test
+#+end_src
+
+** Running Tests in a Specific File
+
+#+begin_src bash :use sourceOnly
+orgp test content/math.org
+#+end_src
+
+** Filtering by Block Name
+
+#+begin_src bash :use sourceOnly
+orgp test --name math-tests
+#+end_src
+
+** Watch Mode
+
+#+begin_src bash :use sourceOnly
+orgp test --watch
+#+end_src
+
+** With Coverage
+
+#+begin_src bash :use sourceOnly
+orgp test --coverage
+#+end_src
+
+** Hashbang Support
+
+Make your org file executable:
+
+#+begin_export html
+<pre><code>#!/usr/bin/env orgp
+#+TITLE: My Tests
+
+#+NAME: tests
+#+begin_src typescript :use test
+describe('tests', () => {
+  it('works', () => expect(1).toBe(1));
+});
+#+end_src
+</code></pre>
+#+end_export
+
+Then run directly:
+
+#+begin_src bash :use sourceOnly
+chmod +x my-tests.org
+./my-tests.org test
+#+end_src
+
+* Testing Patterns
+
+** Testing Functions from Other Blocks
+
+Import functions from other code blocks in your org files:
+
+#+begin_export html
+<pre><code>// In math.org - define the function
+#+NAME: add-function
+#+begin_src typescript :use sourceOnly
+export function add(a: number, b: number): number {
+  return a + b;
+}
+#+end_src
+
+// In the same or another file - test it
+#+NAME: add-tests
+#+begin_src typescript :use test
+import { add } from './math.org?name=add-function';
+
+describe('add', () => {
+  it('adds positive numbers', () => {
+    expect(add(1, 2)).toBe(3);
+  });
+
+  it('adds negative numbers', () => {
+    expect(add(-1, -2)).toBe(-3);
+  });
+
+  it('handles zero', () => {
+    expect(add(0, 5)).toBe(5);
+  });
+});
+#+end_src
+</code></pre>
+#+end_export
+
+** Async Tests
+
+#+begin_src typescript :use sourceOnly :name async-tests
+describe('Async Operations', () => {
+  it('resolves promises', async () => {
+    const result = await Promise.resolve(42);
+    expect(result).toBe(42);
+  });
+
+  it('handles async/await', async () => {
+    const fetchData = async () => ({ value: 'test' });
+    const data = await fetchData();
+    expect(data.value).toBe('test');
+  });
+});
+#+end_src
+
+** Mocking
+
+#+begin_src typescript :use sourceOnly :name mock-tests
+import { vi } from 'vitest';
+
+describe('Mocking', () => {
+  it('mocks functions', () => {
+    const mockFn = vi.fn().mockReturnValue(42);
+    expect(mockFn()).toBe(42);
+    expect(mockFn).toHaveBeenCalled();
+  });
+
+  it('spies on methods', () => {
+    const obj = {
+      method: () => 'original'
+    };
+    const spy = vi.spyOn(obj, 'method').mockReturnValue('mocked');
+    expect(obj.method()).toBe('mocked');
+    spy.mockRestore();
+  });
+});
+#+end_src
+
+** Setup and Teardown
+
+#+begin_src typescript :use sourceOnly :name lifecycle-tests
+describe('With Setup/Teardown', () => {
+  let testData: string[];
+
+  beforeEach(() => {
+    testData = ['a', 'b', 'c'];
+  });
+
+  afterEach(() => {
+    testData = [];
+  });
+
+  it('has initial data', () => {
+    expect(testData).toHaveLength(3);
+  });
+
+  it('can modify data', () => {
+    testData.push('d');
+    expect(testData).toHaveLength(4);
+  });
+});
+#+end_src
+
+* Inline Results Display
+
+When viewing your org file in the browser during development, test blocks show results inline:
+
+** Result Components
+
+- *Summary Bar* - Shows pass/fail/skip counts with color coding
+- *Test List* - Individual test results with expand/collapse
+- *Error Details* - Stack traces and diff output for failures
+- *Coverage Bars* - Visual coverage metrics (when enabled)
+
+** Result States
+
+| State   | Color  | Description                     |
+|---------+--------+---------------------------------|
+| Pass    | Green  | All tests passed                |
+| Fail    | Red    | One or more tests failed        |
+| Pending | Yellow | Tests not yet run               |
+| Skip    | Blue   | Tests marked as skipped         |
+
+* Project Setup Example
+
+** Directory Structure
+
+#+begin_export html
+<pre><code>my-project/
+├── .org-press/
+│   └── config.ts        # Plugin registration
+├── content/
+│   ├── index.org        # Main content
+│   ├── math.org         # Math functions + tests
+│   └── utils.org        # Utility functions + tests
+└── package.json
+</code></pre>
+#+end_export
+
+** Config File
+
+#+begin_src typescript :use sourceOnly
+// .org-press/config.ts
+import { testPlugin } from '@org-press/block-test';
+
+export default {
+  contentDir: 'content',
+  plugins: [testPlugin],
+};
+#+end_src
+
+** Package Scripts
+
+#+begin_src json :use sourceOnly
+{
+  "scripts": {
+    "dev": "orgp dev",
+    "build": "orgp build",
+    "test": "orgp test",
+    "test:watch": "orgp test --watch",
+    "test:coverage": "orgp test --coverage"
+  }
+}
+#+end_src
+
+* Tips and Best Practices
+
+** Organization
+
+- Group related tests in the same org file as the code they test
+- Use descriptive =#+NAME:= blocks for easy filtering
+- Keep test blocks close to the code they test
+
+** Performance
+
+- Use =--watch= during development for fast feedback
+- Filter by file or name when working on specific features
+- Run full test suite before committing
+
+** Debugging
+
+- Use =console.log()= in tests - output appears in CLI
+- Check the generated test files in =node_modules/.cache/org-test/=
+- Run with =--reporter=verbose= for detailed output
+
+** Coverage
+
+- Enable coverage to find untested code paths
+- Aim for meaningful coverage, not 100%
+- Focus coverage on critical business logic
+
+* API Reference
+
+** Plugin Configuration
+
+#+begin_src typescript :use sourceOnly
+interface TestPlugin extends BlockPlugin {
+  name: 'test';
+  defaultExtension: 'js';
+
+  // Match blocks with :use test
+  matches: (block: CodeBlock) => boolean;
+
+  // Transform block for rendering
+  transform: (block: CodeBlock, context: TransformContext) => Promise<TransformResult>;
+
+  // CLI command registration
+  cli: {
+    command: 'test';
+    description: 'Run test blocks in org files';
+    execute: (args: string[], context: CliContext) => Promise<number>;
+  };
+}
+#+end_src
+
+** Test Result Types
+
+#+begin_src typescript :use sourceOnly
+interface TestResult {
+  name: string;
+  status: 'pass' | 'fail' | 'skip';
+  duration: number;
+  error?: {
+    message: string;
+    expected?: unknown;
+    actual?: unknown;
+    stack?: string;
+  };
+}
+
+interface TestBlockResult {
+  blockId: string;
+  blockName?: string;
+  tests: TestResult[];
+  coverage?: CoverageData;
+  duration: number;
+}
+#+end_src
+
+* Troubleshooting
+
+** Tests Not Found
+
+- Verify =:use test= parameter is present on the block
+- Check that the block language is TypeScript or JavaScript
+- Ensure the content directory is correctly configured
+
+** Import Errors
+
+- Use relative paths: =./file.org?name=block-name=
+- Verify the target block exists and exports correctly
+- Check that Vitest can resolve the imports
+
+** CLI Not Working
+
+- Ensure =@org-press/block-test= is installed
+- Verify the plugin is registered in config
+- Check that =orgp= is available in PATH
+
+** Results Not Displaying
+
+- Run =orgp test= to generate results first
+- Check browser console for errors
+- Verify the wrapper component is loading
+
+* See Also
+
+- [[file:../block-plugins.org][Block Plugin System]] - How plugins work
+- [[file:../examples/block-imports.org][Block Imports Guide]] - Importing code between blocks
+- [[https://vitest.dev/][Vitest Documentation]] - Full Vitest API reference
+- [[file:jscad.org][JSCad Plugin]] - 3D modeling plugin
+- [[file:excalidraw.org][Excalidraw Plugin]] - Diagram plugin

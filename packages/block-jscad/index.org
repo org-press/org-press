@@ -1,0 +1,824 @@
+#+TITLE: JSCad Plugin for Org-Press
+#+DESCRIPTION: 3D modeling with JavaScript CAD - literate plugin implementation
+
+* JSCad Plugin
+
+This is a literate plugin implementation for JSCad (JavaScript Computer-Aided Design) integration with org-press. Write parametric 3D models with code, render them in real-time, and export to STL for 3D printing.
+
+** Features
+
+- *Interactive 3D Viewer* - Rotate, zoom, and pan models in the browser
+- *Parametric Design* - Define models with code for easy modification
+- *Live Updates* - Changes reflect immediately during development
+- *Block Imports* - Reuse geometry across files with org block imports
+- *View State Persistence* - Camera position saved in localStorage
+- *Export Support* - Download models as STL for 3D printing
+
+** Installation
+
+Install the plugin and dependencies:
+
+#+begin_example
+npm install @org-press/block-jscad @jscad/modeling @jscad/regl-renderer
+#+end_example
+
+Add to your org-press config:
+
+#+begin_export html
+<pre><code class="language-typescript">// .org-press/config.ts
+import { jscadPlugin } from "@org-press/block-jscad";
+
+export default {
+  plugins: [jscadPlugin],
+};
+</code></pre>
+#+end_export
+
+** Usage
+
+*** Basic Syntax
+
+#+begin_export html
+<pre><code class="language-org">#+begin_src javascript :use jscad
+import * as jscad from '@jscad/modeling';
+
+const { cube, sphere } = jscad.primitives;
+const { union } = jscad.booleans;
+
+export default [
+  cube({ size: 10 }),
+  sphere({ radius: 5 })
+];
+#+end_src
+</code></pre>
+#+end_export
+
+*** Parameters
+
+- =:height= - Canvas height (default: "400px")
+- =:name= - Block name for imports/references
+
+Example with parameters:
+
+#+begin_export html
+<pre><code class="language-org">#+begin_src javascript :use jscad :height 600px :name my-model
+// ... model code
+#+end_src
+</code></pre>
+#+end_export
+
+* Plugin Implementation
+
+The plugin transforms JSCad blocks into executable JavaScript that renders interactive 3D models.
+
+#+begin_export html
+<details>
+<summary>View plugin source code</summary>
+#+end_export
+
+#+NAME: plugin
+#+begin_src typescript :use sourceOnly
+/**
+ * Org-Press JSCad Block Plugin
+ *
+ * Provides 3D modeling support for org-mode using JSCad
+ */
+
+import type {
+  BlockPlugin,
+  CodeBlock,
+  TransformContext,
+  TransformResult
+} from "org-press";
+import { createBlockId, parseBlockParameters } from "org-press";
+
+/**
+ * JSCad virtual module plugin
+ * Returns a React component that renders the JSCad viewer
+ *
+ * Preview API compatible:
+ * - :use jscad → renders interactive 3D model
+ * - :use jscad | sourceOnly → shows source code only
+ * - :use jscad | withSourceCode → shows both code and model
+ */
+export const jscadPlugin: BlockPlugin = {
+  name: 'jscad',
+  defaultExtension: 'js',
+
+  /**
+   * Transform returns code that renders the JSCad viewer
+   * - sourceOnly mode: returns code for display without rendering
+   * - preview mode: returns render function for interactive 3D model
+   */
+  async transform(block: CodeBlock, context: TransformContext): Promise<TransformResult> {
+    // Create stable ID for this block using utility
+    const stableId = createBlockId(context.orgFilePath, context.blockIndex);
+
+    // Parse block parameters
+    const params = parseBlockParameters(block.meta || "");
+
+    // Check for mode from :use parameter (e.g., :use jscad | sourceOnly)
+    const useValue = params.use || 'jscad';
+    const useParts = useValue.split('|').map((s: string) => s.trim());
+    const mode = useParts.length > 1 ? useParts[1] : 'preview';
+
+    // Handle sourceOnly mode - just return the source code
+    if (mode === 'sourceOnly') {
+      return {
+        code: `// JSCad model source (display only)\nexport default ${JSON.stringify(block.value)};`,
+      };
+    }
+
+    // Create virtual module ID for the model code
+    // The virtual blocks plugin will handle rewriting imports and returning the model code
+    const modelModuleId = params.name
+      ? `virtual:org-press:block:jscad-model:${context.orgFilePath}:NAME:${params.name}`
+      : `virtual:org-press:block:jscad-model:${context.orgFilePath}:${context.blockIndex}`;
+
+    // Get height from block parameters or use default
+    const height = params.height || "400px";
+
+    // Return render function that receives container ID from exporter
+    // The exporter creates a container with ID `org-block-${index}-result`
+    return {
+      code: `
+import renderJSCad from '@org-press/block-jscad/wrapper';
+
+// Export render function - exporter will call this with container ID
+export default function render(containerId) {
+  const container = document.getElementById(containerId);
+  if (!container) {
+    console.error('[JSCad] Container not found:', containerId);
+    return;
+  }
+
+  // Style the container for jscad
+  container.className = 'jscad-wrapper';
+  container.style.cssText = 'position: relative; height: ${height};';
+  container.setAttribute('data-storage-key', '${stableId}');
+
+  // Import the model code from virtual module and render
+  import('${modelModuleId}').then((module) => {
+    renderJSCad(container, module.default);
+  }).catch(err => {
+    console.error('[JSCad] Failed to load model:', err);
+    container.innerHTML = '<div style="color: red;">Error loading JSCad model: ' + err.message + '</div>';
+  });
+}
+      `,
+    };
+  },
+};
+
+// Default export for convenience
+export default jscadPlugin;
+#+end_src
+
+#+begin_export html
+</details>
+#+end_export
+
+* Wrapper Implementation
+
+The wrapper handles WebGL rendering, camera controls, and STL export.
+
+#+begin_export html
+<details>
+<summary>View wrapper source code</summary>
+#+end_export
+
+#+NAME: wrapper
+#+begin_src typescript :use sourceOnly
+// CommonJS imports - @jscad packages are CJS
+import reglRenderer from "@jscad/regl-renderer";
+const { prepareRender, drawCommands, cameras, controls, entitiesFromSolids } = reglRenderer;
+
+import jscadModeling from "@jscad/modeling";
+const { geometries } = jscadModeling;
+
+// Inline CSS styles
+const wrapperStyles = `
+.jscad-wrapper {
+  position: relative;
+  width: 100%;
+  height: 400px;
+  margin: 1rem 0;
+  border-radius: 8px;
+  overflow: hidden;
+}
+`;
+
+// Inject styles once
+let stylesInjected = false;
+function injectStyles() {
+  if (stylesInjected) return;
+  const style = document.createElement('style');
+  style.textContent = wrapperStyles;
+  document.head.appendChild(style);
+  stylesInjected = true;
+}
+
+interface CameraState {
+  position: number[];
+  target: number[];
+}
+
+export default function (
+  containerElement: HTMLElement,
+  solidsOrFunction: any[] | Function
+) {
+  // Inject CSS styles
+  injectStyles();
+
+  // Clear container to handle HMR properly
+  containerElement.innerHTML = "";
+
+  const perspectiveCamera = cameras.perspective;
+  const orbitControls = controls.orbit;
+
+  const width = containerElement.clientWidth;
+  const height = containerElement.clientHeight;
+
+  const state: any = {};
+
+  // Use stable storage key from data attribute (doesn't change with content)
+  const storageKeyBase =
+    containerElement.getAttribute("data-storage-key") || containerElement.id;
+  const storageKey = storageKeyBase
+    ? `jscad-camera-${storageKeyBase}`
+    : `jscad-camera-${Date.now()}`;
+
+  // Try to load saved camera state
+  let savedCameraState: CameraState | null = null;
+  try {
+    const saved = localStorage.getItem(storageKey);
+    if (saved) {
+      savedCameraState = JSON.parse(saved);
+    }
+  } catch (e) {
+    console.warn("Failed to load saved camera state:", e);
+  }
+
+  // Prepare the camera
+  state.camera = Object.assign({}, perspectiveCamera.defaults);
+
+  // Apply saved camera state if available
+  if (savedCameraState) {
+    state.camera.position = savedCameraState.position;
+    state.camera.target = savedCameraState.target;
+  }
+
+  // Store initial camera state for reset functionality
+  const initialCameraState: CameraState = {
+    position: [...state.camera.position],
+    target: [...state.camera.target],
+  };
+
+  perspectiveCamera.setProjection(state.camera, state.camera, {
+    width,
+    height,
+  });
+  perspectiveCamera.update(state.camera, state.camera);
+
+  // Prepare the controls
+  state.controls = orbitControls.defaults;
+
+  // Create UI controls panel
+  const controlsPanel = document.createElement("div");
+  controlsPanel.setAttribute("data-jscad-controls", "true");
+  controlsPanel.style.cssText = `
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 10px;
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 4px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    pointer-events: auto;
+  `;
+
+  // Fullscreen button
+  const fullscreenBtn = document.createElement("button");
+  fullscreenBtn.setAttribute("data-jscad-fullscreen", "true");
+  fullscreenBtn.textContent = "⛶ Fullscreen";
+  fullscreenBtn.style.cssText = `
+    padding: 6px 12px;
+    cursor: pointer;
+    border: 1px solid #ccc;
+    border-radius: 3px;
+    background: white;
+  `;
+  fullscreenBtn.onclick = () => {
+    if (containerElement.requestFullscreen) {
+      containerElement.requestFullscreen();
+    }
+  };
+  controlsPanel.appendChild(fullscreenBtn);
+
+  // Download STL button
+  const downloadBtn = document.createElement("button");
+  downloadBtn.setAttribute("data-jscad-download", "true");
+  downloadBtn.textContent = "↓ Download STL";
+  downloadBtn.style.cssText = `
+    padding: 6px 12px;
+    cursor: pointer;
+    border: 1px solid #ccc;
+    border-radius: 3px;
+    background: white;
+  `;
+  controlsPanel.appendChild(downloadBtn);
+
+  // Clear camera button
+  const clearCameraBtn = document.createElement("button");
+  clearCameraBtn.setAttribute("data-jscad-clear-camera", "true");
+  clearCameraBtn.textContent = "↻ Reset Camera";
+  clearCameraBtn.style.cssText = `
+    padding: 6px 12px;
+    cursor: pointer;
+    border: 1px solid #ccc;
+    border-radius: 3px;
+    background: white;
+    display: none;
+  `;
+  clearCameraBtn.onclick = () => {
+    resetCamera();
+  };
+  controlsPanel.appendChild(clearCameraBtn);
+
+  // Autosave checkbox
+  const autosaveLabel = document.createElement("label");
+  autosaveLabel.style.cssText = `
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 14px;
+    cursor: pointer;
+  `;
+
+  const autosaveCheckbox = document.createElement("input");
+  autosaveCheckbox.type = "checkbox";
+  autosaveCheckbox.checked = true;
+  autosaveCheckbox.setAttribute("data-jscad-autosave", "true");
+  autosaveCheckbox.style.cursor = "pointer";
+
+  const autosaveText = document.createTextNode("Auto-save camera");
+  autosaveLabel.appendChild(autosaveCheckbox);
+  autosaveLabel.appendChild(autosaveText);
+  controlsPanel.appendChild(autosaveLabel);
+
+  containerElement.appendChild(controlsPanel);
+
+  // Prepare the renderer
+  const setupOptions = {
+    glOptions: { container: containerElement },
+  };
+  const renderer = prepareRender(setupOptions);
+
+  const gridOptions = {
+    visuals: {
+      drawCmd: "drawGrid",
+      show: true,
+    },
+    size: [500, 500],
+    ticks: [25, 5],
+  };
+
+  const axisOptions = {
+    visuals: {
+      drawCmd: "drawAxis",
+      show: true,
+    },
+    size: 300,
+  };
+
+  // Support both array of solids and function that returns solids
+  const solids = Array.isArray(solidsOrFunction)
+    ? solidsOrFunction
+    : solidsOrFunction({ scale: 1 });
+
+  const entities = entitiesFromSolids({}, solids);
+
+  // Set up the download button handler
+  downloadBtn.onclick = () => {
+    downloadSTL(solids);
+  };
+
+  // Assemble the options for rendering
+  const renderOptions = {
+    camera: state.camera,
+    drawCommands: {
+      drawAxis: drawCommands.drawAxis,
+      drawGrid: drawCommands.drawGrid,
+      drawLines: drawCommands.drawLines,
+      drawMesh: drawCommands.drawMesh,
+    },
+    entities: [gridOptions, axisOptions, ...entities],
+  };
+
+  // Save camera position to localStorage
+  function saveCameraState() {
+    if (!autosaveCheckbox.checked) return;
+
+    const cameraState: CameraState = {
+      position: [...state.camera.position],
+      target: [...state.camera.target],
+    };
+    localStorage.setItem(storageKey, JSON.stringify(cameraState));
+  }
+
+  // Check if camera has moved from initial position
+  function isCameraAtInitialPosition(): boolean {
+    const posEqual =
+      state.camera.position[0] === initialCameraState.position[0] &&
+      state.camera.position[1] === initialCameraState.position[1] &&
+      state.camera.position[2] === initialCameraState.position[2];
+
+    const targetEqual =
+      state.camera.target[0] === initialCameraState.target[0] &&
+      state.camera.target[1] === initialCameraState.target[1] &&
+      state.camera.target[2] === initialCameraState.target[2];
+
+    return posEqual && targetEqual;
+  }
+
+  // Update clear button visibility based on camera position
+  function updateClearButtonVisibility() {
+    clearCameraBtn.style.display = isCameraAtInitialPosition() ? "none" : "block";
+  }
+
+  // Reset camera to initial position
+  function resetCamera() {
+    state.camera.position = [...initialCameraState.position];
+    state.camera.target = [...initialCameraState.target];
+    perspectiveCamera.update(state.camera);
+    updateView = true;
+    updateClearButtonVisibility();
+    saveCameraState();
+  }
+
+  // Download solids as STL
+  function downloadSTL(solids: any[]) {
+    try {
+      const stlString = solidsToSTL(solids);
+      const blob = new Blob([stlString], { type: "text/plain" });
+      const url = URL.createObjectURL(blob);
+
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "model.stl";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      console.error("Failed to download STL:", e);
+      alert("Failed to download STL. Make sure the model is valid.");
+    }
+  }
+
+  // Convert JSCAD solids to STL format
+  function solidsToSTL(solids: any[]): string {
+    let stl = "solid model\n";
+
+    for (const solid of solids) {
+      const polygons = geometries.geom3.toPolygons(solid);
+
+      for (const polygon of polygons) {
+        const vertices = polygon.vertices;
+
+        // Calculate normal
+        const v1 = vertices[0];
+        const v2 = vertices[1];
+        const v3 = vertices[2];
+
+        const u = [v2[0] - v1[0], v2[1] - v1[1], v2[2] - v1[2]];
+        const v = [v3[0] - v1[0], v3[1] - v1[1], v3[2] - v1[2]];
+
+        const normal = [
+          u[1] * v[2] - u[2] * v[1],
+          u[2] * v[0] - u[0] * v[2],
+          u[0] * v[1] - u[1] * v[0],
+        ];
+
+        // Normalize
+        const len = Math.sqrt(
+          normal[0] * normal[0] + normal[1] * normal[1] + normal[2] * normal[2]
+        );
+        normal[0] /= len;
+        normal[1] /= len;
+        normal[2] /= len;
+
+        stl += `  facet normal ${normal[0]} ${normal[1]} ${normal[2]}\n`;
+        stl += `    outer loop\n`;
+
+        for (const vertex of vertices) {
+          stl += `      vertex ${vertex[0]} ${vertex[1]} ${vertex[2]}\n`;
+        }
+
+        stl += `    endloop\n`;
+        stl += `  endfacet\n`;
+      }
+    }
+
+    stl += "endsolid model\n";
+    return stl;
+  }
+
+  // Update clear button visibility based on initial camera state
+  updateClearButtonVisibility();
+
+  // The heart of rendering
+  let updateView = true;
+
+  const rotateSpeed = 0.002;
+  const panSpeed = 1;
+  const zoomSpeed = 0.08;
+  let rotateDelta = [0, 0];
+  let panDelta = [0, 0];
+  let zoomDelta = 0;
+  let pointerDown = false;
+  let lastX = 0;
+  let lastY = 0;
+
+  const doRotatePanZoom = () => {
+    if (rotateDelta[0] || rotateDelta[1]) {
+      const updated = orbitControls.rotate(
+        { controls: state.controls, camera: state.camera, speed: rotateSpeed },
+        rotateDelta
+      );
+      state.controls = { ...state.controls, ...updated.controls };
+      updateView = true;
+      rotateDelta = [0, 0];
+    }
+
+    if (panDelta[0] || panDelta[1]) {
+      const updated = orbitControls.pan(
+        { controls: state.controls, camera: state.camera, speed: panSpeed },
+        panDelta
+      );
+      state.controls = { ...state.controls, ...updated.controls };
+      panDelta = [0, 0];
+      state.camera.position = updated.camera.position;
+      state.camera.target = updated.camera.target;
+      updateView = true;
+    }
+
+    if (zoomDelta) {
+      const updated = orbitControls.zoom(
+        { controls: state.controls, camera: state.camera, speed: zoomSpeed },
+        zoomDelta
+      );
+      state.controls = { ...state.controls, ...updated.controls };
+      zoomDelta = 0;
+      updateView = true;
+    }
+  };
+
+  const updateAndRender = (timestamp: number) => {
+    doRotatePanZoom();
+
+    if (updateView) {
+      const updates = orbitControls.update({
+        controls: state.controls,
+        camera: state.camera,
+      });
+      state.controls = { ...state.controls, ...updates.controls };
+      updateView = state.controls.changed;
+
+      state.camera.position = updates.camera.position;
+      perspectiveCamera.update(state.camera);
+
+      renderer(renderOptions);
+
+      saveCameraState();
+      updateClearButtonVisibility();
+    }
+    window.requestAnimationFrame(updateAndRender);
+  };
+  window.requestAnimationFrame(updateAndRender);
+
+  // Event handlers for mouse/touch interaction
+  const moveHandler = (ev: PointerEvent) => {
+    if (!pointerDown) return;
+
+    const target = ev.target as HTMLElement;
+    if (target.closest('[data-jscad-controls]')) {
+      return;
+    }
+
+    const dx = lastX - ev.pageX;
+    const dy = ev.pageY - lastY;
+
+    const shiftKey =
+      ev.shiftKey === true || ((ev as any).touches && (ev as any).touches.length > 2);
+    if (shiftKey) {
+      panDelta[0] += dx;
+      panDelta[1] += dy;
+    } else {
+      rotateDelta[0] -= dx;
+      rotateDelta[1] -= dy;
+    }
+
+    lastX = ev.pageX;
+    lastY = ev.pageY;
+
+    ev.preventDefault();
+  };
+
+  const downHandler = (ev: PointerEvent) => {
+    const target = ev.target as HTMLElement;
+    if (target.closest('[data-jscad-controls]')) {
+      return;
+    }
+
+    pointerDown = true;
+    lastX = ev.pageX;
+    lastY = ev.pageY;
+    containerElement.setPointerCapture(ev.pointerId);
+  };
+
+  const upHandler = (ev: PointerEvent) => {
+    pointerDown = false;
+    const target = ev.target as HTMLElement;
+    if (!target.closest('[data-jscad-controls]')) {
+      containerElement.releasePointerCapture(ev.pointerId);
+    }
+  };
+
+  const wheelHandler = (ev: WheelEvent) => {
+    zoomDelta += ev.deltaY;
+    ev.preventDefault();
+  };
+
+  containerElement.onpointermove = moveHandler;
+  containerElement.onpointerdown = downHandler;
+  containerElement.onpointerup = upHandler;
+  containerElement.onwheel = wheelHandler;
+}
+#+end_src
+
+#+begin_export html
+</details>
+#+end_export
+
+* Examples
+
+** Simple Cube
+
+A basic 3D cube:
+
+#+begin_src javascript :use jscad
+import * as jscad from '@jscad/modeling';
+
+const { cube } = jscad.primitives;
+
+export default [cube({ size: 10 })];
+#+end_src
+
+** Basic Shapes
+
+Multiple primitives with transformations:
+
+#+begin_src javascript :use jscad :height 500px
+import * as jscad from '@jscad/modeling';
+
+const { cube, sphere, cylinder, cuboid } = jscad.primitives;
+const { translate } = jscad.transforms;
+
+const shapes = [
+  translate([-25, 0, 0], cube({ size: 8 })),
+  translate([0, 0, 0], sphere({ radius: 5 })),
+  translate([25, 0, 0], cylinder({ radius: 4, height: 10 })),
+  translate([0, -25, 0], cuboid({ size: [12, 6, 4] }))
+];
+
+export default shapes;
+#+end_src
+
+** Boolean Operations
+
+Union, subtract, and intersect:
+
+#+begin_src javascript :use jscad :height 500px
+import * as jscad from '@jscad/modeling';
+
+const { cube, sphere } = jscad.primitives;
+const { union, subtract, intersect } = jscad.booleans;
+const { translate } = jscad.transforms;
+
+const base = cube({ size: 15 });
+const ball = translate([5, 5, 5], sphere({ radius: 8 }));
+
+const shapes = [
+  // Union (combine)
+  translate([-30, 0, 0], union(base, ball)),
+
+  // Subtract (cut)
+  translate([0, 0, 0], subtract(base, ball)),
+
+  // Intersect (overlap only)
+  translate([30, 0, 0], intersect(base, ball))
+];
+
+export default shapes;
+#+end_src
+
+** Parametric Box
+
+A configurable enclosure with mounting holes:
+
+#+begin_src javascript :use jscad :height 500px
+import * as jscad from '@jscad/modeling';
+
+const { cuboid, cylinder } = jscad.primitives;
+const { subtract } = jscad.booleans;
+const { translate } = jscad.transforms;
+
+// Parameters (easy to modify)
+const BOX_SIZE = [40, 30, 20];
+const WALL_THICKNESS = 2;
+const HOLE_RADIUS = 3;
+const NUM_HOLES = 4;
+
+function createBox(size, thickness, holeRadius, numHoles) {
+  // Outer box
+  const outer = cuboid({ size });
+
+  // Inner cavity (hollow)
+  const inner = cuboid({
+    size: [
+      size[0] - thickness * 2,
+      size[1] - thickness * 2,
+      size[2]
+    ]
+  });
+
+  // Mounting holes
+  const holes = [];
+  for (let i = 0; i < numHoles; i++) {
+    const angle = (i / numHoles) * Math.PI * 2;
+    const x = Math.cos(angle) * (size[0] / 2 - 5);
+    const y = Math.sin(angle) * (size[1] / 2 - 5);
+    holes.push(
+      translate([x, y, 0],
+        cylinder({ radius: holeRadius, height: thickness * 2 }))
+    );
+  }
+
+  return subtract(outer, inner, ...holes);
+}
+
+export default [createBox(BOX_SIZE, WALL_THICKNESS, HOLE_RADIUS, NUM_HOLES)];
+#+end_src
+
+* JSCad Reference
+
+** Primitives
+
+- =cube({ size })= - Cube with equal sides
+- =cuboid({ size: [x, y, z] })= - Rectangular box
+- =sphere({ radius })= - Sphere
+- =cylinder({ radius, height })= - Cylinder
+- =cylinderElliptic({ height, startRadius, endRadius })= - Elliptical cylinder
+- =roundedCuboid({ size, roundRadius })= - Rounded corners box
+- =roundedCylinder({ radius, height, roundRadius })= - Rounded edges cylinder
+
+** Transformations
+
+- =translate([x, y, z], geometry)= - Move geometry
+- =rotate([x, y, z], geometry)= - Rotate (radians)
+- =scale([x, y, z], geometry)= - Scale along axes
+- =center({ axes }, geometry)= - Center geometry
+- =mirror({ normal }, geometry)= - Mirror across plane
+
+** Boolean Operations
+
+- =union(...geometries)= - Combine shapes
+- =subtract(base, ...cutters)= - Cut shapes from base
+- =intersect(...geometries)= - Keep only overlapping volume
+
+* Tips and Best Practices
+
+** Performance
+
+- Keep polygon counts reasonable (< 50k triangles for smooth interaction)
+- Use =roundedCuboid= sparingly (generates many segments)
+- Combine geometries with =union= before exporting
+
+** Export Workflow
+
+1. Design and preview in browser
+2. Click "Download STL" button in viewer
+3. Import STL into slicing software (Cura, PrusaSlicer, etc.)
+4. Configure print settings and slice
+5. Print!
+
+* See Also
+
+- [[https://openjscad.xyz/docs/][JSCad Official Documentation]] - Full JSCad API reference
+- [[/plugins/index.html][All Plugins]] - Available org-press plugins
+- [[/plugins/creating-plugins.html][Creating Plugins]] - How to create org-press plugins

@@ -1,0 +1,21 @@
+{
+  "name": "literate-testing-example",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --experimental-strip-types ../../packages/block-test/run-tests.ts",
+    "dev": "node ../../packages/core/dist/bin/orgp.js dev",
+    "build": "node ../../packages/core/dist/bin/orgp.js build"
+  },
+  "dependencies": {
+    "org-press": "workspace:*",
+    "react": "^19.2.3",
+    "react-dom": "^19.2.3"
+  },
+  "devDependencies": {
+    "@org-press/block-test": "workspace:*",
+    "vite": "^6.0.0",
+    "vitest": "^3.1.4"
+  }
+}
