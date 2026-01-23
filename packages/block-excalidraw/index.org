@@ -1,0 +1,831 @@
+#+TITLE: Excalidraw Plugin for Org-Press
+#+DESCRIPTION: Hand-drawn style diagrams using Excalidraw - literate plugin implementation
+
+* Excalidraw Plugin
+
+This is a literate plugin implementation for Excalidraw integration with org-press. Create beautiful, sketch-style diagrams with an intuitive interface, perfect for technical documentation, architecture diagrams, flowcharts, and illustrations.
+
+** Features
+
+- *Hand-Drawn Style* - Beautiful sketch aesthetics for diagrams
+- *Interactive Editor* - Full Excalidraw editing capabilities in dev mode
+- *Auto-Save* - Changes automatically saved back to org file
+- *View/Edit Modes* - Static rendering for production, editable in development
+- *JSON Format* - Human-readable diagram storage in org files
+- *Block Imports* - Compose diagrams from reusable components
+
+** Installation
+
+Install the plugin and peer dependencies:
+
+#+begin_example
+npm install @org-press/block-excalidraw @excalidraw/excalidraw react react-dom
+#+end_example
+
+Add to your org-press config:
+
+#+begin_export html
+<pre><code class="language-typescript">// .org-press/config.ts
+import { excalidrawPlugin } from "@org-press/block-excalidraw";
+
+export default {
+  plugins: [excalidrawPlugin],
+};
+</code></pre>
+#+end_export
+
+** Usage
+
+*** JSON Mode (Simple)
+
+For static diagrams, use JSON directly:
+
+#+begin_export html
+<pre><code class="language-org">#+begin_src json :use excalidraw :height 400px
+{
+  "type": "excalidraw",
+  "version": 2,
+  "elements": [
+    {
+      "type": "rectangle",
+      "x": 100,
+      "y": 100,
+      "width": 200,
+      "height": 100,
+      "strokeColor": "#1e1e1e",
+      "backgroundColor": "#a5d8ff"
+    }
+  ]
+}
+#+end_src
+</code></pre>
+#+end_export
+
+*** JavaScript Mode (Composable)
+
+For composable diagrams with imports:
+
+#+begin_export html
+<pre><code class="language-org">#+begin_src javascript :use excalidraw
+import header from './diagrams.org?name=header-component&amp;data';
+
+export default {
+  type: "excalidraw",
+  version: 2,
+  elements: [
+    ...header.elements,
+    { type: "rectangle", x: 100, y: 200, width: 200, height: 100 }
+  ]
+};
+#+end_src
+</code></pre>
+#+end_export
+
+*** Parameters
+
+- =:height= - Canvas height (default: "500px")
+- =:name= - Block name for imports and auto-save
+
+* Plugin Implementation
+
+The plugin transforms Excalidraw blocks into executable JavaScript that renders interactive diagrams.
+
+#+begin_export html
+<details>
+<summary>View plugin source code</summary>
+#+end_export
+
+#+NAME: plugin
+#+begin_src typescript :use sourceOnly
+/**
+ * Org-Press Excalidraw Block Plugin
+ *
+ * Provides interactive diagram support for org-mode using Excalidraw
+ */
+
+import type {
+  BlockPlugin,
+  CodeBlock,
+  TransformContext,
+  TransformResult,
+  ApiRequest,
+  ApiResponse,
+} from "org-press";
+import {
+  createBlockId,
+  parseBlockParameters,
+  registerApiRoute,
+  isEndpointRegistered,
+  dangerousWriteContentBlock,
+} from "org-press";
+import path from "node:path";
+
+// Track if save API is registered (to avoid duplicates during HMR)
+let saveApiRegistered = false;
+
+/**
+ * Register the save API endpoint for Excalidraw
+ */
+function registerSaveApi(): void {
+  if (saveApiRegistered) return;
+
+  if (isEndpointRegistered("/api/save-excalidraw", "POST")) {
+    saveApiRegistered = true;
+    return;
+  }
+
+  try {
+    registerApiRoute({
+      endpoint: "/api/save-excalidraw",
+      method: "POST",
+      handler: handleSaveExcalidraw,
+      previewOnly: true,
+      sourcePath: "@org-press/block-excalidraw",
+      blockName: "save-api",
+    });
+    saveApiRegistered = true;
+  } catch (error) {
+    saveApiRegistered = true;
+  }
+}
+
+/**
+ * Handle save requests from the Excalidraw wrapper
+ */
+async function handleSaveExcalidraw(req: ApiRequest, res: ApiResponse): Promise<void> {
+  try {
+    const { filePath, blockId, data } = req.body as {
+      filePath?: string;
+      blockId?: string;
+      data?: unknown;
+    };
+
+    if (!filePath) {
+      res.status(400).json({ error: "filePath is required" });
+      return;
+    }
+
+    if (!blockId) {
+      res.status(400).json({ error: "blockId is required" });
+      return;
+    }
+
+    if (!data) {
+      res.status(400).json({ error: "data is required" });
+      return;
+    }
+
+    const content = JSON.stringify(data, null, 2);
+
+    const result = await dangerousWriteContentBlock({
+      file: filePath,
+      block: blockId,
+      content,
+    });
+
+    if (result.success) {
+      res.json({ success: true, message: "Diagram saved successfully" });
+    } else {
+      res.status(500).json({ error: result.error || "Failed to save diagram" });
+    }
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.error("[excalidraw-save] Error:", message);
+    res.status(500).json({ error: message });
+  }
+}
+
+/**
+ * Check if the block content is JavaScript (has imports or exports)
+ */
+function isJavaScriptBlock(content: string, language: string): boolean {
+  if (['javascript', 'js', 'typescript', 'ts'].includes(language.toLowerCase())) {
+    return true;
+  }
+  if (content.includes('import ') || content.includes('export ')) {
+    return true;
+  }
+  return false;
+}
+
+/**
+ * Excalidraw block plugin for org-press
+ *
+ * Supports both JSON (inline data) and JavaScript (imports) modes
+ *
+ * Preview API compatible:
+ * - :use excalidraw -> renders interactive diagram
+ * - :use excalidraw | sourceOnly -> shows source code only
+ * - :use excalidraw | withSourceCode -> shows both code and diagram
+ */
+export const excalidrawPlugin: BlockPlugin = {
+  name: 'excalidraw',
+  defaultExtension: 'js',
+
+  async transform(block: CodeBlock, context: TransformContext): Promise<TransformResult> {
+    registerSaveApi();
+
+    const stableId = createBlockId(context.orgFilePath, context.blockIndex);
+    const params = parseBlockParameters(block.meta || "");
+
+    const useValue = params.use || 'excalidraw';
+    const useParts = useValue.split('|').map((s: string) => s.trim());
+    const mode = useParts.length > 1 ? useParts[1] : 'preview';
+
+    if (mode === 'sourceOnly') {
+      return {
+        code: `// Excalidraw diagram source (display only)\nexport default ${JSON.stringify(block.value)};`,
+      };
+    }
+
+    const height = params.height || '500px';
+    const blockId = params.name || stableId;
+
+    const relativeFilePath = path.isAbsolute(context.orgFilePath)
+      ? path.relative(process.cwd(), context.orgFilePath)
+      : context.orgFilePath;
+
+    const isJsMode = isJavaScriptBlock(block.value, block.language);
+
+    if (isJsMode) {
+      const dataModuleId = params.name
+        ? `virtual:org-press:block:excalidraw-data:${context.orgFilePath}:NAME:${params.name}`
+        : `virtual:org-press:block:excalidraw-data:${context.orgFilePath}:${context.blockIndex}`;
+
+      return {
+        code: `
+import renderExcalidraw from '@org-press/block-excalidraw/wrapper';
+
+export default function render(containerId) {
+  const container = document.getElementById(containerId);
+  if (!container) {
+    console.error('[Excalidraw] Container not found:', containerId);
+    return;
+  }
+
+  container.className = 'excalidraw-wrapper';
+  container.style.cssText = 'position: relative; height: ${height};';
+
+  import('${dataModuleId}').then((module) => {
+    try {
+      const data = module.default;
+      const mode = 'view';
+      const filePath = undefined;
+      const blockId = '${blockId}';
+
+      renderExcalidraw(container, data, mode, filePath, blockId);
+    } catch (err) {
+      console.error('[Excalidraw] Failed to render diagram:', err);
+      container.innerHTML = '<div style="color: red; padding: 1rem; border: 1px solid red;">Error rendering Excalidraw diagram: ' + err.message + '</div>';
+    }
+  }).catch(err => {
+    console.error('[Excalidraw] Failed to load data module:', err);
+    container.innerHTML = '<div style="color: red; padding: 1rem; border: 1px solid red;">Error loading Excalidraw data: ' + err.message + '</div>';
+  });
+}
+        `,
+      };
+    } else {
+      const excalidrawData = block.value;
+
+      return {
+        code: `
+import renderExcalidraw from '@org-press/block-excalidraw/wrapper';
+
+export default function render(containerId) {
+  const container = document.getElementById(containerId);
+  if (!container) {
+    console.error('[Excalidraw] Container not found:', containerId);
+    return;
+  }
+
+  container.className = 'excalidraw-wrapper';
+  container.style.cssText = 'position: relative; height: ${height};';
+
+  try {
+    const data = ${excalidrawData};
+    const mode = 'view';
+    const filePath = undefined;
+    const blockId = '${blockId}';
+
+    renderExcalidraw(container, data, mode, filePath, blockId);
+  } catch (err) {
+    console.error('[Excalidraw] Failed to render diagram:', err);
+    container.innerHTML = '<div style="color: red; padding: 1rem; border: 1px solid red;">Error rendering Excalidraw diagram: ' + err.message + '</div>';
+  }
+}
+        `,
+      };
+    }
+  },
+};
+
+// Default export for convenience
+export default excalidrawPlugin;
+#+end_src
+
+#+begin_export html
+</details>
+#+end_export
+
+* Wrapper Implementation
+
+The wrapper renders the Excalidraw React component with fullscreen and save functionality.
+
+#+begin_export html
+<details>
+<summary>View wrapper source code</summary>
+#+end_export
+
+#+NAME: wrapper
+#+begin_src tsx :use sourceOnly
+/**
+ * Excalidraw wrapper for rendering interactive diagrams
+ */
+import { Excalidraw } from "@excalidraw/excalidraw";
+import { ExcalidrawImperativeAPI } from "@excalidraw/excalidraw/types";
+import "@excalidraw/excalidraw/index.css";
+import { createElement, useState, useRef } from "react";
+import { createRoot } from "react-dom/client";
+
+export interface ExcalidrawData {
+  type?: string;
+  version?: number;
+  source?: string;
+  elements: Array<{
+    type: string;
+    id?: string;
+    x?: number;
+    y?: number;
+    width?: number;
+    height?: number;
+    [key: string]: any;
+  }>;
+  appState?: {
+    viewBackgroundColor?: string;
+    [key: string]: any;
+  };
+  files?: Record<string, any>;
+}
+
+export interface ExcalidrawWrapperProps {
+  initialData: ExcalidrawData;
+  mode: "view" | "edit";
+  filePath?: string;
+  blockId?: string;
+}
+
+/**
+ * Excalidraw wrapper component with fullscreen, view/edit toggle, and save
+ */
+export function ExcalidrawWrapper({
+  initialData,
+  mode,
+  filePath,
+  blockId,
+}: ExcalidrawWrapperProps) {
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [isViewMode, setIsViewMode] = useState(mode === "view");
+  const [isSaving, setIsSaving] = useState(false);
+  const excalidrawRef = useRef<ExcalidrawImperativeAPI>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  const toggleFullscreen = async () => {
+    if (!containerRef.current) return;
+
+    try {
+      if (!document.fullscreenElement) {
+        await containerRef.current.requestFullscreen();
+        setIsFullscreen(true);
+      } else {
+        await document.exitFullscreen();
+        setIsFullscreen(false);
+      }
+    } catch (error) {
+      console.error("Fullscreen toggle failed:", error);
+    }
+  };
+
+  const handleSave = async () => {
+    if (!excalidrawRef.current || !filePath || isViewMode) {
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      const elements = excalidrawRef.current.getSceneElements();
+      const appState = excalidrawRef.current.getAppState();
+      const files = excalidrawRef.current.getFiles();
+
+      const data: ExcalidrawData = {
+        type: "excalidraw",
+        version: 2,
+        source: "https://excalidraw.com",
+        elements: elements as any[],
+        appState: {
+          viewBackgroundColor: appState.viewBackgroundColor,
+        },
+        files: files || {},
+      };
+
+      const response = await fetch("/api/save-excalidraw", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          filePath,
+          blockId,
+          data,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Save failed: ${response.statusText}`);
+      }
+
+      const result = await response.json();
+      console.log("Saved successfully:", result);
+      alert("Diagram saved successfully!");
+    } catch (error) {
+      console.error("Save failed:", error);
+      alert(`Failed to save: ${error.message}`);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const toggleEditMode = () => {
+    setIsViewMode(!isViewMode);
+  };
+
+  const handleFullscreenChange = () => {
+    setIsFullscreen(!!document.fullscreenElement);
+  };
+
+  if (typeof document !== "undefined") {
+    document.addEventListener("fullscreenchange", handleFullscreenChange);
+  }
+
+  return createElement(
+    "div",
+    {
+      ref: containerRef,
+      className: `excalidraw-container ${isFullscreen ? "fullscreen" : ""}`,
+      style: {
+        width: "100%",
+        height: isFullscreen ? "100vh" : "500px",
+        position: "relative",
+        border: "1px solid #e0e0e0",
+        borderRadius: "8px",
+        overflow: "hidden",
+      },
+    },
+    [
+      // Toolbar
+      createElement(
+        "div",
+        {
+          key: "toolbar",
+          className: "excalidraw-toolbar",
+          style: {
+            position: "absolute",
+            top: "10px",
+            right: "10px",
+            zIndex: 1000,
+            display: "flex",
+            gap: "8px",
+            padding: "8px",
+            background: "rgba(255, 255, 255, 0.95)",
+            borderRadius: "8px",
+            boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
+          },
+        },
+        [
+          mode === "view" &&
+            createElement(
+              "button",
+              {
+                key: "toggle-edit",
+                onClick: toggleEditMode,
+                style: {
+                  padding: "6px 12px",
+                  border: "1px solid #ccc",
+                  borderRadius: "4px",
+                  background: isViewMode ? "#fff" : "#4CAF50",
+                  color: isViewMode ? "#333" : "#fff",
+                  cursor: "pointer",
+                  fontSize: "14px",
+                  fontWeight: "500",
+                },
+              },
+              isViewMode ? "Edit" : "View"
+            ),
+
+          mode === "edit" &&
+            filePath &&
+            createElement(
+              "button",
+              {
+                key: "save",
+                onClick: handleSave,
+                disabled: isSaving,
+                style: {
+                  padding: "6px 12px",
+                  border: "1px solid #4CAF50",
+                  borderRadius: "4px",
+                  background: "#4CAF50",
+                  color: "#fff",
+                  cursor: isSaving ? "not-allowed" : "pointer",
+                  fontSize: "14px",
+                  fontWeight: "500",
+                  opacity: isSaving ? 0.6 : 1,
+                },
+              },
+              isSaving ? "Saving..." : "Save"
+            ),
+
+          createElement(
+            "button",
+            {
+              key: "fullscreen",
+              onClick: toggleFullscreen,
+              style: {
+                padding: "6px 12px",
+                border: "1px solid #ccc",
+                borderRadius: "4px",
+                background: "#fff",
+                color: "#333",
+                cursor: "pointer",
+                fontSize: "14px",
+                fontWeight: "500",
+              },
+            },
+            isFullscreen ? "Exit Fullscreen" : "Fullscreen"
+          ),
+        ]
+      ),
+
+      // Excalidraw component
+      createElement(
+        "div",
+        {
+          key: "excalidraw",
+          style: {
+            width: "100%",
+            height: "100%",
+          },
+        },
+        createElement(Excalidraw, {
+          initialData,
+          viewModeEnabled: isViewMode,
+          zenModeEnabled: isViewMode,
+          gridModeEnabled: false,
+          excalidrawAPI: (api: ExcalidrawImperativeAPI) => {
+            (excalidrawRef as any).current = api;
+          },
+        })
+      ),
+    ]
+  );
+}
+
+/**
+ * Render Excalidraw diagram in a container element
+ */
+export default function renderExcalidraw(
+  container: HTMLElement,
+  data: ExcalidrawData,
+  mode: "view" | "edit" = "view",
+  filePath?: string,
+  blockId?: string
+): void {
+  if (!container) {
+    console.error("Excalidraw: Container element not found");
+    return;
+  }
+
+  if (!data || !data.elements) {
+    console.error("Excalidraw: Invalid data format", data);
+    container.innerHTML = `
+      <div style="padding: 20px; border: 2px solid #ff6b6b; border-radius: 4px; background: #ffe0e0;">
+        <strong>Error:</strong> Invalid Excalidraw data format
+      </div>
+    `;
+    return;
+  }
+
+  const root = createRoot(container);
+  root.render(
+    createElement(ExcalidrawWrapper, {
+      initialData: data,
+      mode,
+      filePath,
+      blockId,
+    })
+  );
+}
+#+end_src
+
+#+begin_export html
+</details>
+#+end_export
+
+* Examples
+
+** Simple Diagram
+
+A basic rectangle with text:
+
+#+begin_src json :use excalidraw :name simple-diagram
+{
+  "type": "excalidraw",
+  "version": 2,
+  "source": "org-press",
+  "elements": [
+    {
+      "id": "rect1",
+      "type": "rectangle",
+      "x": 100,
+      "y": 100,
+      "width": 200,
+      "height": 100,
+      "strokeColor": "#1e1e1e",
+      "backgroundColor": "#a5d8ff",
+      "fillStyle": "hachure",
+      "strokeWidth": 2,
+      "roughness": 1
+    },
+    {
+      "id": "text1",
+      "type": "text",
+      "x": 150,
+      "y": 130,
+      "text": "Hello Excalidraw!",
+      "fontSize": 20,
+      "strokeColor": "#1e1e1e"
+    }
+  ],
+  "appState": {
+    "viewBackgroundColor": "#ffffff"
+  }
+}
+#+end_src
+
+** Architecture Diagram
+
+A simple frontend-backend-database architecture:
+
+#+begin_src json :use excalidraw :name architecture-example :height 400px
+{
+  "type": "excalidraw",
+  "version": 2,
+  "elements": [
+    {
+      "type": "rectangle",
+      "x": 50,
+      "y": 50,
+      "width": 150,
+      "height": 80,
+      "strokeColor": "#1e1e1e",
+      "backgroundColor": "#a5d8ff",
+      "fillStyle": "solid",
+      "strokeWidth": 2,
+      "roughness": 0,
+      "roundness": { "type": 3 }
+    },
+    {
+      "type": "text",
+      "x": 90,
+      "y": 75,
+      "text": "Frontend",
+      "fontSize": 20,
+      "strokeColor": "#1e1e1e"
+    },
+    {
+      "type": "arrow",
+      "x": 200,
+      "y": 90,
+      "points": [[0, 0], [100, 0]],
+      "strokeColor": "#1e1e1e",
+      "strokeWidth": 2,
+      "endArrowhead": "arrow"
+    },
+    {
+      "type": "rectangle",
+      "x": 300,
+      "y": 50,
+      "width": 150,
+      "height": 80,
+      "strokeColor": "#1e1e1e",
+      "backgroundColor": "#b2f2bb",
+      "fillStyle": "solid",
+      "strokeWidth": 2,
+      "roughness": 0,
+      "roundness": { "type": 3 }
+    },
+    {
+      "type": "text",
+      "x": 345,
+      "y": 75,
+      "text": "Backend",
+      "fontSize": 20,
+      "strokeColor": "#1e1e1e"
+    },
+    {
+      "type": "arrow",
+      "x": 375,
+      "y": 130,
+      "points": [[0, 0], [0, 50]],
+      "strokeColor": "#1e1e1e",
+      "strokeWidth": 2,
+      "endArrowhead": "arrow"
+    },
+    {
+      "type": "rectangle",
+      "x": 300,
+      "y": 180,
+      "width": 150,
+      "height": 80,
+      "strokeColor": "#1e1e1e",
+      "backgroundColor": "#ffd43b",
+      "fillStyle": "solid",
+      "strokeWidth": 2,
+      "roughness": 0,
+      "roundness": { "type": 3 }
+    },
+    {
+      "type": "text",
+      "x": 335,
+      "y": 205,
+      "text": "Database",
+      "fontSize": 20,
+      "strokeColor": "#1e1e1e"
+    }
+  ],
+  "appState": {
+    "viewBackgroundColor": "#ffffff"
+  }
+}
+#+end_src
+
+* Element Types Reference
+
+** Shapes
+
+- =rectangle= - Rectangular box
+- =ellipse= - Oval/circle
+- =diamond= - Diamond shape for decisions
+
+** Lines
+
+- =line= - Free-form line with points
+- =arrow= - Line with arrowhead
+
+** Text
+
+- =text= - Text element with customizable font
+
+** Common Properties
+
+| Property          | Description                  | Values                              |
+|-------------------+------------------------------+-------------------------------------|
+| =strokeColor=     | Border/line color            | Hex color (e.g., "#1e1e1e")         |
+| =backgroundColor= | Fill color                   | Hex color or "transparent"          |
+| =fillStyle=       | Fill pattern                 | "hachure", "cross-hatch", "solid"   |
+| =strokeWidth=     | Line thickness               | 1 (thin), 2 (normal), 4 (bold)      |
+| =roughness=       | Hand-drawn effect            | 0 (smooth), 1 (normal), 2 (rough)   |
+
+* Creating Diagrams
+
+** Method 1: Excalidraw.com
+
+1. Visit [[https://excalidraw.com/]]
+2. Create your diagram
+3. Export as JSON
+4. Paste into your org file
+
+** Method 2: Edit In-Place (Dev Mode)
+
+1. Add an empty Excalidraw block
+2. Run =orgp dev=
+3. Draw directly in the browser
+4. Changes auto-save to your org file
+
+** Method 3: Manual JSON
+
+Write JSON directly for simple diagrams or programmatic generation.
+
+* Tips
+
+- Use consistent colors for element types
+- Keep diagrams simple - break complex ones into multiple diagrams
+- Always name blocks for auto-save and imports
+- Use =roughness: 0= for clean, professional diagrams
+- Use =roughness: 1-2= for sketch-style diagrams
+
+* See Also
+
+- [[https://excalidraw.com/][Excalidraw]] - Official Excalidraw editor
+- [[https://docs.excalidraw.com/][Excalidraw Documentation]] - Full API reference
+- [[/plugins/index.html][All Plugins]] - Available org-press plugins

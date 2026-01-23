@@ -1,0 +1,54 @@
+#+TITLE: Troubleshooting
+#+DESCRIPTION: Common issues and solutions
+
+* Troubleshooting
+
+** Module Not Found
+
+*Error:* =Cannot find module './file.org?name=block'=
+
+*Solution:* Ensure the block exists and has the correct =#+NAME:= declaration.
+
+** TypeScript Errors
+
+*Error:* Type errors in org blocks
+
+*Solution:* Run =orgp type-check= to see detailed errors with org file locations.
+
+** HMR Not Working
+
+*Issue:* Changes don't reload in browser
+
+*Solutions:*
+1. Check the terminal for errors
+2. Try hard refresh (Ctrl+Shift+R)
+3. Restart dev server
+
+** Build Failures
+
+*Error:* Build fails with server block errors
+
+*Solution:* Server blocks (=:use server=) run at build time. Check they don't depend on browser APIs.
+
+** CSS Not Applied
+
+*Issue:* Styles not showing
+
+*Solutions:*
+1. Check CSS block has no =:use silent=
+2. Ensure selectors match your HTML
+3. Check browser dev tools for conflicts
+
+** Plugin Not Working
+
+*Issue:* Plugin block not recognized
+
+*Solutions:*
+1. Check plugin is installed: =npm ls @org-press/block-name=
+2. Verify plugin is in config: =plugins: [myPlugin]=
+3. Check =:use pluginName= syntax is correct
+
+** Getting Help
+
+- [[https://github.com/org-press/org-press/issues][GitHub Issues]] - Report bugs
+- [[https://github.com/org-press/org-press/discussions][Discussions]] - Ask questions

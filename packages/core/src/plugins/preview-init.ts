@@ -1,0 +1,64 @@
+/**
+ * Preview API Initialization
+ *
+ * Registers all built-in wrappers and formats with the global registry.
+ * This should be called once at application startup.
+ *
+ * Note: Modes (preview, sourceOnly, silent, raw) are now built-in plugins
+ * and don't need to be registered separately.
+ */
+
+import { registerBuiltinWrappers } from "./preview-wrappers/index.ts";
+import { registerFormatWrappers } from "./formats/index.ts";
+
+let initialized = false;
+
+/**
+ * Initialize the Preview API
+ *
+ * Registers all built-in wrappers and format handlers with the global
+ * wrapper registry. Safe to call multiple times (only initializes once).
+ *
+ * Note: Modes (preview, sourceOnly, silent, raw) are now built-in plugins
+ * included in `builtinPlugins` and don't need separate registration.
+ *
+ * Call this early in your application startup, typically in:
+ * - Vite plugin setup
+ * - CLI command initialization
+ * - Test setup files
+ *
+ * @example
+ * ```typescript
+ * import { initializePreviewApi } from 'org-press';
+ *
+ * // In your application startup
+ * initializePreviewApi();
+ * ```
+ */
+export function initializePreviewApi(): void {
+  if (initialized) {
+    return;
+  }
+
+  // Register all built-in wrappers (withSourceCode, withContainer, etc.)
+  registerBuiltinWrappers();
+
+  // Register all format wrappers (json, yaml, csv, html)
+  registerFormatWrappers();
+
+  initialized = true;
+}
+
+/**
+ * Reset initialization state (for testing)
+ */
+export function resetPreviewApiInit(): void {
+  initialized = false;
+}
+
+/**
+ * Check if Preview API is initialized
+ */
+export function isPreviewApiInitialized(): boolean {
+  return initialized;
+}

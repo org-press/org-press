@@ -1,0 +1,292 @@
+#+TITLE: Features
+#+DESCRIPTION: Complete overview of org-press features
+
+* Features
+
+A comprehensive overview of what org-press can do.
+
+** Code Execution
+
+*** Browser Execution (Default)
+
+JavaScript and TypeScript blocks execute in the browser when the page loads.
+
+#+begin_export html
+<pre><code>#+begin_src javascript :use preview
+const colors = ['red', 'green', 'blue'];
+colors.map(c => c.toUpperCase()).join(', ');
+#+end_src</code></pre>
+#+end_export
+
+*** Server Execution
+
+Use =:use server= to run code at build time with Node.js access.
+
+#+begin_export html
+<pre><code>#+begin_src javascript :use server
+const fs = require('fs');
+const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+return `Package: ${pkg.name} v${pkg.version}`;
+#+end_src</code></pre>
+#+end_export
+
+Server blocks have access to:
+- File system (=fs=, =path=)
+- Environment variables (=process.env=)
+- Node.js APIs
+- Content helpers (=content.getContentPages()=, etc.)
+
+*** Display Modes
+
+The =:use= parameter controls what appears in the output:
+
+| Mode | Shows Code | Shows Result |
+|-----------+------------+--------------|
+| =:use sourceOnly= | Yes | No |
+| =:use preview= | No | Yes |
+| =:use preview | withSourceCode= | Yes | Yes |
+| =:use silent= | No | No |
+
+The Preview API uses a pipe syntax for composable wrappers:
+
+#+begin_export html
+<pre><code>#+begin_src javascript :use preview | withSourceCode
+// Shows both code and result
+console.log("Hello World");
+#+end_src</code></pre>
+#+end_export
+
+** Block System
+
+*** Named Blocks
+
+Give blocks an identity with =#+NAME:=:
+
+#+begin_export html
+<pre><code>#+NAME: mathUtils
+#+begin_src typescript
+export function add(a: number, b: number): number {
+  return a + b;
+}
+
+export function multiply(a: number, b: number): number {
+  return a * b;
+}
+#+end_src</code></pre>
+#+end_export
+
+Named blocks can be:
+- Imported from other files
+- Referenced in documentation
+- Tested independently
+
+*** Block Imports
+
+Import code from other org files using the =?name= query parameter:
+
+#+begin_export html
+<pre><code>import { add, multiply } from './math.org?name=mathUtils';
+
+const result = add(2, 3);
+multiply(result, 4); // 20</code></pre>
+#+end_export
+
+See [[/guide/block-imports.html][Block Imports]] for details.
+
+*** Anonymous Blocks
+
+Blocks without names execute in order and can't be imported:
+
+#+begin_export html
+<pre><code>#+begin_src javascript :use preview
+document.body.style.background = '#f0f0f0';
+'Background changed!';
+#+end_src</code></pre>
+#+end_export
+
+** CSS Support
+
+*** Global Styles
+
+CSS blocks inject styles into the page:
+
+#+begin_export html
+<pre><code>#+begin_src css
+.example {
+  padding: 1rem;
+  background: #f5f5f5;
+  border-radius: 4px;
+}
+#+end_src</code></pre>
+#+end_export
+
+*** Scoped Styles
+
+Use =:use css-scoped= for component-scoped styles:
+
+#+begin_export html
+<pre><code>#+begin_src css :use css-scoped
+.widget {
+  /* Only applies to this component */
+  border: 1px solid #ddd;
+}
+#+end_src</code></pre>
+#+end_export
+
+** TypeScript Support
+
+*** Full Type Checking
+
+TypeScript blocks are fully type-checked:
+
+#+begin_export html
+<pre><code>#+begin_src typescript :use preview | withSourceCode
+interface Config {
+  host: string;
+  port: number;
+  debug?: boolean;
+}
+
+const config: Config = {
+  host: 'localhost',
+  port: 3000,
+  debug: true
+};
+
+`Server: ${config.host}:${config.port}`;
+#+end_src</code></pre>
+#+end_export
+
+*** IDE Integration
+
+With the org-press LSP:
+- Autocompletion inside blocks
+- Go-to-definition across files
+- Type errors shown inline
+- Hover documentation
+
+*** TSX/JSX Support
+
+Create React components directly:
+
+#+begin_export html
+<pre><code>#+begin_src tsx :use preview
+function Button({ label }: { label: string }) {
+  return <button className="btn">{label}</button>;
+}
+
+<Button label="Click me" /></code></pre>
+#+end_export
+
+** Development Experience
+
+*** Hot Module Replacement
+
+Changes reload instantly without losing state:
+- Edit text → Page updates
+- Edit CSS → Styles apply
+- Edit code → Re-executes
+
+*** Fast Builds
+
+Powered by Vite for:
+- Sub-second dev server startup
+- Incremental builds
+- Efficient bundling
+
+*** Error Reporting
+
+Errors map back to org file locations:
+
+#+begin_src text
+content/api.org:42:15 - error TS2339: Property 'foo' does not exist
+#+end_src
+
+** Content Helpers
+
+Available in =:use server= blocks:
+
+#+begin_export html
+<pre><code>#+begin_src javascript :use server
+// Get all content pages
+const pages = await content.getContentPages();
+
+// Render a page list
+const html = await content.renderPageList(pages);
+
+return html;
+#+end_src</code></pre>
+#+end_export
+
+** Metadata
+
+*** Keywords
+
+#+begin_export html
+<pre><code>#+TITLE: Page Title
+#+DESCRIPTION: SEO description
+#+AUTHOR: Author Name
+#+DATE: 2025-01-15
+#+LAYOUT: custom-layout
+#+STATUS: draft</code></pre>
+#+end_export
+
+*** Custom Properties
+
+#+begin_export html
+<pre><code>#+PROPERTY: sidebar left
+#+PROPERTY: toc true</code></pre>
+#+end_export
+
+** API Endpoints
+
+Create HTTP endpoints with =:use api=:
+
+#+begin_export html
+<pre><code>#+begin_src typescript :use api :endpoint /api/hello :method GET
+export async function handler(req: Request): Promise<Response> {
+  return Response.json({ message: 'Hello!' });
+}
+#+end_src</code></pre>
+#+end_export
+
+** Static Assets
+
+Reference assets from your content:
+
+#+begin_export html
+<pre><code>[[./images/diagram.png]]
+[[/assets/logo.svg]]</code></pre>
+#+end_export
+
+See [[/guide/static-assets.html][Static Assets]] for details.
+
+** Themes and Layouts
+
+*** Built-in Layouts
+
+- =default= - Standard documentation layout
+- =raw= - No layout, full control
+
+*** Custom Layouts
+
+Create =.org-press/themes/= with React components:
+
+#+begin_export html
+<pre><code>// .org-press/themes/index.tsx
+export function Layout({ children, metadata }) {
+  return (
+    &lt;div className="my-layout"&gt;
+      &lt;h1&gt;{metadata.title}&lt;/h1&gt;
+      {children}
+    &lt;/div&gt;
+  );
+}
+</code></pre>
+#+end_export
+
+** Next Steps
+
+- [[/guide/cli.html][CLI Reference]] - All available commands
+- [[/config/index.html][Configuration]] - Customize your setup
+- [[/plugins/index.html][Plugins]] - Extend functionality
