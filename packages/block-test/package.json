@@ -1,0 +1,58 @@
+{
+  "name": "@org-press/block-test",
+  "version": "0.9.5",
+  "description": "Test runner block plugin for org-press - literate testing with Vitest",
+  "license": "GPL-2.0",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./wrapper": {
+      "types": "./dist/test-wrapper.d.ts",
+      "import": "./dist/test-wrapper.js"
+    }
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist",
+    "src",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "test": "vitest",
+    "test:ci": "vitest --run",
+    "clean": "rm -rf dist"
+  },
+  "peerDependencies": {
+    "org-press": "^0.9.0",
+    "vitest": ">=1.0.0"
+  },
+  "devDependencies": {
+    "org-press": "workspace:*",
+    "tsup": "^8.0.0",
+    "typescript": "~5.7.3",
+    "vitest": "^3.1.4",
+    "vite": "^6.0.0",
+    "uniorg": "^1.3.0",
+    "uniorg-parse": "^3.2.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "@types/react": "^18.2.0",
+    "@types/react-dom": "^18.2.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "homepage": "https://orgp.dev",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/org-press/org-press.git"
+  },
+  "bugs": {
+    "url": "https://github.com/org-press/org-press/issues"
+  }
+}

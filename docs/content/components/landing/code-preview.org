@@ -1,0 +1,302 @@
+#+TITLE: Code Preview
+#+DESCRIPTION: Interactive code block preview with confetti button
+
+* Code Preview Component
+
+Section 1 of the landing page - showcases executable code blocks with an
+interactive confetti button demo.
+
+#+NAME: code-preview
+#+begin_src typescript 
+/**
+ * Code Preview Section
+ *
+ * Features:
+ * - Syntax-highlighted code block visual
+ * - Interactive button that fires confetti
+ * - Demonstrates "code that actually runs"
+ */
+
+// Simple confetti implementation (no external dependency)
+function createConfetti(originX: number, originY: number) {
+  const colors = ['#ff6b6b', '#4ecdc4', '#45b7d1', '#96ceb4', '#ffeaa7', '#dfe6e9', '#fd79a8'];
+  const particleCount = 80;
+
+  for (let i = 0; i < particleCount; i++) {
+    const particle = document.createElement('div');
+    particle.className = 'confetti-particle';
+
+    // Random properties
+    const color = colors[Math.floor(Math.random() * colors.length)];
+    const size = 6 + Math.random() * 6;
+    const angle = (Math.random() * 120 - 60) * (Math.PI / 180); // -60 to 60 degrees
+    const velocity = 8 + Math.random() * 8;
+    const spin = (Math.random() - 0.5) * 720;
+
+    particle.style.cssText = `
+      position: fixed;
+      width: ${size}px;
+      height: ${size * 0.6}px;
+      background: ${color};
+      left: ${originX}px;
+      top: ${originY}px;
+      pointer-events: none;
+      z-index: 9999;
+      border-radius: 2px;
+    `;
+
+    document.body.appendChild(particle);
+
+    // Animate
+    let x = 0;
+    let y = 0;
+    let vy = -velocity * Math.sin(Math.PI / 3 + angle * 0.5);
+    let vx = velocity * Math.cos(Math.PI / 3) * (Math.random() > 0.5 ? 1 : -1) * (0.5 + Math.random());
+    let rotation = 0;
+    let opacity = 1;
+    const gravity = 0.3;
+    const startTime = performance.now();
+
+    function animateParticle() {
+      const elapsed = performance.now() - startTime;
+      if (elapsed > 2000 || opacity <= 0) {
+        particle.remove();
+        return;
+      }
+
+      vy += gravity;
+      x += vx;
+      y += vy;
+      rotation += spin / 60;
+      opacity = Math.max(0, 1 - elapsed / 2000);
+
+      particle.style.transform = `translate(${x}px, ${y}px) rotate(${rotation}deg)`;
+      particle.style.opacity = String(opacity);
+
+      requestAnimationFrame(animateParticle);
+    }
+
+    requestAnimationFrame(animateParticle);
+  }
+}
+
+export function createCodePreview(): HTMLElement {
+  const container = document.createElement('section');
+  container.className = 'landing-section code-preview-section';
+  container.id = 'code-blocks';
+
+  container.innerHTML = `
+    <div class="section-content">
+      <div class="section-text">
+        <span class="section-label">Executable Code</span>
+        <h2>Codeblocks with Superpowers</h2>
+        <p>
+          Your code blocks aren't just syntax-highlighted text.
+          They execute in the browser with full TypeScript, JSX, and CSS support.
+          Click the button to see it in action.
+        </p>
+        <div class="demo-button-area">
+          <button class="confetti-btn" type="button">
+            Click Me!
+          </button>
+        </div>
+      </div>
+      <div class="section-visual">
+        <div class="code-block-preview">
+          <div class="code-header">
+            <span class="code-lang">tsx</span>
+          </div>
+          <pre class="code-content"><code><span class="code-keyword">#+begin_src</span> <span class="code-type">tsx</span> <span class="code-attr">:use preview</span>
+<span class="code-keyword">const</span> <span class="code-var">ConfettiBtn</span> = () => (
+  <span class="code-tag">&lt;button</span> <span class="code-attr">onClick</span>={<span class="code-var">fireConfetti</span>}<span class="code-tag">&gt;</span>
+    Click Me!
+  <span class="code-tag">&lt;/button&gt;</span>
+);
+
+<span class="code-keyword">export const</span> <span class="code-var">Preview</span> = () => <span class="code-tag">&lt;ConfettiBtn /&gt;</span>;
+<span class="code-keyword">#+end_src</span></code></pre>
+        </div>
+      </div>
+    </div>
+  `;
+
+  // Attach confetti handler
+  const btn = container.querySelector('.confetti-btn') as HTMLButtonElement;
+  if (btn) {
+    btn.addEventListener('click', (e) => {
+      const rect = btn.getBoundingClientRect();
+      createConfetti(
+        rect.left + rect.width / 2,
+        rect.top + rect.height / 2
+      );
+    });
+  }
+
+  return container;
+}
+
+export default createCodePreview();
+#+end_src
+
+#+NAME: code-preview-styles
+#+begin_src css 
+/* Code Preview Section Styles */
+.code-preview-section {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem 2rem;
+}
+
+.code-preview-section .section-content {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4rem;
+  max-width: 1100px;
+  width: 100%;
+  align-items: center;
+}
+
+.code-preview-section .section-text {
+  text-align: left;
+}
+
+.section-label {
+  display: inline-block;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--text-subtle);
+  margin-bottom: 1rem;
+}
+
+.code-preview-section h2 {
+  font-size: 2.5rem;
+  font-weight: 300;
+  color: var(--text-color);
+  margin: 0 0 1.5rem 0;
+  letter-spacing: 0.02em;
+}
+
+.code-preview-section p {
+  font-size: 1.1rem;
+  line-height: 1.7;
+  color: var(--text-muted);
+  margin: 0 0 2rem 0;
+}
+
+/* Demo button area */
+.demo-button-area {
+  margin-top: 1.5rem;
+}
+
+.confetti-btn {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  padding: 0.875rem 2rem;
+  font-size: 1rem;
+  font-weight: 600;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+}
+
+.confetti-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.5);
+}
+
+.confetti-btn:active {
+  transform: translateY(0);
+}
+
+/* Code block preview */
+.code-block-preview {
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  overflow: hidden;
+  font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+  font-size: 0.85rem;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.15);
+}
+
+.code-header {
+  background: var(--border-color);
+  padding: 0.5rem 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.code-lang {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-subtle);
+  background: var(--card-bg);
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+}
+
+.code-content {
+  margin: 0;
+  padding: 1.25rem;
+  overflow-x: auto;
+  line-height: 1.6;
+}
+
+.code-content code {
+  color: var(--text-muted);
+}
+
+.code-keyword {
+  color: #c678dd;
+}
+
+.code-type {
+  color: #e5c07b;
+}
+
+.code-attr {
+  color: #98c379;
+}
+
+.code-var {
+  color: #61afef;
+}
+
+.code-tag {
+  color: #e06c75;
+}
+
+/* Confetti particles */
+.confetti-particle {
+  will-change: transform, opacity;
+}
+
+/* Responsive */
+@media (max-width: 900px) {
+  .code-preview-section .section-content {
+    grid-template-columns: 1fr;
+    gap: 2rem;
+  }
+
+  .code-preview-section .section-text {
+    text-align: center;
+  }
+
+  .code-preview-section h2 {
+    font-size: 2rem;
+  }
+
+  .code-block-preview {
+    max-width: 400px;
+    margin: 0 auto;
+  }
+}
+#+end_src

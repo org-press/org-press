@@ -1,0 +1,175 @@
+#+TITLE: Why Org-Press?
+#+DESCRIPTION: The case for org-mode as a documentation format
+
+* Why Org-Press?
+
+There are many static site generators. Here's why org-press might be right for you.
+
+** The Problem with Documentation
+
+Most documentation tools share these issues:
+
+1. *Code examples rot* - Copy-pasted output becomes stale
+2. *No code reuse* - Same snippet duplicated across files
+3. *Separate test suites* - Examples and tests are disconnected
+4. *Limited metadata* - Markdown requires extensions for basics
+
+Org-press solves these by making documentation executable and composable.
+
+** Executable Examples
+
+In traditional documentation, you write code and manually copy the output:
+
+#+begin_src markdown
+```javascript
+const sum = [1, 2, 3].reduce((a, b) => a + b);
+// Output: 6
+```
+#+end_src
+
+The problem? That =// Output: 6= was typed by a human. It might be wrong. It might become wrong after refactoring.
+
+In org-press, the code runs:
+
+#+begin_export html
+<pre><code>#+begin_src javascript :use preview | withSourceCode
+const sum = [1, 2, 3].reduce((a, b) => a + b);
+sum;
+#+end_src</code></pre>
+#+end_export
+
+The output is always current. Always correct.
+
+** Code Reuse Across Files
+
+Markdown doesn't support importing code between files. You either duplicate code or maintain external files.
+
+Org-press supports cross-file imports:
+
+#+begin_export html
+<pre><code>// In validation.org
+#+NAME: validators
+#+begin_src typescript
+export function isEmail(s: string): boolean {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s);
+}
+#+end_src
+
+// In api.org - use the same validators
+import { isEmail } from './validation.org?name=validators';
+</code></pre>
+#+end_export
+
+One source of truth. No copy-paste drift.
+
+** Comparisons
+
+*** vs Markdown-Based Tools (VitePress, Docusaurus)
+
+| Feature | Markdown SSG | Org-Press |
+|---------+--------------+-----------|
+| Code execution | Plugin/extension | Built-in |
+| Block naming | Not standard | Native (=#+NAME:=) |
+| Block parameters | Custom syntax | Standard (=:use=, =:tangle=) |
+| Cross-file imports | Not supported | Native |
+| IDE support | Varies | Full TypeScript |
+
+*When to use Markdown*: If your team already knows Markdown well and you don't need executable code.
+
+*When to use Org-Press*: If you want literate programming features without inventing custom syntax.
+
+*** vs Jupyter Notebooks
+
+| Feature | Jupyter | Org-Press |
+|---------+---------+-----------|
+| Format | JSON | Plain text |
+| Version control | Messy diffs | Clean diffs |
+| Editor | Browser-based | Any editor |
+| Tooling | Jupyter-specific | Standard (ESLint, Prettier) |
+| Output | Inline cells | Web pages |
+
+*When to use Jupyter*: Data science exploration with inline visualizations.
+
+*When to use Org-Press*: Documentation websites, technical writing, literate libraries.
+
+*** vs Emacs Org-Mode + Hugo/Jekyll
+
+| Feature | Org + Hugo | Org-Press |
+|---------+------------+-----------|
+| Emacs required | Yes (for execution) | No |
+| Code execution | Via Babel | Native browser/Node |
+| HMR | No | Yes |
+| React/TSX | Complex setup | Built-in |
+| TypeScript | Manual config | First-class |
+
+*When to use Org + Hugo*: If you're already in the Emacs ecosystem and want static HTML.
+
+*When to use Org-Press*: Modern web DX with Vite, HMR, and React without Emacs.
+
+*** vs Observable/Quarto
+
+| Feature | Observable | Org-Press |
+|---------+------------+-----------|
+| Format | Custom cells | Standard org |
+| Hosting | Observable.com | Any static host |
+| Language | JavaScript | JS/TS/TSX + plugins |
+| Privacy | Cloud-based | Self-hosted |
+
+*When to use Observable*: Data visualization with collaborative editing.
+
+*When to use Org-Press*: Self-hosted documentation with full control.
+
+** The Org-Mode Advantage
+
+Org-mode has decades of design refinement for literate programming:
+
+*** Native Block Naming
+
+#+begin_export html
+<pre><code>#+NAME: calculateTax
+#+begin_src typescript
+export function calculateTax(amount: number, rate: number): number {
+  return amount * rate;
+}
+#+end_src</code></pre>
+#+end_export
+
+No custom syntax needed. It's part of the format.
+
+*** Standard Parameters
+
+#+begin_export html
+<pre><code>#+begin_src typescript :use server
+// Block behavior controlled by standard parameters
+#+end_src</code></pre>
+#+end_export
+
+Parameters like =:use=, =:tangle= control block behavior.
+
+*** Hierarchical Structure
+
+Org's outline structure (=*=, =**=, =***=) creates natural document hierarchy without relying on heading syntax.
+
+** When to Choose Org-Press
+
+*Choose org-press if you want:*
+
+- Documentation where examples actually run
+- Code that can be imported across files
+- Standard tooling (ESLint, Prettier, TypeScript)
+- Modern web development experience (Vite, HMR)
+- Plain text files that work with any editor
+
+*Consider alternatives if you:*
+
+- Need team familiarity with Markdown (use VitePress)
+- Do interactive data exploration (use Jupyter)
+- Want Observable's collaborative features (use Observable)
+- Are fully embedded in Emacs (use Org + Hugo)
+
+** Getting Started
+
+Ready to try org-press?
+
+- [[/guide/getting-started.html][Getting Started]] - Create your first project
+- [[/guide/features.html][Features]] - See what's possible

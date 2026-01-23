@@ -1,0 +1,151 @@
+#+TITLE: Using Plugins
+#+DESCRIPTION: How to install and use block plugins in org-press
+
+* Using Plugins
+
+Plugins extend org-press with specialized block handlers for diagrams, 3D models, testing, and more.
+
+** Installing Plugins
+
+Install plugins from npm:
+
+#+begin_src bash
+# Official plugins
+npm install @org-press/block-excalidraw
+npm install @org-press/block-jscad
+npm install @org-press/block-test
+#+end_src
+
+** Registering Plugins
+
+Add plugins to your config file:
+
+#+begin_export html
+<pre><code>// .org-press/config.ts
+import type { OrgPressUserConfig } from "org-press/config-types";
+import { excalidrawPlugin } from "@org-press/block-excalidraw";
+import { jscadPlugin } from "@org-press/block-jscad";
+import { testPlugin } from "@org-press/block-test";
+
+const config: OrgPressUserConfig = {
+  plugins: [
+    excalidrawPlugin,
+    jscadPlugin,
+    testPlugin,
+  ],
+};
+
+export default config;
+</code></pre>
+#+end_export
+
+** Built-in Block Types
+
+These work without any plugins:
+
+*** Preview (=:use preview=)
+
+Execute JavaScript/TypeScript and display the result inline:
+
+#+begin_export html
+<pre><code>#+begin_src javascript :use preview
+const greeting = "Hello, world!";
+greeting;
+#+end_src
+
+#+begin_src javascript :use preview | withSourceCode
+// Shows both the code and the result
+const items = ["apple", "banana", "cherry"];
+items.map(i => i.toUpperCase()).join(", ");
+#+end_src</code></pre>
+#+end_export
+
+*** Server-Side Execution (=:use server=)
+
+Run code on the server during build:
+
+#+begin_export html
+<pre><code>#+begin_src javascript :use server
+const fs = require('fs');
+const files = fs.readdirSync('content');
+return files.filter(f => f.endsWith('.org')).join(', ');
+#+end_src</code></pre>
+#+end_export
+
+*** CSS
+
+Inject styles into the page:
+
+#+begin_export html
+<pre><code>#+begin_src css
+.highlight {
+  background: yellow;
+  padding: 0.5rem;
+}
+#+end_src</code></pre>
+#+end_export
+
+*** API Endpoints (=:use api=)
+
+Create API routes:
+
+#+begin_export html
+<pre><code>#+begin_src typescript :use api :endpoint /api/status :method GET
+export async function handler(req: Request): Promise<Response> {
+  return Response.json({ status: 'ok' });
+}
+#+end_src</code></pre>
+#+end_export
+
+** Official Plugins
+
+Official plugins provide specialized functionality for diagrams, charts, 3D modeling, and testing:
+
+- *ECharts* - Interactive charts and data visualization
+- *Excalidraw* - Hand-drawn style diagrams
+- *JSCAD* - 3D modeling with JavaScript CAD
+- *Test* - Inline unit testing with Vitest
+
+See [[/plugins/index.html][Plugins Overview]] for installation instructions and full documentation.
+
+** Plugin Options
+
+Some plugins accept configuration:
+
+#+begin_export html
+<pre><code>// .org-press/config.ts
+import { jscadPlugin } from "@org-press/block-jscad";
+
+export default {
+  plugins: [
+    jscadPlugin({
+      // Plugin-specific options
+      defaultExportFormat: 'stl',
+    }),
+  ],
+};
+</code></pre>
+#+end_export
+
+Check each plugin's documentation for available options.
+
+** Plugin Priority
+
+When multiple plugins can handle a block, the first matching plugin wins. Order matters:
+
+#+begin_export html
+<pre><code>export default {
+  plugins: [
+    customPlugin,     // Checked first
+    excalidrawPlugin, // Checked second
+    jscadPlugin,      // Checked third
+  ],
+};
+</code></pre>
+#+end_export
+
+** See Also
+
+- [[/plugins/index.html][Plugins Overview]] - All available plugins
+- [[/plugins/creating-plugins.html][Creating Plugins]] - Build your own
+- [[/api/plugin-api.html][Plugin API]] - API reference
