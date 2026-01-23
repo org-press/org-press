@@ -1,0 +1,23 @@
+/**
+ * Default org-press documentation theme
+ *
+ * Vite-style three-column layout with responsive breakpoints.
+ */
+
+/* CSS Variables */
+@import "./css/variables.css";
+
+/* Layout */
+@import "./css/docs-layout.css";
+@import "./css/top-nav.css";
+@import "./css/sidebar.css";
+@import "./css/toc.css";
+@import "./css/footer.css";
+@import "./css/mobile-menu.css";
+
+/* Content styling */
+@import "./css/org.css";
+@import "./css/src.css";
+
+/* Syntax highlighting - use a theme that works in both modes */
+@import "highlight.js/styles/github.min.css";

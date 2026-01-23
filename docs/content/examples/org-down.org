@@ -1,0 +1,626 @@
+#+TITLE: Org-Mode Syntax Reference
+#+DATE: 2025-12-09
+
+* Introduction
+
+This page provides a comprehensive reference for org-mode syntax and how it renders in Org-Press. Org-mode is a markup language similar to Markdown but with more powerful features for literate programming, task management, and document structuring.
+
+** Why Org-Mode?
+
+- *Hierarchical structure* with unlimited heading levels
+- *Literate programming* support with =:tangle= and code execution
+- *Rich metadata* support via properties and drawers
+- *Powerful linking* system for internal and external references
+- *Table support* with calculations and formulas
+- *Extensible* with custom block types and exporters
+
+* Document Structure
+
+** Document Metadata
+
+Org files begin with metadata keywords:
+
+#+begin_export html
+<pre><code>#+TITLE: Document Title
+#+AUTHOR: Author Name
+#+DATE: 2025-12-09
+#+DESCRIPTION: Brief description
+#+KEYWORDS: keyword1, keyword2
+#+LANGUAGE: en
+#+LAYOUT: default
+</code></pre>
+#+end_export
+
+** Headings Hierarchy
+
+Headings are created with asterisks:
+
+#+begin_export html
+<pre><code>* Level 1 Heading
+** Level 2 Heading
+*** Level 3 Heading
+**** Level 4 Heading
+***** Level 5 Heading
+****** Level 6 Heading
+</code></pre>
+#+end_export
+
+Each heading can have:
+- TODO states (TODO, DONE, HOLD, etc.)
+- Tags (=:tag1:tag2:=)
+- Properties (in a =:PROPERTIES:= drawer)
+- Priority ([#A], [#B], [#C])
+
+** Heading with All Features
+
+#+begin_export html
+<pre><code>** TODO [#A] Important Task :work:urgent:
+SCHEDULED: <2025-12-10>
+:PROPERTIES:
+:ID: unique-task-id
+:CUSTOM_ID: my-task
+:END:
+
+Task description goes here.
+</code></pre>
+#+end_export
+
+* Text Markup
+
+** Inline Formatting
+
+| Syntax          | Effect              | Example              |
+|-----------------+---------------------+----------------------|
+| =*text*=        | *Bold*              | *bold text*          |
+| =/text/=        | /Italic/            | /italic text/        |
+| =_text_=        | _Underline_         | _underlined text_    |
+| =+text+=        | +Strikethrough+     | +strikethrough+      |
+| ~text~=         | =Code=              | =inline code=        |
+| =~text~=        | ~Verbatim~          | ~verbatim text~      |
+| =sub_script=    | Subscript           | H_{2}O               |
+| =super^script=  | Superscript         | x^{2}                |
+
+** Special Symbols
+
+| Input     | Output    | Description      |
+|-----------+-----------+------------------|
+| =---=     | ---       | Em dash          |
+| =--=      | --        | En dash          |
+| =...=     | ...       | Ellipsis         |
+| =->=      | ->        | Right arrow      |
+| =<-=      | <-        | Left arrow       |
+| ==>==     | =>        | Double arrow     |
+| =(c)=     | (c)       | Copyright        |
+| =(r)=     | (r)       | Registered       |
+| =(tm)=    | (tm)      | Trademark        |
+
+** Line Breaks and Paragraphs
+
+- Single newline: Continues same paragraph
+- Double newline: Creates new paragraph
+- =\\= at end of line: Forces line break
+
+#+begin_export html
+<pre><code>This is one paragraph.
+Still same paragraph.
+
+This is a new paragraph.\\
+This is a new line in same paragraph.
+</code></pre>
+#+end_export
+
+* Lists
+
+** Unordered Lists
+
+Bullet lists use =-=, =+=, or =*= at line start:
+
+#+begin_export html
+<pre><code>- Item 1
+- Item 2
+  - Nested item 2.1
+  - Nested item 2.2
+- Item 3
+</code></pre>
+#+end_export
+
+** Ordered Lists
+
+Numbered lists use =1.=, =1)=, =a.=, or =a)=:
+
+#+begin_export html
+<pre><code>1. First item
+2. Second item
+   1. Sub-item A
+   2. Sub-item B
+3. Third item
+</code></pre>
+#+end_export
+
+** Checkbox Lists
+
+Task lists with checkboxes:
+
+#+begin_export html
+<pre><code>- [ ] Unchecked item
+- [-] Partially checked (indeterminate)
+- [X] Checked item
+</code></pre>
+#+end_export
+
+** Description Lists
+
+Definition lists use =::= separator:
+
+#+begin_export html
+<pre><code>- Term :: Definition of the term
+- Another term :: Its definition
+                  can span multiple lines
+</code></pre>
+#+end_export
+
+* Links
+
+** Link Syntax
+
+General link format: =[[target][description]]=
+
+** Internal Links
+
+#+begin_export html
+<pre><code>[[*Heading Name][Link to Heading]]
+[[#custom-id][Link to Custom ID]]
+[[file:other-file.org][Link to Other File]]
+[[file:other-file.org::*Heading][Link to Heading in Other File]]
+</code></pre>
+#+end_export
+
+** External Links
+
+#+begin_export html
+<pre><code>[[https://example.com][Website Link]]
+[[mailto:user@example.com][Email Link]]
+[[file:/path/to/file.pdf][PDF Link]]
+</code></pre>
+#+end_export
+
+** Bare URLs
+
+Plain URLs are auto-linked:
+- https://example.com
+- user@example.com
+
+** Image Links
+
+#+begin_export html
+<pre><code>[[file:image.png]]
+[[https://example.com/image.jpg][Image Description]]
+</code></pre>
+#+end_export
+
+* Tables
+
+** Basic Table Syntax
+
+Tables use =|= for columns and =|-= for separator rows:
+
+#+begin_export html
+<pre><code>| Header 1 | Header 2 | Header 3 |
+|----------+----------+----------|
+| Cell 1.1 | Cell 1.2 | Cell 1.3 |
+| Cell 2.1 | Cell 2.2 | Cell 2.3 |
+</code></pre>
+#+end_export
+
+** Table Alignment
+
+Use =<c>=, =<l>=, or =<r>= for column alignment:
+
+#+begin_export html
+<pre><code>|    <c>    |    <l>    |    <r>    |
+| Centered  | Left      |     Right |
+|-----------+-----------+-----------|
+| Data      | Data      | Data      |
+</code></pre>
+#+end_export
+
+** Table Formulas
+
+Org tables support spreadsheet-like formulas:
+
+#+begin_export html
+<pre><code>| Item   | Quantity | Price | Total |
+|--------+----------+-------+-------|
+| Apples |        3 |  1.50 |  4.50 |
+| Oranges|        2 |  2.00 |  4.00 |
+|--------+----------+-------+-------|
+| Total  |          |       |  8.50 |
+#+TBLFM: $4=$2*$3::@>$4=vsum(@2..@-1)
+</code></pre>
+#+end_export
+
+* Source Code Blocks
+
+** Basic Syntax
+
+#+begin_export html
+<pre><code>#+begin_src language
+code goes here
+#+end_src
+</code></pre>
+#+end_export
+
+** Block Parameters
+
+Common parameters:
+
+| Parameter              | Effect                                  |
+|------------------------+-----------------------------------------|
+| =:use sourceOnly=      | Show only code (no execution)           |
+| =:use preview=         | Show execution results (default)        |
+| =:use preview | withSourceCode= | Show code and results          |
+| =:use silent=          | Execute but hide output                 |
+| =:use server=          | Execute on server during build          |
+| =:tangle file=         | Extract code to external file           |
+
+** Named Blocks
+
+Blocks can have names for referencing:
+
+#+begin_export html
+<pre><code>#+NAME: block-name
+#+begin_src javascript
+// code here
+#+end_src
+</code></pre>
+#+end_export
+
+** Block Import
+
+Import named blocks from other files:
+
+#+begin_export html
+<pre><code>#+begin_src javascript
+import func from "file.org?name=block-name";
+#+end_src
+</code></pre>
+#+end_export
+
+* Special Blocks
+
+** Quote Blocks
+
+#+begin_export html
+<pre><code>#+begin_quote
+This is a quoted passage.
+It can span multiple lines.
+#+end_quote
+</code></pre>
+#+end_export
+
+** Example Blocks
+
+Verbatim text without formatting:
+
+#+begin_export html
+<pre><code>#+begin_example
+Plain text here
+No formatting applied
+#+end_example
+</code></pre>
+#+end_export
+
+** Verse Blocks
+
+For poetry with line breaks preserved:
+
+#+begin_export html
+<pre><code>#+begin_verse
+Roses are red,
+Violets are blue,
+Org-mode is great,
+And so are you!
+#+end_verse
+</code></pre>
+#+end_export
+
+** Center Blocks
+
+Centered content:
+
+#+begin_export html
+<pre><code>#+begin_center
+Centered text
+#+end_center
+</code></pre>
+#+end_export
+
+** Custom Blocks
+
+You can define custom blocks:
+
+#+begin_export html
+<pre><code>#+begin_custom_block_name
+Content inside custom block
+#+end_custom_block_name
+</code></pre>
+#+end_export
+
+* Drawers
+
+** Syntax
+
+Drawers store metadata and collapsible content:
+
+#+begin_export html
+<pre><code>:DRAWER_NAME:
+Content inside drawer
+:END:
+</code></pre>
+#+end_export
+
+** Properties Drawer
+
+Special drawer for metadata:
+
+#+begin_export html
+<pre><code>:PROPERTIES:
+:ID: unique-id
+:CUSTOM_ID: custom-id
+:CREATED: [2025-12-09]
+:CATEGORY: category-name
+:END:
+</code></pre>
+#+end_export
+
+** AI Conversation Drawer
+
+In Org-Press, =:AI:= drawers render with 🤖 emoji:
+
+#+begin_export html
+<pre><code>:AI:
+User: Question here
+Assistant: Answer here
+:END:
+</code></pre>
+#+end_export
+
+**Important:** Drawers must be under a heading, not at document root level.
+
+* Comments
+
+** Line Comments
+
+Lines starting with =#= are comments:
+
+#+begin_export html
+<pre><code># This is a comment
+# It won't be exported
+</code></pre>
+#+end_export
+
+** Block Comments
+
+Multi-line comments:
+
+#+begin_export html
+<pre><code>#+begin_comment
+Everything in here
+is a comment
+#+end_comment
+</code></pre>
+#+end_export
+
+** Inline Comments
+
+Inline comments (not exported):
+
+#+begin_export html
+<pre><code>Some text @@comment:hidden comment@@ more text
+</code></pre>
+#+end_export
+
+* Macros and Includes
+
+** Define Macros
+
+#+begin_export html
+<pre><code>#+MACRO: name replacement text $1 $2
+</code></pre>
+#+end_export
+
+Use macro:
+
+#+begin_export html
+<pre><code>{{{name(arg1, arg2)}}}
+</code></pre>
+#+end_export
+
+** Include Files
+
+Include content from other files:
+
+#+begin_export html
+<pre><code>#+INCLUDE: "file.org"
+#+INCLUDE: "file.org" src javascript
+#+INCLUDE: "file.org" :lines "1-10"
+#+INCLUDE: "file.org" :only-contents t
+</code></pre>
+#+end_export
+
+* Export Settings
+
+** Global Export Options
+
+#+begin_export html
+<pre><code>#+OPTIONS: toc:nil num:nil
+#+OPTIONS: timestamp:nil author:nil
+#+OPTIONS: ^:nil  (disable subscript/superscript)
+</code></pre>
+#+end_export
+
+** Per-Heading Export
+
+Tags affect export:
+
+#+begin_export html
+<pre><code>** This heading will not be exported :noexport:
+** This and all children exported to separate file :export_file_name:
+</code></pre>
+#+end_export
+
+* Advanced Org-Press Features
+
+** Layout Selection
+
+Choose page layout via #+LAYOUT keyword:
+
+#+begin_export html
+<pre><code>#+LAYOUT: default
+#+LAYOUT: kanban
+#+LAYOUT: custom-layout-name
+</code></pre>
+#+end_export
+
+** Block Plugins
+
+Org-Press supports plugins for specialized rendering:
+
+*** JSCad (3D CAD)
+
+#+begin_export html
+<pre><code>#+begin_src javascript :use jscad
+import { cube } from "@jscad/modeling/primitives";
+export default [cube({ size: 10 })];
+#+end_src
+</code></pre>
+#+end_export
+
+*** Excalidraw (Diagrams)
+
+#+begin_export html
+<pre><code>#+begin_src json :use excalidraw
+{"elements": [...]}
+#+end_src
+</code></pre>
+#+end_export
+
+** Preview Modes
+
+Customize code/result presentation:
+
+#+begin_export html
+<pre><code>#+begin_src javascript :use preview | withSourceCode
+// Show both code and results
+#+end_src
+
+#+begin_src javascript :use sourceOnly
+// Show code only, no execution
+#+end_src
+</code></pre>
+#+end_export
+
+** Server-Side Execution
+
+Execute code during build:
+
+#+begin_export html
+<pre><code>#+begin_src javascript :use server
+// This runs on server during build
+const fs = require('fs');
+return fs.readdirSync('./content').join(', ');
+#+end_src
+</code></pre>
+#+end_export
+
+** Code Tangling
+
+Extract code to external files:
+
+#+begin_export html
+<pre><code>#+begin_src javascript :tangle src/generated.js
+// This code will be written to src/generated.js
+export function hello() {
+  return "Hello from tangled code!";
+}
+#+end_src
+</code></pre>
+#+end_export
+
+* Tips and Best Practices
+
+** Organization
+
+- Use hierarchical headings for clear structure
+- Add IDs to headings for stable links
+- Use tags to categorize content
+- Store metadata in PROPERTIES drawers
+
+** Literate Programming
+
+- Name reusable code blocks with =#+NAME:=
+- Use =:tangle= to generate source files from documentation
+- Use =:use server= for dynamic content generated at build time
+- Use =:use preview | withSourceCode= for interactive examples
+
+** Performance
+
+- Use =:use sourceOnly= for display-only blocks (no execution)
+- Server execution runs once at build time (faster than browser)
+- Cache expensive computations in named blocks
+
+** Maintainability
+
+- Keep each org file focused on one topic
+- Use =#+INCLUDE:= to reuse content
+- Define commonly-used text as macros
+- Add comments to explain complex structures
+
+* Reference
+
+** Complete Example File
+
+#+begin_export html
+<pre><code>#+TITLE: Example Document
+#+DATE: 2025-12-09
+#+LAYOUT: default
+
+* Introduction
+
+This document demonstrates org-mode syntax.
+
+** Features
+
+- *Bold* and /italic/ text
+- [[https://example.com][Links]]
+- Tables and lists
+
+** Code Example
+
+#+NAME: hello-world
+#+begin_src javascript :use preview | withSourceCode
+function greet(name) {
+  return `Hello, ${name}!`;
+}
+
+greet("World");
+#+end_src
+
+** Properties
+:PROPERTIES:
+:ID: doc-example
+:CREATED: [2025-12-09]
+:END:
+
+* Conclusion
+
+See [[file:../index.org][documentation home]] for more examples.
+</code></pre>
+#+end_export
+
+** See Also
+
+- [[file:index.org][Comprehensive Rendering Examples]]
+- [[file:../block-plugins.org][Block Plugins Reference]]
+- [[file:../configuration.org][Configuration Guide]]
+- [[https://orgmode.org/manual/][Official Org-Mode Manual]]

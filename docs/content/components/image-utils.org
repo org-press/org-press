@@ -1,0 +1,225 @@
+#+TITLE: Image Utilities
+#+DESCRIPTION: Canvas-based image processing utilities
+
+Image processing utilities for preparing images for the halftone effect.
+Includes background removal, thresholding, and masking.
+
+* Image Processing Pipeline
+
+#+NAME: image-utils
+#+begin_src typescript :use sourceOnly
+/**
+ * Options for image processing
+ */
+export interface ImageProcessOptions {
+  /** Threshold for white background removal (0-255), default 240 */
+  whiteThreshold?: number;
+  /** Fuzz factor for color matching (0-1), default 0.1 */
+  fuzzFactor?: number;
+  /** Convert to grayscale */
+  grayscale?: boolean;
+  /** Invert colors */
+  invert?: boolean;
+  /** Contrast adjustment (-1 to 1), default 0 */
+  contrast?: number;
+}
+
+export interface ProcessedImage {
+  canvas: HTMLCanvasElement;
+  imageData: ImageData;
+  width: number;
+  height: number;
+}
+
+/**
+ * Load an image from URL and return as canvas
+ */
+export async function loadImage(url: string): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => resolve(img);
+    img.onerror = reject;
+    img.src = url;
+  });
+}
+
+/**
+ * Remove white/light background from image, making it transparent
+ */
+export function removeWhiteBackground(
+  imageData: ImageData,
+  threshold: number = 240,
+  fuzz: number = 0.1
+): ImageData {
+  const data = imageData.data;
+  const fuzzAmount = Math.floor(255 * fuzz);
+
+  for (let i = 0; i < data.length; i += 4) {
+    const r = data[i];
+    const g = data[i + 1];
+    const b = data[i + 2];
+
+    // Check if pixel is close to white
+    const isWhite =
+      r >= threshold - fuzzAmount &&
+      g >= threshold - fuzzAmount &&
+      b >= threshold - fuzzAmount &&
+      Math.abs(r - g) < fuzzAmount &&
+      Math.abs(g - b) < fuzzAmount &&
+      Math.abs(r - b) < fuzzAmount;
+
+    if (isWhite) {
+      data[i + 3] = 0; // Set alpha to transparent
+    }
+  }
+
+  return imageData;
+}
+
+/**
+ * Convert image to grayscale
+ */
+export function toGrayscale(imageData: ImageData): ImageData {
+  const data = imageData.data;
+
+  for (let i = 0; i < data.length; i += 4) {
+    const gray = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
+    data[i] = gray;
+    data[i + 1] = gray;
+    data[i + 2] = gray;
+  }
+
+  return imageData;
+}
+
+/**
+ * Invert image colors
+ */
+export function invertColors(imageData: ImageData): ImageData {
+  const data = imageData.data;
+
+  for (let i = 0; i < data.length; i += 4) {
+    data[i] = 255 - data[i];
+    data[i + 1] = 255 - data[i + 1];
+    data[i + 2] = 255 - data[i + 2];
+  }
+
+  return imageData;
+}
+
+/**
+ * Adjust contrast
+ * @param factor -1 to 1, where 0 is no change
+ */
+export function adjustContrast(imageData: ImageData, factor: number): ImageData {
+  const data = imageData.data;
+  const contrast = (factor + 1) / (1 - factor);
+
+  for (let i = 0; i < data.length; i += 4) {
+    data[i] = Math.max(0, Math.min(255, contrast * (data[i] - 128) + 128));
+    data[i + 1] = Math.max(0, Math.min(255, contrast * (data[i + 1] - 128) + 128));
+    data[i + 2] = Math.max(0, Math.min(255, contrast * (data[i + 2] - 128) + 128));
+  }
+
+  return imageData;
+}
+
+/**
+ * Process an image with the given options
+ */
+export async function processImage(
+  url: string,
+  options: ImageProcessOptions = {}
+): Promise<ProcessedImage> {
+  const {
+    whiteThreshold = 240,
+    fuzzFactor = 0.1,
+    grayscale = false,
+    invert = false,
+    contrast = 0,
+  } = options;
+
+  // Load image
+  const img = await loadImage(url);
+
+  // Create canvas
+  const canvas = document.createElement('canvas');
+  canvas.width = img.width;
+  canvas.height = img.height;
+  const ctx = canvas.getContext('2d')!;
+
+  // Draw image
+  ctx.drawImage(img, 0, 0);
+
+  // Get image data
+  let imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+
+  // Apply processing pipeline
+  imageData = removeWhiteBackground(imageData, whiteThreshold, fuzzFactor);
+
+  if (grayscale) {
+    imageData = toGrayscale(imageData);
+  }
+
+  if (invert) {
+    imageData = invertColors(imageData);
+  }
+
+  if (contrast !== 0) {
+    imageData = adjustContrast(imageData, contrast);
+  }
+
+  // Put processed data back
+  ctx.putImageData(imageData, 0, 0);
+
+  return {
+    canvas,
+    imageData,
+    width: canvas.width,
+    height: canvas.height,
+  };
+}
+
+/**
+ * Get brightness values from processed image for halftone
+ * Returns array of { x, y, brightness, alpha } for each grid point
+ */
+export function sampleBrightness(
+  imageData: ImageData,
+  gridSize: number
+): Array<{ x: number; y: number; brightness: number; alpha: number }> {
+  const { width, height, data } = imageData;
+  const samples: Array<{ x: number; y: number; brightness: number; alpha: number }> = [];
+
+  const stepX = width / gridSize;
+  const stepY = height / gridSize;
+
+  for (let gy = 0; gy < gridSize; gy++) {
+    for (let gx = 0; gx < gridSize; gx++) {
+      const imgX = Math.floor(gx * stepX);
+      const imgY = Math.floor(gy * stepY);
+      const i = (imgY * width + imgX) * 4;
+
+      const r = data[i];
+      const g = data[i + 1];
+      const b = data[i + 2];
+      const a = data[i + 3];
+
+      // Calculate luminosity
+      const brightness = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+
+      samples.push({
+        x: gx - gridSize / 2,
+        y: (gridSize - gy) - gridSize / 2, // Flip Y
+        brightness,
+        alpha: a / 255,
+      });
+    }
+  }
+
+  return samples;
+}
+
+export default { processImage, sampleBrightness, loadImage };
+#+end_src

@@ -1,0 +1,117 @@
+#+TITLE: Block Plugins
+#+DATE: 2025-12-09
+
+* Overview
+
+Org-Press block plugins extend org-mode with specialized rendering capabilities. Each plugin processes specific types of source blocks and provides interactive components in the browser.
+
+* Available Plugins
+
+** [[file:./jscad.org][JSCad Plugin]] 🎨
+
+3D modeling with JavaScript Computer-Aided Design.
+
+*Use case:* Parametric 3D models, mechanical parts, 3D printing
+
+*Syntax:* =#+begin_src javascript :use jscad=
+
+*Features:* Interactive 3D viewer, STL export, block imports
+
+*Example:* Design brackets, gears, enclosures with code
+
+** [[file:./excalidraw.org][Excalidraw Plugin]] ✏️
+
+Hand-drawn style diagrams and illustrations.
+
+*Use case:* Architecture diagrams, flowcharts, wireframes, illustrations
+
+*Syntax:* =#+begin_src json :use excalidraw=
+
+*Features:* Interactive editor (dev mode), auto-save, beautiful sketchy style
+
+*Example:* System architecture, user flows, concept sketches
+
+** [[file:./test.org][Test Plugin]] 🧪
+
+Literate testing with Vitest integration.
+
+*Use case:* Unit tests, integration tests, TDD workflows
+
+*Syntax:* =#+begin_src typescript :use test=
+
+*Features:* CLI runner, inline results, coverage, watch mode
+
+*Example:* Test functions alongside their implementation
+
+** [[file:./echarts.org][ECharts Plugin]] 📊
+
+Interactive charts using Apache ECharts.
+
+*Use case:* Data visualization, dashboards, reports
+
+*Syntax:* =#+begin_src json :use echarts= or =#+begin_src javascript :use echarts=
+
+*Features:* Line, bar, pie charts and more, responsive resize, dark/light themes
+
+*Example:* Sales dashboards, analytics, data exploration
+
+* Core Plugins
+
+These plugins are built into org-press:
+
+** JavaScript Execution
+
+- *Syntax:* =#+begin_src javascript :use server=
+- *Purpose:* Execute JavaScript in browser (default) or on server (=:use server=)
+
+** CSS Rendering
+
+- *Syntax:* =#+begin_src css=
+- *Purpose:* Inject CSS styles into the page
+- *Scope:* Global styles, component-specific styles
+
+** Server-Side Blocks
+
+- *Syntax:* =#+begin_src javascript :use server=
+- *Purpose:* Run Node.js code during build
+- *Use case:* File system access, data processing, dynamic content generation
+
+* Quick Comparison
+
+| Plugin      | Language   | Interactive | Export      | Primary Use         |
+|-------------+------------+-------------+-------------+---------------------|
+| JSCad       | JavaScript | Yes (3D)    | STL, STEP   | 3D Modeling         |
+| Excalidraw  | JSON       | Yes (Edit)  | PNG, SVG    | Diagrams            |
+| ECharts     | JSON/JS    | Yes (Hover) | PNG         | Data Visualization  |
+| JavaScript  | JavaScript | Yes (DOM)   | N/A         | Dynamic Content     |
+| CSS         | CSS        | N/A         | N/A         | Styling             |
+| Server      | JavaScript | No          | N/A         | Build-time Content  |
+
+* Creating Custom Plugins
+
+See the [[file:../block-plugins.org][Block Plugin System]] documentation for details on creating your own plugins.
+
+** Plugin Structure
+
+#+begin_export html
+<pre><code>export const myPlugin: BlockPlugin = {
+  name: "my-plugin",
+  languages: ["mylang"],
+
+  async transform(block, ctx) {
+    return {
+      html: `&lt;div&gt;...&lt;/div&gt;`,
+    };
+  },
+};
+</code></pre>
+#+end_export
+
+See [[/plugins/creating-plugins.html][Creating Plugins]] for a full guide.
+
+* See Also
+
+- [[file:../block-plugins.org][Block Plugin System]] - Technical documentation
+- [[file:../examples/block-imports.org][Block Imports]] - Reusing code across files
+- [[file:../configuration.org][Configuration]] - Registering plugins
+- [[file:../getting-started.org][Getting Started]] - Basic setup
