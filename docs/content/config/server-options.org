@@ -1,0 +1,168 @@
+#+TITLE: Server Options
+#+DESCRIPTION: Development server configuration for org-press
+
+* Server Options
+
+Options for the development server (=orgp dev=). Configuration is passed through the =vite.server= option.
+
+** Basic Configuration
+
+#+begin_export html
+<pre><code class="language-typescript">// .org-press/config.ts
+export default {
+  vite: {
+    server: {
+      port: 3000,
+      host: true,  // Expose to network
+      open: true,  // Open browser on start
+    },
+  },
+};
+</code></pre>
+#+end_export
+
+** port
+
+- *Type:* =number=
+- *Default:* =5173=
+
+Development server port. If the port is in use, Vite will try the next available port.
+
+#+begin_export html
+<pre><code class="language-typescript">vite: {
+  server: {
+    port: 3000,
+    strictPort: true,  // Fail if port in use
+  }
+}
+</code></pre>
+#+end_export
+
+** host
+
+- *Type:* =string | boolean=
+- *Default:* ="localhost"=
+
+Specify which IP addresses the server should listen on.
+
+#+begin_export html
+<pre><code class="language-typescript">vite: {
+  server: {
+    host: true,         // Listen on all addresses (0.0.0.0)
+    host: "0.0.0.0",    // Same as above
+    host: "192.168.1.5" // Specific IP
+  }
+}
+</code></pre>
+#+end_export
+
+Set =host: true= to access the dev server from other devices on the network.
+
+** open
+
+- *Type:* =boolean | string=
+- *Default:* =false=
+
+Automatically open the browser when the server starts.
+
+#+begin_export html
+<pre><code class="language-typescript">vite: {
+  server: {
+    open: true,              // Open default browser
+    open: "/guide/",         // Open specific path
+    open: "firefox",         // Open specific browser
+  }
+}
+</code></pre>
+#+end_export
+
+** https
+
+- *Type:* =boolean | https.ServerOptions=
+- *Default:* =false=
+
+Enable HTTPS for the dev server.
+
+#+begin_export html
+<pre><code class="language-typescript">import fs from "node:fs";
+
+export default {
+  vite: {
+    server: {
+      https: {
+        key: fs.readFileSync("localhost-key.pem"),
+        cert: fs.readFileSync("localhost.pem"),
+      }
+    }
+  }
+};
+</code></pre>
+#+end_export
+
+For quick local HTTPS, use [[https://github.com/FiloSottile/mkcert][mkcert]] to generate certificates.
+
+** proxy
+
+- *Type:* =Record&lt;string, ProxyOptions&gt;=
+
+Proxy API requests during development. Useful when your frontend and backend are on different ports.
+
+#+begin_export html
+<pre><code class="language-typescript">vite: {
+  server: {
+    proxy: {
+      // String shorthand
+      "/api": "http://localhost:8080",
+
+      // With options
+      "/api": {
+        target: "http://localhost:8080",
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api/, ""),
+      },
+    }
+  }
+}
+</code></pre>
+#+end_export
+
+** watch
+
+- *Type:* =object=
+
+File system watcher options passed to chokidar.
+
+#+begin_export html
+<pre><code class="language-typescript">vite: {
+  server: {
+    watch: {
+      // Ignore large directories
+      ignored: ["**/node_modules/**", "**/dist/**"],
+    }
+  }
+}
+</code></pre>
+#+end_export
+
+** HMR (Hot Module Replacement)
+
+Org-press supports HMR out of the box. Edit your org files and see changes instantly.
+
+To customize HMR behavior:
+
+#+begin_export html
+<pre><code class="language-typescript">vite: {
+  server: {
+    hmr: {
+      overlay: false,  // Disable error overlay
+    }
+  }
+}
+</code></pre>
+#+end_export
+
+** See Also
+
+- [[/config/build-options.html][Build Options]] - Production build configuration
+- [[/config/shared-options.html][Shared Options]] - =contentDir=, =outDir=, =base=
+- [[https://vitejs.dev/config/server-options.html][Vite Server Options]] - Full Vite server documentation

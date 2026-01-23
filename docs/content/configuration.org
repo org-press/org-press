@@ -1,0 +1,282 @@
+#+TITLE: Configuration Reference
+#+DATE: 2025-12-09
+
+* Overview
+
+Org-press configuration is defined in =.org-press/config.ts= using the =OrgPressUserConfig= interface. This file controls how your site is built and what features are enabled.
+
+* Basic Configuration
+
+Here's a minimal configuration example:
+
+#+begin_src typescript :use sourceOnly
+import type { OrgPressUserConfig } from "../lib/org-press/node/config-types.ts";
+
+const config: OrgPressUserConfig = {
+  contentDir: "content",
+  cacheDir: "node_modules/.org-press-cache",
+  outDir: "dist/static",
+};
+
+export default config;
+#+end_src
+
+* Configuration Options
+
+** contentDir
+
+- *Type:* =string=
+- *Default:* ="content"=
+
+Directory containing =.org= files that will be converted to HTML pages. Each =.org= file becomes a route in your site.
+
+Example:
+#+begin_src typescript :use sourceOnly
+contentDir: "docs"  // Use docs/ instead of content/
+#+end_src
+
+** cacheDir
+
+- *Type:* =string=
+- *Default:* ="node_modules/.org-press-cache"=
+
+Cache directory for processed files. This can be a relative path (relative to CWD) or an absolute path.
+
+The cache directory stores:
+- Extracted code blocks from =:tangle= parameters
+- Processed source blocks for client-side execution
+- Intermediate build artifacts
+
+Example:
+#+begin_src typescript :use sourceOnly
+cacheDir: "node_modules/.org-press-cache-docs"
+#+end_src
+
+** outDir
+
+- *Type:* =string=
+- *Default:* ="dist/static"=
+
+Output directory for the built static site. This is where the final HTML files will be generated.
+
+Example:
+#+begin_src typescript :use sourceOnly
+outDir: "dist/docs"
+#+end_src
+
+** base
+
+- *Type:* =string=
+- *Default:* ="/"=
+
+Base URL for the site. Useful when deploying to a subdirectory.
+
+Example:
+#+begin_src typescript :use sourceOnly
+base: "/docs/"  // Deploy to https://example.com/docs/
+#+end_src
+
+** themes
+
+- *Type:* =Record<string, ThemeComponent>=
+- *Default:* ={}=
+
+Custom theme components for rendering pages. The ="default"= theme is used when no layout is specified in the org file.
+
+Example:
+#+begin_src typescript :use sourceOnly
+import { DefaultLayout } from "./theme/default.tsx";
+import { DarkLayout } from "./theme/dark.tsx";
+
+const config: OrgPressUserConfig = {
+  themes: {
+    default: DefaultLayout,
+    dark: DarkLayout,
+  },
+};
+#+end_src
+
+Theme components receive props:
+- =title?: string= - Page title from =#+TITLE:=
+- =date?: string= - Page date from =#+DATE:=
+- =content: string= - Rendered HTML content
+
+** blockHandlers
+
+- *Type:* =BlockHandler[]=
+- *Default:* =[]= (default handlers are added automatically)
+
+Custom block handlers for processing org-mode source blocks on the server. Use this for blocks that don't need client-side rendering.
+
+Example:
+#+begin_src typescript :use sourceOnly
+import { createMarkdownHandler } from "./handlers/markdown.ts";
+
+const config: OrgPressUserConfig = {
+  blockHandlers: [
+    createMarkdownHandler(),
+  ],
+};
+#+end_src
+
+See [[file:block-plugins.org][Block Handlers]] for more details.
+
+** blockPlugins
+
+- *Type:* =BlockPlugin[]=
+- *Default:* =[]= (no plugins by default)
+
+Block plugins with client-side wrapper support. Use this when blocks need client-side rendering components.
+
+Example:
+#+begin_src typescript :use sourceOnly
+import { jscadBlockPlugin } from "../lib/org-press-block-jscad/index.ts";
+import { excalidrawBlockPlugin } from "../lib/org-press-block-excalidraw/index.ts";
+
+const config: OrgPressUserConfig = {
+  blockPlugins: [
+    jscadBlockPlugin,      // 3D modeling support
+    excalidrawBlockPlugin, // Diagram support
+  ],
+};
+#+end_src
+
+See [[file:block-plugins.org][Block Plugins]] for more details.
+
+** disableDefaultHandlers
+
+- *Type:* =boolean=
+- *Default:* =false=
+
+Disable the default block handlers (JavaScript/TypeScript/CSS rendering, server execution). Set to =true= if you want complete control over block processing.
+
+Example:
+#+begin_src typescript :use sourceOnly
+disableDefaultHandlers: true  // Only use custom handlers
+#+end_src
+
+** buildConcurrency
+
+- *Type:* =number=
+- *Default:* =os.cpus().length=
+
+Number of pages to render in parallel during static site generation. Higher values speed up builds but use more memory.
+
+Example:
+#+begin_src typescript :use sourceOnly
+buildConcurrency: 4  // Render 4 pages at a time
+#+end_src
+
+** uniorg
+
+- *Type:* =Record<string, any>=
+- *Default:* ={}=
+
+Options passed to the uniorg parser. Advanced configuration for org-mode parsing behavior.
+
+Example:
+#+begin_src typescript :use sourceOnly
+uniorg: {
+  // Custom uniorg options
+}
+#+end_src
+
+** vite
+
+- *Type:* =\{ configFile?: string | false \}=
+- *Default:* ={}=
+
+Vite configuration options. You can specify a custom Vite config file or disable automatic Vite config loading.
+
+Example:
+#+begin_src typescript :use sourceOnly
+vite: {
+  configFile: "vite.config.custom.ts"
+}
+#+end_src
+
+* Multi-Site Configuration
+
+You can create multiple sites from the same codebase by using separate configuration files:
+
+** Main Site (=.org-press/config.ts=)
+
+#+begin_src typescript :use sourceOnly
+import type { OrgPressUserConfig } from "../lib/org-press/node/config-types.ts";
+
+const config: OrgPressUserConfig = {
+  contentDir: "content",
+  cacheDir: "node_modules/.org-press-cache",
+  outDir: "dist/static",
+};
+
+export default config;
+#+end_src
+
+** Shop Site (=.org-press/config.shop.ts=)
+
+#+begin_src typescript :use sourceOnly
+import type { OrgPressUserConfig } from "../lib/org-press/node/config-types.ts";
+
+const config: OrgPressUserConfig = {
+  contentDir: "shop",
+  cacheDir: "node_modules/.org-press-cache-shop",
+  outDir: "dist/shop",
+};
+
+export default config;
+#+end_src
+
+** Package Scripts
+
+#+begin_src json :use sourceOnly
+{
+  "scripts": {
+    "dev": "node --experimental-strip-types ./lib/org-press/scripts/dev.ts",
+    "dev:shop": "node --experimental-strip-types ./lib/org-press/scripts/dev.ts .org-press/config.shop.ts",
+    "build": "node --experimental-strip-types ./lib/org-press/scripts/build.ts",
+    "build:shop": "node --experimental-strip-types ./lib/org-press/scripts/build.ts .org-press/config.shop.ts"
+  }
+}
+#+end_src
+
+* Complete Configuration Example
+
+Here's a full configuration with all options:
+
+#+begin_src typescript :use sourceOnly
+import type { OrgPressUserConfig } from "../lib/org-press/node/config-types.ts";
+import { jscadBlockPlugin } from "../lib/org-press-block-jscad/index.ts";
+import { excalidrawBlockPlugin } from "../lib/org-press-block-excalidraw/index.ts";
+import { registerWrapper } from "../lib/org-press/wrappers/index.ts";
+import { createTabsWrapper } from "../lib/org-press/wrappers/tabs.ts";
+import { DefaultLayout } from "./index.tsx";
+
+// Register custom wrappers
+registerWrapper("tabs", createTabsWrapper());
+
+const config: OrgPressUserConfig = {
+  // Directories
+  contentDir: "content",
+  cacheDir: "node_modules/.org-press-cache",
+  outDir: "dist/static",
+  base: "/",
+
+  // Themes
+  themes: {
+    default: DefaultLayout,
+  },
+
+  // Block plugins
+  blockPlugins: [
+    jscadBlockPlugin,
+    excalidrawBlockPlugin,
+  ],
+
+  // Build settings
+  buildConcurrency: 4,
+  disableDefaultHandlers: false,
+};
+
+export default config;
+#+end_src

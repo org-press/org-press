@@ -1,0 +1,372 @@
+#+TITLE: Block Plugin System
+#+DATE: 2025-12-09
+
+* What are Block Plugins?
+
+Block plugins extend org-press with custom block processing capabilities. They provide transformation logic that converts code blocks into executable modules for both server-side and client-side rendering.
+
+* Plugin Types
+
+| Feature | Basic Plugin | Full Plugin (with Preview) |
+|-|-|-|
+| Server-side processing | ✓ | ✓ |
+| Custom Preview rendering | ✗ | ✓ |
+| Use case | Simple code execution | Interactive components, 3D models, diagrams |
+| Example | CSS/JS rendering | JSCad, Excalidraw |
+
+* Plugin Architecture
+
+A block plugin implements the =BlockPlugin= interface:
+
+** 1. Configuration (Required)
+
+Plugin metadata that defines:
+- Unique plugin name
+- Default file extension for generated modules
+- Supported languages (optional)
+- Custom matching logic (optional)
+- Priority in plugin chain
+
+** 2. Transform Function (Required)
+
+Server-side function that processes code blocks:
+- Transforms code for client-side execution
+- Applies import rewriting and module wrapping
+- Returns code that will be loaded as a virtual module
+
+** 3. Preview Function (Optional)
+
+Custom preview rendering for the result:
+- Receives execution result and block context
+- Returns HTML/CSS/JS for displaying the result
+- Enables interactive components
+
+* Type Definitions
+
+** BlockPlugin
+
+#+begin_src typescript :use sourceOnly
+interface BlockPlugin {
+  /** Unique plugin name (used in :use parameter) */
+  name: string;
+
+  /** Default file extension for generated modules (js, tsx, css, etc.) */
+  defaultExtension: string;
+
+  /** Language names this plugin handles */
+  languages?: string[];
+
+  /** Custom matcher function */
+  matches?: (block: CodeBlock) => boolean;
+
+  /** Plugin priority (higher = runs first) */
+  priority?: number;
+
+  /** Transform code block for client-side execution */
+  transform?: (block: CodeBlock, context: TransformContext) => Promise<TransformResult>;
+
+  /** Generate code at build time */
+  onGenerate?: (block: CodeBlock, context: TransformContext) => Promise<TransformResult>;
+
+  /** Transform code block for server-side execution */
+  onServer?: (block: CodeBlock, context: TransformContext) => Promise<TransformResult>;
+}
+#+end_src
+
+** TransformContext
+
+#+begin_src typescript :use sourceOnly
+interface TransformContext {
+  /** Relative path to the .org file */
+  orgFilePath: string;
+
+  /** 0-based index of this block in the file */
+  blockIndex: number;
+
+  /** Named block identifier (from #+NAME: directive), if present */
+  blockName?: string;
+
+  /** Parsed block parameters */
+  parameters: Record<string, string>;
+
+  /** Available plugins */
+  plugins: BlockPlugin[];
+
+  /** Cache directory path */
+  cacheDir: string;
+
+  /** Base URL path for the site */
+  base: string;
+}
+#+end_src
+
+* Creating a Block Plugin
+
+** Example: Chart Rendering Plugin
+
+Let's create a plugin that renders charts using Chart.js.
+
+*** Step 1: Create the Plugin
+
+Create =lib/my-chart-plugin/block-chart.ts=:
+
+#+begin_src typescript :use sourceOnly
+import type { BlockPlugin } from "org-press";
+
+export const chartBlockPlugin: BlockPlugin = {
+  name: "chart",
+  defaultExtension: "js",
+  languages: ["javascript", "js"],
+  matches: (block) => {
+    // Match blocks with :use chart parameter
+    return block.meta?.includes(":use chart");
+  },
+  priority: 15, // Higher priority than default JS plugin
+
+  transform: async (block, context) => {
+    // Generate code that creates and renders a chart
+    const code = `
+import { Chart } from "chart.js/auto";
+
+const config = ${block.value};
+
+// Create canvas and render chart
+const canvas = document.createElement("canvas");
+document.currentScript?.parentElement?.appendChild(canvas);
+new Chart(canvas, config);
+    `;
+
+    return { code };
+  },
+};
+#+end_src
+
+*** Step 2: Register Plugin
+
+In =.org-press/config.ts=:
+
+#+begin_src typescript :use sourceOnly
+import type { OrgPressUserConfig } from "org-press";
+import { chartBlockPlugin } from "../lib/my-chart-plugin/block-chart.ts";
+
+const config: OrgPressUserConfig = {
+  plugins: [
+    chartBlockPlugin,
+  ],
+};
+
+export default config;
+#+end_src
+
+*** Step 3: Use in Org Files
+
+In your =.org= files:
+
+#+begin_export html
+<pre><code>#+begin_src javascript :use chart
+{
+  type: 'bar',
+  data: {
+    labels: ['Red', 'Blue', 'Yellow'],
+    datasets: [{
+      label: 'My Chart',
+      data: [12, 19, 3],
+      backgroundColor: ['red', 'blue', 'yellow']
+    }]
+  }
+}
+#+end_src
+</code></pre>
+#+end_export
+
+* Real-World Example: JSCad Plugin
+
+The JSCad plugin demonstrates a complete block plugin implementation.
+
+** Plugin Structure
+
+#+begin_src typescript :use sourceOnly
+// packages/block-jscad/src/index.ts
+export const jscadPlugin: BlockPlugin = {
+  name: "jscad",
+  defaultExtension: "js",
+  languages: ["javascript", "js"],
+  matches: (block) => block.meta?.includes(":use jscad"),
+  priority: 15,
+
+  transform: async (block, context) => {
+    // Transform JSCad code for browser execution
+    // Imports JSCad libraries and renders 3D model
+    return { code: transformedCode };
+  },
+};
+#+end_src
+
+** Usage
+
+#+begin_export html
+<pre><code>#+begin_src javascript :use jscad :name cube-example
+import { cube, sphere } from '@jscad/modeling/src/primitives';
+import { union } from '@jscad/modeling/src/operations/booleans';
+
+export default [
+  cube({ size: 10 }),
+  sphere({ radius: 5, center: [5, 5, 5] })
+];
+#+end_src
+</code></pre>
+#+end_export
+
+The plugin transform function:
+1. Detects =:use jscad= parameter via matches function
+2. Transforms code for browser execution
+3. Returns code that imports JSCad and renders the model
+
+* Advanced Patterns
+
+** Custom Preview Functions
+
+Plugins can export a =Preview= function to customize result rendering:
+
+#+begin_src typescript :use sourceOnly
+// In the transformed code
+export const Preview = (result, ctx) => {
+  return {
+    html: `<div class="custom-preview">${JSON.stringify(result)}</div>`,
+    css: `.custom-preview { background: #f0f0f0; padding: 1rem; }`
+  };
+};
+#+end_src
+
+** Async Transformations
+
+Transform functions can be async for complex processing:
+
+#+begin_src typescript :use sourceOnly
+transform: async (block, context) => {
+  // Dynamically import processing library
+  const { processCode } = await import("some-library");
+
+  const processedCode = await processCode(block.value);
+  return { code: processedCode };
+}
+#+end_src
+
+** Server-Side Execution
+
+Use =onServer= for build-time code execution:
+
+#+begin_src typescript :use sourceOnly
+onServer: async (block, context) => {
+  // Execute code on server during build
+  const result = await executeOnServer(block.value);
+  return { code: `export default ${JSON.stringify(result)};` };
+}
+#+end_src
+
+* Plugin Distribution
+
+** Future: npm Packages
+
+When org-press is published to npm, plugins will be distributed as separate packages:
+
+#+begin_src bash :use sourceOnly
+npm install @org-press/block-jscad
+npm install @org-press/block-excalidraw
+npm install @org-press/block-mermaid
+#+end_src
+
+** Package Structure
+
+#+begin_export html
+<pre><code>@org-press/block-jscad/
+├── src/
+│   └── index.ts      # Plugin implementation
+├── package.json
+└── README.md
+</code></pre>
+#+end_export
+
+* Debugging Plugins
+
+** Transform Debugging
+
+Add logging to your transform function:
+
+#+begin_src typescript :use sourceOnly
+transform: async (block, context) => {
+  console.log("[chart] Processing block:", {
+    language: block.language,
+    meta: block.meta,
+    blockName: context.blockName,
+  });
+
+  // ... transform logic
+}
+#+end_src
+
+** Client-Side Debugging
+
+Add logging to the generated code:
+
+#+begin_src typescript :use sourceOnly
+transform: async (block, context) => {
+  const code = `
+    console.log("[chart] Rendering:", {
+      blockId: "${context.blockIndex}",
+    });
+    // ... execution code
+  `;
+  return { code };
+}
+#+end_src
+
+* Built-in Plugins
+
+Org-press includes these plugins:
+
+** JavaScript Plugin
+
+- *Name:* =javascript=
+- *Languages:* =javascript=, =js=
+- *Purpose:* Execute JavaScript code blocks
+
+** TypeScript Plugin
+
+- *Name:* =typescript=
+- *Languages:* =typescript=, =ts=
+- *Purpose:* Execute TypeScript code blocks (transpiled via Vite)
+
+** JSX/TSX Plugins
+
+- *Names:* =jsx=, =tsx=
+- *Languages:* =jsx=, =tsx=
+- *Purpose:* Execute React component code blocks
+
+** CSS Plugin
+
+- *Name:* =css=
+- *Languages:* =css=
+- *Purpose:* Inject CSS styles into the page
+
+** Server Plugin
+
+- *Name:* =server=
+- *Purpose:* Execute code on server during build (=:use server=)
+
+** JSCad Plugin
+
+- *Package:* =@org-press/block-jscad=
+- *Usage:* =:use jscad=
+- *Purpose:* 3D modeling with JSCad
+
+** Excalidraw Plugin
+
+- *Package:* =@org-press/block-excalidraw=
+- *Usage:* =:use excalidraw=
+- *Purpose:* Interactive diagrams
+
+* See Also
+
+- [[file:api/preview-api.org][Preview API]] - How preview modes work
+- [[file:configuration.org][Configuration]] - How to register plugins

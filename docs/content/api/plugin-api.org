@@ -1,0 +1,106 @@
+#+TITLE: Plugin API
+#+DESCRIPTION: Creating block plugins for org-press
+
+* Plugin API
+
+** BlockPlugin Interface
+
+#+begin_export html
+<pre><code>interface BlockPlugin {
+  /** Unique plugin name */
+  name: string;
+
+  /** Languages this plugin handles */
+  languages?: string[];
+
+  /** Custom matcher function */
+  matches?(block: CodeBlock): boolean;
+
+  /** Transform block to renderable output */
+  transform(block: CodeBlock, ctx: TransformContext): Promise&lt;TransformResult&gt;;
+
+  /** Server-side execution */
+  onServer?(block: CodeBlock, ctx: TransformContext): Promise&lt;ServerResult&gt;;
+
+  /** CLI command extension */
+  cli?: CliCommand;
+}
+</code></pre>
+#+end_export
+
+** Basic Plugin
+
+#+begin_export html
+<pre><code>import type { BlockPlugin } from "org-press";
+
+export const myPlugin: BlockPlugin = {
+  name: "my-plugin",
+  languages: ["mylang"],
+
+  async transform(block, ctx) {
+    return {
+      html: `&lt;div class="my-plugin"&gt;${block.value}&lt;/div&gt;`,
+    };
+  },
+};
+</code></pre>
+#+end_export
+
+** Transform Context
+
+#+begin_export html
+<pre><code>interface TransformContext {
+  /** Block parameters from org */
+  parameters: Record&lt;string, string&gt;;
+
+  /** Org file path */
+  filePath: string;
+
+  /** Project config */
+  config: OrgPressConfig;
+
+  /** Cache directory */
+  cacheDir: string;
+}
+</code></pre>
+#+end_export
+
+** Transform Result
+
+#+begin_export html
+<pre><code>interface TransformResult {
+  /** HTML to render */
+  html?: string;
+
+  /** JavaScript code to execute */
+  code?: string;
+
+  /** CSS to inject */
+  css?: string;
+
+  /** Client-side wrapper component */
+  wrapper?: WrapperConfig;
+}
+</code></pre>
+#+end_export
+
+** Wrapper Components
+
+For interactive plugins, provide a React wrapper:
+
+#+begin_export html
+<pre><code>export const myPlugin: BlockPlugin = {
+  name: "my-plugin",
+
+  async transform(block, ctx) {
+    return {
+      code: JSON.stringify(block.value),
+      wrapper: {
+        path: "@my-plugin/wrapper",
+        exportName: "MyWrapper",
+      },
+    };
+  },
+};
+</code></pre>
+#+end_export

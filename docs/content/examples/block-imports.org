@@ -1,0 +1,531 @@
+#+TITLE: Block Imports - Complete Guide
+#+DATE: 2025-12-09
+
+* Introduction
+
+Org-Press supports a powerful *block import* system that allows you to import and reuse code blocks across org files, enabling true literate programming and code composition.
+
+** What You'll Learn
+
+This comprehensive guide demonstrates:
+- Importing blocks from other files by name
+- Importing blocks by index position
+- Self-importing within the same file
+- Composing complex functionality from simple blocks
+- Cross-file code sharing and reusability
+- Server-side and client-side imports
+- 3D modeling with imported geometry
+
+** Import Syntax
+
+The import syntax uses special query parameters:
+
+#+begin_export html
+<pre><code>// Import by name
+import { function } from './file.org?name=block-name';
+
+// Import by index (0-based)
+import { function } from './file.org?index=0';
+
+// Import default export
+import value from './file.org?name=block-name';
+</code></pre>
+#+end_export
+
+** The Library File
+
+This guide uses [[file:block-import-library.org][block-import-library.org]] as a shared library of reusable utilities, demonstrating cross-file imports. The library contains:
+
+- JavaScript utilities (math, string manipulation)
+- CSS utilities (flexbox, animations)
+- JSCad geometry primitives and composite shapes
+- Server-side data processing
+- TypeScript type-safe utilities
+
+* Part 1: Self-Import (Same File)
+
+Before exploring cross-file imports, let's see how blocks can import from the same file.
+
+** Define a Local Helper
+
+First, let's define a helper block in this file:
+
+#+name: local-helper
+#+begin_src javascript
+export function formatMessage(name) {
+  return `Hello, ${name}! Welcome to org block imports.`;
+}
+
+export function getTimestamp() {
+  return new Date().toLocaleString();
+}
+#+end_src
+
+** Use the Local Helper
+
+Now we import and use it from another block in this same file:
+
+#+name: use-local-helper
+#+begin_src javascript :use preview | withSourceCode
+// Import from this same file using self-reference
+import { formatMessage, getTimestamp } from './block-imports.org?name=local-helper';
+
+const greeting = formatMessage('Developer');
+const timestamp = getTimestamp();
+
+const container = document.createElement('div');
+container.style.cssText = 'padding: 1rem; background: #e3f2fd; border-radius: 8px; margin: 1rem 0;';
+container.innerHTML = `
+  <h4 style="margin-top: 0; color: #1976d2;">Self-Import Demo</h4>
+  <p>${greeting}</p>
+  <p><small>Generated at: ${timestamp}</small></p>
+`;
+
+export default container;
+#+end_src
+
+** Why Self-Import?
+
+Self-importing is useful for:
+- Breaking down complex code into manageable pieces
+- Reusing helper functions within the same document
+- Creating a library section at the top of your file
+- Maintaining literate programming principles
+
+* Part 2: Cross-File JavaScript Imports
+
+Now let's import from our external library file.
+
+** Math Utilities
+
+Import and use mathematical functions:
+
+#+begin_src javascript :use preview | withSourceCode
+import { add, multiply, fibonacci } from './block-import-library.org?name=math-utils';
+
+const results = document.createElement('div');
+results.style.cssText = 'padding: 1rem; background: #f3e5f5; border-radius: 8px; margin: 1rem 0;';
+results.innerHTML = `
+  <h4 style="margin-top: 0; color: #7b1fa2;">Math Utils from Library</h4>
+  <ul style="margin: 0;">
+    <li>add(5, 3) = ${add(5, 3)}</li>
+    <li>multiply(4, 7) = ${multiply(4, 7)}</li>
+    <li>fibonacci(10) = ${fibonacci(10)}</li>
+  </ul>
+`;
+
+export default results;
+#+end_src
+
+** String Utilities
+
+Import string manipulation functions:
+
+#+begin_src javascript :use preview | withSourceCode
+import { capitalize, slugify, truncate } from './block-import-library.org?name=string-utils';
+
+const results = document.createElement('div');
+results.style.cssText = 'padding: 1rem; background: #e8f5e9; border-radius: 8px; margin: 1rem 0;';
+
+const examples = [
+  { input: 'hello world', fn: 'capitalize', output: capitalize('hello world') },
+  { input: 'Hello World 2024!', fn: 'slugify', output: slugify('Hello World 2024!') },
+  { input: 'This is a very long string...', fn: 'truncate(20)', output: truncate('This is a very long string that needs truncation', 20) }
+];
+
+results.innerHTML = `
+  <h4 style="margin-top: 0; color: #388e3c;">String Utils from Library</h4>
+  <table style="width: 100%; border-collapse: collapse;">
+    <tr><th>Function</th><th>Input</th><th>Output</th></tr>
+    ${examples.map(ex => `
+      <tr>
+        <td><code>${ex.fn}</code></td>
+        <td>${ex.input}</td>
+        <td><strong>${ex.output}</strong></td>
+      </tr>
+    `).join('')}
+  </table>
+`;
+
+export default results;
+#+end_src
+
+* Part 3: CSS Imports
+
+CSS blocks can be imported as strings and dynamically injected.
+
+** Flexbox Utilities
+
+#+begin_src html :use preview | withSourceCode
+<style>
+  /* We'll inject CSS utilities from the library */
+</style>
+<script type="module">
+  import flexUtils from './block-import-library.org?name=flex-utils';
+
+  // Inject the imported CSS
+  const style = document.createElement('style');
+  style.textContent = flexUtils;
+  document.head.appendChild(style);
+</script>
+
+<div class="flex-between" style="background: #e8f5e9; padding: 1rem; border-radius: 8px; margin: 1rem 0;">
+  <div>
+    <h4 style="margin: 0; color: #388e3c;">CSS Flexbox Utils from Library</h4>
+    <p style="margin: 0.5rem 0 0 0;">Using imported .flex-between and .flex-column classes</p>
+  </div>
+  <div class="flex-column flex-gap-2">
+    <button style="padding: 0.5rem 1rem; border-radius: 4px; border: 1px solid #4caf50; background: white; cursor: pointer;">Button 1</button>
+    <button style="padding: 0.5rem 1rem; border-radius: 4px; border: 1px solid #4caf50; background: white; cursor: pointer;">Button 2</button>
+  </div>
+</div>
+#+end_src
+
+** Animation Utilities
+
+#+begin_src html :use preview | withSourceCode
+<script type="module">
+  import animations from './block-import-library.org?name=animation-utils';
+
+  const style = document.createElement('style');
+  style.textContent = animations;
+  document.head.appendChild(style);
+</script>
+
+<div class="fade-in" style="background: #fff3e0; padding: 1rem; border-radius: 8px; margin: 1rem 0;">
+  <h4 style="margin-top: 0; color: #f57c00;">Animated Content</h4>
+  <p>This box uses the <code>.fade-in</code> animation imported from the library.</p>
+  <div class="spin" style="display: inline-block; font-size: 2rem;">⚙️</div>
+</div>
+#+end_src
+
+* Part 4: TypeScript Imports
+
+Import type-safe utilities with full TypeScript support:
+
+#+begin_src javascript :use preview | withSourceCode
+import { distance2D, midpoint } from './block-import-library.org?name=type-safe-utils';
+
+const p1 = { x: 0, y: 0 };
+const p2 = { x: 3, y: 4 };
+
+const dist = distance2D(p1, p2);
+const mid = midpoint(p1, p2);
+
+const container = document.createElement('div');
+container.style.cssText = 'padding: 1rem; background: #fff3e0; border-radius: 8px; margin: 1rem 0;';
+container.innerHTML = `
+  <h4 style="margin-top: 0; color: #f57c00;">TypeScript Utils from Library</h4>
+  <p>Point 1: (${p1.x}, ${p1.y})</p>
+  <p>Point 2: (${p2.x}, ${p2.y})</p>
+  <p>Distance: ${dist.toFixed(2)}</p>
+  <p>Midpoint: (${mid.x}, ${mid.y})</p>
+`;
+
+export default container;
+#+end_src
+
+* Part 5: Import by Index
+
+You can import blocks by their position (0-based index) instead of by name:
+
+#+begin_src javascript :use preview | withSourceCode
+// Import the first block from the library (math-utils at index 0)
+import { add } from './block-import-library.org?index=0';
+
+const result = document.createElement('div');
+result.style.cssText = 'padding: 1rem; background: #fce4ec; border-radius: 8px; margin: 1rem 0;';
+result.innerHTML = `
+  <h4 style="margin-top: 0; color: #c2185b;">Import by Index Demo</h4>
+  <p>Imported first block from library (index=0): <code>math-utils</code></p>
+  <p>Result: add(10, 20) = ${add(10, 20)}</p>
+`;
+
+export default result;
+#+end_src
+
+** When to Use Index vs Name
+
+- **Use names** for stable, semantic imports (recommended)
+- **Use indexes** for quick prototyping or when names aren't available
+- Names are more maintainable as file structure changes
+
+* Part 6: Server-Side Data Import
+
+Import pre-computed server-side data that runs during the build process:
+
+#+begin_src javascript :use preview | withSourceCode
+// Import server-computed file statistics and date
+import fileStats from './block-import-library.org?name=file-stats';
+import currentDate from './block-import-library.org?name=current-date';
+
+const container = document.createElement('div');
+container.style.cssText = 'padding: 1rem; background: #e0f2f1; border-radius: 8px; margin: 1rem 0;';
+
+const stats = JSON.parse(fileStats);
+
+container.innerHTML = `
+  <h4 style="margin-top: 0; color: #00796b;">Server-Side Data from Library</h4>
+  <p><strong>Build Date:</strong> ${currentDate}</p>
+  <p><strong>Total org files:</strong> ${stats.totalFiles}</p>
+  <details>
+    <summary style="cursor: pointer; color: #00796b; font-weight: bold;">File Details</summary>
+    <ul>
+      ${stats.files.map(f => `<li>${f.name} - ${(f.size / 1024).toFixed(2)} KB</li>`).join('')}
+    </ul>
+  </details>
+`;
+
+export default container;
+#+end_src
+
+** Server-Side Benefits
+
+- Execute expensive operations once at build time
+- Access Node.js APIs (fs, path, etc.)
+- Generate dynamic content from file system
+- No client-side overhead
+
+* Part 7: JSCad 3D Modeling
+
+The most powerful demonstration: importing 3D geometry functions and composing complex scenes.
+
+#+begin_export html
+<style>
+  .jscad-wrapper {
+    position: relative;
+    width: 100%;
+    height: 400px;
+    margin: 1rem 0;
+    border-radius: 8px;
+    overflow: hidden;
+  }
+</style>
+#+end_export
+
+** Composite 3D Scene
+
+Import geometry primitives and composite shapes from the library:
+
+#+name: composite-scene
+#+begin_src javascript :use jscad
+import * as jscad from '@jscad/modeling';
+import { house, gear, roundedCube } from './block-import-library.org?name=jscad-base-shapes';
+import { screw, bearing } from './block-import-library.org?name=jscad-composite-shapes';
+
+const { translate, rotate } = jscad.transforms;
+
+// Create a scene using imported geometry functions from the library
+const myHouse = translate([-30, 0, 0], house(15, 12));
+const myGear = translate([0, 0, 0], gear(18, 8, 12, 4));
+const myRoundedCube = translate([30, -15, 0], roundedCube(12, 2));
+const myScrew = translate([30, 15, 0], rotate([Math.PI / 2, 0, 0], screw(20, 4, 8)));
+const myBearing = translate([-300, -20, 0], bearing(15, 8, 4));
+
+export default [myHouse, myGear, myRoundedCube, myScrew, myBearing];
+#+end_src
+
+** 3D Import Benefits
+
+- Build libraries of reusable 3D primitives
+- Compose complex assemblies from simple parts
+- Share geometry across multiple designs
+- Parametric design with imported functions
+- Version control your 3D primitives
+
+* Part 8: Complex Composition
+
+Let's combine multiple imports to create something more sophisticated.
+
+** Define a Data Processor
+
+First, define a local processing function:
+
+#+name: data-processor
+#+begin_src javascript
+export function processData(numbers) {
+  return {
+    sum: numbers.reduce((a, b) => a + b, 0),
+    average: numbers.reduce((a, b) => a + b, 0) / numbers.length,
+    max: Math.max(...numbers),
+    min: Math.min(...numbers)
+  };
+}
+#+end_src
+
+** Combine Local and External Imports
+
+#+begin_src javascript :use preview | withSourceCode
+// Import from THIS file (self-import)
+import { processData } from './block-imports.org?name=data-processor';
+
+// Import from EXTERNAL library file
+import { fibonacci } from './block-import-library.org?name=math-utils';
+import { truncate } from './block-import-library.org?name=string-utils';
+
+// Generate fibonacci sequence using imported function
+const fibSequence = Array.from({ length: 10 }, (_, i) => fibonacci(i));
+
+// Process the data using local function
+const stats = processData(fibSequence);
+
+// Format output using imported utility
+const title = truncate("Fibonacci Sequence Analysis with Mixed Imports", 40);
+
+const container = document.createElement('div');
+container.style.cssText = 'padding: 1rem; background: #f3e5f5; border-radius: 8px; margin: 1rem 0;';
+container.innerHTML = `
+  <h4 style="margin-top: 0; color: #7b1fa2;">${title}</h4>
+  <p><strong>Sequence:</strong> [${fibSequence.join(', ')}]</p>
+  <p><strong>Sum:</strong> ${stats.sum}</p>
+  <p><strong>Average:</strong> ${stats.average.toFixed(2)}</p>
+  <p><strong>Max:</strong> ${stats.max}</p>
+  <p><strong>Min:</strong> ${stats.min}</p>
+  <hr style="border: none; border-top: 1px solid #ddd; margin: 1rem 0;">
+  <p><small>
+    🔹 fibonacci() from <code>block-import-library.org</code><br>
+    🔹 truncate() from <code>block-import-library.org</code><br>
+    🔹 processData() from <code>block-imports.org</code> (this file)
+  </small></p>
+`;
+
+export default container;
+#+end_src
+
+* Key Concepts Summary
+
+** Code Reusability
+
+Define once, use everywhere:
+- Create shared libraries of utilities
+- Import across multiple documents
+- Maintain single source of truth
+- Update once, propagate everywhere
+
+** Modularity
+
+Break complex logic into manageable pieces:
+- Small, focused, testable blocks
+- Clear dependencies and interfaces
+- Easy to understand and maintain
+- Promotes separation of concerns
+
+** Composition
+
+Combine simple blocks to create complexity:
+- Layer functionality progressively
+- Mix and match utilities as needed
+- Build complex features from simple parts
+- Enable true literate programming
+
+** Type Safety
+
+Use TypeScript for robust imports:
+- Full type checking across files
+- IDE autocomplete and hints
+- Catch errors at build time
+- Document interfaces naturally
+
+** Performance Optimization
+
+Choose the right runtime:
+- **Browser runtime**: Interactive features, DOM manipulation
+- **Server runtime**: Expensive computations, file system access
+- **Import time**: No overhead, just code linking
+
+** Cross-File Architecture
+
+Organize code logically:
+- Shared libraries in dedicated files
+- Document-specific utilities locally
+- Clear naming conventions
+- Discoverable and maintainable
+
+* Best Practices
+
+** Naming Conventions
+
+#+begin_export html
+<pre><code>#+name: descriptive-kebab-case
+#+begin_src javascript
+// Use clear, descriptive names
+#+end_src
+</code></pre>
+#+end_export
+
+** Library Organization
+
+Group related utilities:
+- =math-utils=, =string-utils= for JavaScript
+- =flex-utils=, =animation-utils= for CSS
+- =jscad-base-shapes=, =jscad-composite-shapes= for 3D
+
+** Documentation
+
+Document your blocks:
+- Add comments explaining purpose
+- Show usage examples
+- List exported functions
+- Note any dependencies
+
+** Version Control
+
+Track library files separately:
+- Commit libraries as stable units
+- Semantic versioning for breaking changes
+- Changelog for library updates
+
+* Advanced Patterns
+
+** Dependency Chains
+
+Import blocks that themselves import others:
+
+#+begin_export html
+<pre><code>file-a.org imports from file-b.org
+file-b.org imports from file-c.org
+Result: Transitive dependency resolution
+</code></pre>
+#+end_export
+
+** Conditional Imports
+
+Use different blocks based on context:
+
+#+begin_export html
+<pre><code>#+begin_src javascript
+const utils = DEV
+  ? import('./debug-utils.org?name=tools')
+  : import('./prod-utils.org?name=tools');
+#+end_src
+</code></pre>
+#+end_export
+
+** Circular Imports
+
+Avoid circular dependencies:
+- Keep dependency graph acyclic
+- Extract shared code to separate file
+- Use dependency injection when needed
+
+* Conclusion
+
+The block import system enables powerful literate programming workflows:
+
+✅ **Code Reusability** - Define once, use everywhere across files\\
+✅ **Modularity** - Break complex logic into focused, manageable blocks\\
+✅ **Composition** - Combine simple utilities to build sophisticated features\\
+✅ **Type Safety** - Full TypeScript support with cross-file type checking\\
+✅ **Server-Side Pre-computation** - Execute expensive operations at build time\\
+✅ **3D Modeling** - Compose complex geometries from primitive shapes\\
+✅ **Cross-File Architecture** - Organize code logically across multiple documents\\
+
+This creates a powerful environment where documentation and executable code coexist seamlessly, enabling true literate programming.
+
+** See Also
+
+- [[file:block-import-library.org][Block Import Library]] - The reusable utilities used in this guide
+- [[file:index.org][Rendering Examples]] - Learn about org-mode rendering features
+- [[file:org-down.org][Syntax Reference]] - Complete org-mode syntax guide
+- [[file:../block-plugins.org][Block Plugins]] - Create custom block types
+- [[file:../configuration.org][Configuration]] - Configure your Org-Press site

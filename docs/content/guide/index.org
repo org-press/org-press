@@ -1,0 +1,138 @@
+#+TITLE: What is Org-Press?
+#+DESCRIPTION: Literate computing toolchain for modern web development
+
+* What is Org-Press?
+
+Org-Press is a literate computing toolchain built on org-down, a plain-text markup format inspired by org-mode.
+
+Write prose and code together. Your code executes, your documentation stays current, and everything lives in version-controlled plain text.
+
+#+begin_export html
+<div style="display: flex; gap: 1rem; flex-wrap: wrap; margin: 2rem 0;">
+  <a href="/guide/getting-started.html" style="padding: 0.75rem 1.5rem; background: var(--vp-c-brand); color: white; text-decoration: none; border-radius: 4px;">Get Started</a>
+  <a href="https://github.com/org-press/org-press" style="padding: 0.75rem 1.5rem; border: 1px solid var(--vp-c-divider); text-decoration: none; border-radius: 4px;">GitHub</a>
+</div>
+#+end_export
+
+** What You Can Build
+
+*** Documentation Sites
+
+Write documentation where code examples actually execute. No more stale copy-pasted output - results update automatically when code changes.
+
+#+begin_export html
+<pre><code>#+begin_src typescript :use preview | withSourceCode
+function fibonacci(n: number): number {
+  return n <= 1 ? n : fibonacci(n - 1) + fibonacci(n - 2);
+}
+
+fibonacci(10); // Actually runs, shows: 55
+#+end_src</code></pre>
+#+end_export
+
+*** Data Dashboards
+
+Fetch and display live data using server blocks. Build dashboards that query APIs, databases, or files at build time.
+
+#+begin_export html
+<pre><code>#+begin_src javascript :use server
+const response = await fetch('https://api.example.com/stats');
+const data = await response.json();
+return `Active users: ${data.activeUsers}`;
+#+end_src</code></pre>
+#+end_export
+
+*** Interactive Specifications
+
+Write technical specifications that prove themselves. API contracts that execute, schemas that validate, protocols that demonstrate.
+
+#+begin_export html
+<pre><code>#+begin_src typescript :use test
+import { expect, test } from 'vitest';
+import { validateUser } from './schema.org?name=userSchema';
+
+test('user schema validates correctly', () => {
+  expect(validateUser({ name: 'Alice', email: 'a@b.com' })).toBe(true);
+  expect(validateUser({ name: '' })).toBe(false);
+});
+#+end_src</code></pre>
+#+end_export
+
+*** Creative Tools
+
+Extend with plugins for visualization, music, 3D modeling, and more. The plugin system is designed for creative computing.
+
+- *Data visualization* - Charts, graphs, interactive plots
+- *Diagrams* - Hand-drawn style with Excalidraw
+- *3D modeling* - Parametric CAD with JSCAD
+- *Music* - Live coding audio (coming soon)
+
+*** Single-File Applications
+
+Create executable scripts with built-in documentation. Your org file becomes a runnable program.
+
+#+begin_export html
+<pre><code>#!/usr/bin/env orgp
+#+TITLE: Build Tool
+
+#+NAME: default
+#+begin_src javascript :exec
+console.log("Running build...");
+// Your build logic here
+#+end_src</code></pre>
+#+end_export
+
+#+begin_src bash
+chmod +x build.org
+./build.org  # Runs the default block
+#+end_src
+
+** Why Org-Down?
+
+Org-down is a plain-text format with native support for literate programming:
+
+| Feature | Markdown | Org-Down |
+|---------+----------+----------|
+| Block naming | Extensions needed | Native (=#+NAME:=) |
+| Block parameters | Custom syntax | Standard (=:use=, =:tangle=) |
+| Cross-file imports | Not supported | =import './file.org?name=...'= |
+| Executable blocks | Requires tooling | Built-in |
+
+** The Toolchain
+
+Org-press includes professional development tools:
+
+#+begin_src bash
+orgp dev          # Development server with HMR
+orgp build        # Static site generation
+orgp fmt          # Format code with Prettier
+orgp lint         # Lint with ESLint
+orgp type-check   # TypeScript checking
+orgp test         # Run inline tests
+#+end_src
+
+** Core Principles
+
+*** Plain Text First
+
+Your content lives in plain text files that work with any editor, any version control system, and any backup strategy. No proprietary formats, no lock-in.
+
+*** Standard Tooling
+
+Use the tools you already know - ESLint, Prettier, TypeScript, Vitest. No special editors or environments required.
+
+*** Extensible by Design
+
+The plugin system lets you add any block type. Visualizations, audio, custom renderers - if you can build it for the web, you can make it a plugin.
+
+*** Code and Prose Together
+
+Literate programming means code lives with its explanation. Import blocks across files. Test inline. Document as you create.
+
+** Next Steps
+
+- [[/guide/getting-started.html][Getting Started]] - Create your first project
+- [[/guide/zero-config.html][Zero-Config Mode]] - Run without configuration files
+- [[/guide/features.html][Features]] - Full feature overview
+- [[/guide/why-org-press.html][Why Org-Press?]] - Compare with alternatives
+- [[/plugins/index.html][Plugins]] - Extend with visualizations and more

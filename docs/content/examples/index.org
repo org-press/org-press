@@ -1,0 +1,412 @@
+#+TITLE: Org-Mode Rendering Examples
+#+DATE: 2025-12-09
+
+* Introduction
+
+This page provides comprehensive examples of how Org-Press renders various org-mode syntax elements. Each example shows both the org-mode source and its rendered output.
+
+** What You'll Learn
+
+- Headings and document structure
+- Text formatting (bold, italic, code, etc.)
+- Links and references
+- Lists (ordered, unordered, checkboxes)
+- Tables
+- Source code blocks with syntax highlighting
+- Drawers and special blocks
+- Export options and parameters
+- Quote blocks and examples
+- Preview modes (preview, sourceOnly, etc.)
+
+* Text Formatting
+
+** Basic Formatting
+
+- *Bold text* using =*asterisks*=
+- /Italic text/ using =/slashes/=
+- _Underlined text* using =_underscores_=
+- +Strikethrough+ using =+plus signs+=
+- =Inline code= using =equals signs=
+- ~Verbatim text~ using =tildes=
+
+** Combined Formatting
+
+You can combine formatting: */bold italic/*, =*bold code*=, and _/underlined italic/_.
+
+** Special Characters
+
+- Em dash: ---
+- Ellipsis: ...
+- Copyright: (c)
+- Registered: (r)
+- Trademark: (tm)
+
+* Headings and Structure
+
+Org-mode supports hierarchical headings from =*= (level 1) to =******= (level 6).
+
+** Level 2 Heading
+*** Level 3 Heading
+**** Level 4 Heading
+***** Level 5 Heading
+****** Level 6 Heading
+
+Each heading automatically gets an anchor ID for deep linking.
+
+* Lists
+
+** Unordered Lists
+
+Basic bullet list:
+- First item
+- Second item
+  - Nested item
+  - Another nested item
+- Third item
+
+** Ordered Lists
+
+Numbered list:
+1. First step
+2. Second step
+   1. Sub-step A
+   2. Sub-step B
+3. Third step
+
+** Checklist Items
+
+Task list:
+- [ ] Todo item
+- [-] In progress item
+- [X] Completed item
+  - [X] Nested completed
+  - [ ] Nested todo
+
+** Description Lists
+
+- Term 1 :: Definition of term 1
+- Term 2 :: Definition of term 2
+           with multiple lines
+- Term 3 :: Definition of term 3
+
+* Links
+
+** Internal Links
+
+Link to another page: [[file:../getting-started.org][Getting Started]]
+
+Link to a heading on this page: [[*Text Formatting][Text Formatting section]]
+
+** External Links
+
+Link to website: [[https://orgmode.org][Org-Mode Official Site]]
+
+Plain URL: https://example.com
+
+Email: mailto:user@example.com
+
+** Link with Description
+
+[[https://github.com][GitHub - Where the world builds software]]
+
+* Tables
+
+** Simple Table
+
+| Name    | Age | City          |
+|---------+-----+---------------|
+| Alice   |  30 | San Francisco |
+| Bob     |  25 | New York      |
+| Charlie |  35 | London        |
+
+** Table with Alignment
+
+|  Left | Center | Right |
+|-------+--------+-------|
+| A     |   B    |     C |
+| AAA   |  BBB   |   CCC |
+
+** Complex Table
+
+| Feature         | Supported | Priority |
+|-----------------+-----------+----------|
+| Text formatting | Yes       | High     |
+| Code blocks     | Yes       | High     |
+| Tables          | Yes       | Medium   |
+| Diagrams        | Yes       | Low      |
+
+* Source Code Blocks
+
+** Basic Code Block
+
+#+begin_src javascript
+function greet(name) {
+  console.log(`Hello, ${name}!`);
+}
+
+greet("World");
+#+end_src
+
+** Code Block with TypeScript
+
+#+begin_src typescript
+interface User {
+  id: number;
+  name: string;
+  email: string;
+}
+
+function createUser(name: string, email: string): User {
+  return {
+    id: Date.now(),
+    name,
+    email,
+  };
+}
+#+end_src
+
+** Multiple Languages
+
+Python:
+#+begin_src python
+def fibonacci(n):
+    if n <= 1:
+        return n
+    return fibonacci(n-1) + fibonacci(n-2)
+
+print(fibonacci(10))
+#+end_src
+
+Rust:
+#+begin_src rust
+fn main() {
+    let numbers = vec![1, 2, 3, 4, 5];
+    let sum: i32 = numbers.iter().sum();
+    println!("Sum: {}", sum);
+}
+#+end_src
+
+CSS:
+#+begin_src css
+.container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 2rem;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+#+end_src
+
+* Preview Modes
+
+** =:use sourceOnly= (display only)
+
+Shows only the code, doesn't execute:
+
+#+begin_src javascript :use sourceOnly
+// This code is displayed but not executed
+console.log("Only visible as code");
+#+end_src
+
+** =:use preview= (default)
+
+Executes code and shows the result:
+
+#+begin_src javascript :use preview
+"This result is shown, code executes"
+#+end_src
+
+** =:use preview | withSourceCode=
+
+Shows both code and result:
+
+#+begin_src javascript :use preview | withSourceCode
+"Both code and result are visible"
+#+end_src
+
+** =:use silent=
+
+Block executes but output is hidden (useful for setup code):
+
+#+begin_src javascript :use silent
+// This entire block executes but output is hidden
+const SECRET = "hidden";
+#+end_src
+
+* Server-Side Execution
+
+** =:use server=
+
+By default, code executes in the browser. Use =:use server= to execute code on the server during build:
+
+#+begin_src javascript :use server
+// Server-side execution - result is the last expression
+`Built at ${new Date().toISOString()}`;
+#+end_src
+
+* Preview Mode Examples
+
+The Preview API in Org-Press allows customizing how code and results are displayed together using the =:use= parameter with pipe syntax.
+
+** Basic Preview
+
+Show both code and result using the pipe syntax:
+
+#+begin_src javascript :use preview | withSourceCode
+function add(a, b) {
+  return a + b;
+}
+
+add(2, 3); // Returns 5
+#+end_src
+
+** Source Code Only
+
+Use =:use sourceOnly= to show only the code without execution:
+
+#+begin_src javascript :use sourceOnly
+const factorial = (n) => n <= 1 ? 1 : n * factorial(n - 1);
+factorial(5); // Returns 120
+#+end_src
+
+* Drawers
+
+Drawers are collapsible sections that can store metadata or content.
+
+**Note:** Drawers must be within a headline context (not at document root level).
+
+** Properties Drawer
+
+Properties are typically used for metadata:
+
+*** Example with Properties
+:PROPERTIES:
+:ID: example-drawer
+:CUSTOM_ID: my-custom-id
+:CREATED: [2025-12-09]
+:END:
+
+This heading has properties in a drawer.
+
+** AI Conversation Drawer
+
+Special =:AI:= drawer for recording AI conversations (renders with 🤖 emoji):
+
+*** Conversation Log
+:AI:
+User: How do I create a table in org-mode?
+Assistant: You can create tables using pipe (|) characters for columns and hyphens for separators.
+
+| Column 1 | Column 2 |
+|----------+----------|
+| Data     | Data     |
+:END:
+
+* Quote Blocks
+
+#+begin_quote
+This is a quote block. It is typically used for quotations from external sources.
+
+> Nested quotes can be added within the block.
+#+end_quote
+
+* Example Blocks
+
+#+begin_example
+This is an example block.
+Text here is displayed verbatim with monospace font.
+No special formatting is applied.
+#+end_example
+
+* Named Blocks
+
+Blocks can have names for referencing:
+
+#+NAME: utility-functions
+#+begin_src javascript
+const utils = {
+  capitalize: (str) => str.charAt(0).toUpperCase() + str.slice(1),
+  reverse: (str) => str.split("").reverse().join(""),
+};
+
+export default utils;
+#+end_src
+
+You can reference named blocks in other blocks or import them:
+
+#+begin_src javascript :use sourceOnly
+import utils from "file.org?name=utility-functions";
+
+console.log(utils.capitalize("hello")); // "Hello"
+#+end_src
+
+For a comprehensive guide on block imports with many examples, see the [[file:block-imports.org][Block Imports Guide]].
+
+* Advanced Features
+
+** Tangle Parameter
+
+The =:tangle= parameter extracts code to external files:
+
+#+begin_src javascript :tangle ../src/generated.js :use sourceOnly
+// This code will be written to src/generated.js during build
+export function example() {
+  return "tangled code";
+}
+#+end_src
+
+** Block Plugins
+
+Org-Press supports custom block plugins for specialized rendering:
+
+*** JSCad (3D Models)
+
+#+begin_src javascript :use jscad
+import { primitives } from "@jscad/modeling";
+import { union } from "@jscad/modeling";
+
+const { cube, sphere } = primitives;
+
+export default [
+  cube({ size: 10 }),
+  sphere({ radius: 7, center: [10, 10, 10] })
+];
+#+end_src
+
+*** Excalidraw (Diagrams)
+
+#+name: simple-diagram
+#+begin_src json :use excalidraw :height 400px
+{
+  "elements": [
+    {
+      "type": "rectangle",
+      "x": 100,
+      "y": 100,
+      "width": 200,
+      "height": 100
+    }
+  ]
+}
+#+end_src
+
+* Summary
+
+This page demonstrates the comprehensive org-mode rendering capabilities of Org-Press:
+
+- ✅ Full org-mode syntax support
+- ✅ Multiple preview modes (preview, sourceOnly, silent)
+- ✅ Server and browser runtime execution
+- ✅ Preview API for custom presentations
+- ✅ Drawers with special handling (AI conversations)
+- ✅ Block plugins for specialized content
+- ✅ Named blocks and code import system
+- ✅ Literate programming with :tangle
+
+** Next Steps
+
+- [[file:block-imports.org][Block Imports Guide]] - Learn how to import and reuse code blocks across files
+- [[file:org-down.org][Org-Mode Syntax Reference]] - Complete syntax guide
+- [[file:../block-plugins.org][Learn about Block Plugins]]
+- [[file:../block-plugins.org][Create custom Block Plugins]]
+- [[file:../configuration.org][Configure your Org-Press site]]
