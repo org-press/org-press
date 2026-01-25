@@ -1,0 +1,58 @@
+{
+  "name": "@org-press/lsp",
+  "version": "0.9.6",
+  "description": "LSP server for org-press code blocks",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "bin": {
+    "org-press-lsp": "./dist/bin/org-press-lsp.js"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "test": "vitest",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "org-press": "workspace:*",
+    "vscode-languageserver": "^9.0.1",
+    "vscode-languageserver-textdocument": "^1.0.11"
+  },
+  "devDependencies": {
+    "tsup": "^8.0.0",
+    "typescript": "^5.3.0",
+    "vitest": "^1.0.0"
+  },
+  "peerDependencies": {
+    "typescript": ">=5.0.0"
+  },
+  "files": [
+    "dist",
+    "emacs"
+  ],
+  "keywords": [
+    "lsp",
+    "org-mode",
+    "typescript",
+    "language-server"
+  ],
+  "license": "GPL-2.0",
+  "publishConfig": {
+    "access": "public"
+  },
+  "homepage": "https://orgp.dev",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/org-press/org-press.git"
+  },
+  "bugs": {
+    "url": "https://github.com/org-press/org-press/issues"
+  }
+}

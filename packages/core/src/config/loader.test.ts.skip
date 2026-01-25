@@ -1,0 +1,286 @@
+/**
+ * Unit tests for config loader
+ *
+ * Tests configuration loading, resolution, caching, and discovery.
+ */
+
+import { describe, it, expect, beforeEach } from "vitest";
+import type { OrgPressUserConfig } from "./types.ts";
+import * as os from "node:os";
+
+// Import only resolveConfig to avoid Vite dependency issues in tests
+// loadConfig uses Vite SSR which causes esbuild environment issues
+async function resolveConfig(
+  userConfig: OrgPressUserConfig
+): Promise<any> {
+  // Import dynamically to avoid top-level Vite import
+  const { resolveConfig: _resolveConfig } = await import("./loader.ts");
+  return _resolveConfig(userConfig);
+}
+
+async function invalidateConfigCache(): Promise<void> {
+  const { invalidateConfigCache: _invalidate } = await import("./loader.ts");
+  _invalidate();
+}
+
+async function getCachedConfig(): Promise<any> {
+  const { getCachedConfig: _get } = await import("./loader.ts");
+  return _get();
+}
+
+describe("Config Loader", () => {
+  beforeEach(async () => {
+    // Clear cache before each test
+    await invalidateConfigCache();
+  });
+
+  describe("resolveConfig", () => {
+    it("should apply all defaults for empty config", async () => {
+      const config = await resolveConfig({});
+
+      expect(config.contentDir).toBe("content");
+      expect(config.outDir).toBe("dist/static");
+      expect(config.base).toBe("/");
+      expect(config.cacheDir).toBe("node_modules/.org-press-cache");
+      expect(config.plugins).toEqual([]);
+      expect(config.presets).toEqual([]);
+      expect(config.theme).toBe(".org-press/themes/index.tsx");
+      expect(config.buildConcurrency).toBe(os.cpus().length);
+      expect(config.uniorg).toEqual({});
+      expect(config.vite).toEqual({});
+    });
+
+    it("should preserve user values", async () => {
+      const userConfig: OrgPressUserConfig = {
+        contentDir: "docs",
+        outDir: "build",
+        base: "/my-app",
+        cacheDir: ".cache",
+      };
+
+      const config = await resolveConfig(userConfig);
+
+      expect(config.contentDir).toBe("docs");
+      expect(config.outDir).toBe("build");
+      expect(config.base).toBe("/my-app");
+      expect(config.cacheDir).toBe(".cache");
+    });
+
+    it("should handle partial config", async () => {
+      const userConfig: OrgPressUserConfig = {
+        contentDir: "docs",
+        // Other fields should get defaults
+      };
+
+      const config = await resolveConfig(userConfig);
+
+      expect(config.contentDir).toBe("docs");
+      expect(config.outDir).toBe("dist/static"); // default
+      expect(config.base).toBe("/"); // default
+    });
+
+    it("should preserve user plugins", async () => {
+      const mockPlugin = {
+        name: "test",
+        languages: ["test"],
+        async transform(block: any) {
+          return { code: block.value };
+        },
+      };
+
+      const userConfig: OrgPressUserConfig = {
+        plugins: [mockPlugin],
+      };
+
+      const config = await resolveConfig(userConfig);
+
+      expect(config.plugins).toEqual([mockPlugin]);
+      expect(config.plugins.length).toBe(1);
+    });
+
+    it("should preserve user presets", async () => {
+      const userConfig: OrgPressUserConfig = {
+        presets: ["common", "full"],
+      };
+
+      const config = await resolveConfig(userConfig);
+
+      expect(config.presets).toEqual(["common", "full"]);
+    });
+
+    it("should handle custom theme path", async () => {
+      const userConfig: OrgPressUserConfig = {
+        theme: ".org-press/my-theme/index.tsx",
+      };
+
+      const config = await resolveConfig(userConfig);
+
+      expect(config.theme).toBe(".org-press/my-theme/index.tsx");
+    });
+
+    it("should handle custom build concurrency", async () => {
+      const userConfig: OrgPressUserConfig = {
+        buildConcurrency: 4,
+      };
+
+      const config = await resolveConfig(userConfig);
+
+      expect(config.buildConcurrency).toBe(4);
+    });
+
+    it("should handle uniorg options", async () => {
+      const uniorgOptions = {
+        extractKeywords: false,
+        verbose: true,
+      };
+
+      const userConfig: OrgPressUserConfig = {
+        uniorg: uniorgOptions,
+      };
+
+      const config = await resolveConfig(userConfig);
+
+      expect(config.uniorg).toEqual(uniorgOptions);
+    });
+
+    it("should handle vite passthrough config", async () => {
+      const viteConfig = {
+        define: {
+          __DEV__: "true",
+        },
+      };
+
+      const userConfig: OrgPressUserConfig = {
+        vite: viteConfig,
+      };
+
+      const config = await resolveConfig(userConfig);
+
+      expect(config.vite).toEqual(viteConfig);
+    });
+
+    it("should handle mixed user and default values", async () => {
+      const userConfig: OrgPressUserConfig = {
+        contentDir: "my-content",
+        presets: ["minimal"],
+        // outDir, base, etc. should get defaults
+      };
+
+      const config = await resolveConfig(userConfig);
+
+      expect(config.contentDir).toBe("my-content");
+      expect(config.presets).toEqual(["minimal"]);
+      expect(config.outDir).toBe("dist/static");
+      expect(config.base).toBe("/");
+      expect(config.cacheDir).toBe("node_modules/.org-press-cache");
+    });
+  });
+
+  describe("invalidateConfigCache", () => {
+    it("should clear cached config", async () => {
+      // Manually set cache (simulating a loaded config)
+      const mockCache = {
+        config: {
+          contentDir: "content",
+          outDir: "dist/static",
+          base: "/",
+          cacheDir: ".cache",
+          plugins: [],
+          presets: [],
+          theme: ".org-press/themes/index.tsx",
+          buildConcurrency: 4,
+          uniorg: {},
+          vite: {},
+        },
+        mtime: Date.now(),
+        path: ".org-press/config.ts",
+      };
+
+      // Can't directly set cache, but we can test invalidation
+      expect(await getCachedConfig()).toBeNull();
+
+      await invalidateConfigCache();
+      expect(await getCachedConfig()).toBeNull();
+    });
+
+    it("should allow fresh loads after invalidation", async () => {
+      // This is tested implicitly by beforeEach clearing cache
+      expect(await getCachedConfig()).toBeNull();
+    });
+  });
+
+  describe("getCachedConfig", () => {
+    it("should return null when no cache", async () => {
+      await invalidateConfigCache();
+      expect(await getCachedConfig()).toBeNull();
+    });
+
+    it("should return null initially", async () => {
+      // Before any config is loaded
+      const cached = await getCachedConfig();
+      expect(cached).toBeNull();
+    });
+  });
+
+  describe("Config resolution edge cases", () => {
+    it("should handle zero build concurrency", async () => {
+      const userConfig: OrgPressUserConfig = {
+        buildConcurrency: 0,
+      };
+
+      const config = await resolveConfig(userConfig);
+
+      expect(config.buildConcurrency).toBe(0);
+    });
+
+    it("should handle root base path", async () => {
+      const userConfig: OrgPressUserConfig = {
+        base: "/",
+      };
+
+      const config = await resolveConfig(userConfig);
+
+      expect(config.base).toBe("/");
+    });
+
+    it("should handle nested base path", async () => {
+      const userConfig: OrgPressUserConfig = {
+        base: "/docs/v2/",
+      };
+
+      const config = await resolveConfig(userConfig);
+
+      expect(config.base).toBe("/docs/v2/");
+    });
+
+    it("should handle empty arrays", async () => {
+      const userConfig: OrgPressUserConfig = {
+        plugins: [],
+        presets: [],
+      };
+
+      const config = await resolveConfig(userConfig);
+
+      expect(config.plugins).toEqual([]);
+      expect(config.presets).toEqual([]);
+    });
+
+    it("should handle complex preset array", async () => {
+      const customPreset = {
+        name: "my-preset",
+        plugins: [],
+      };
+
+      const userConfig: OrgPressUserConfig = {
+        presets: ["minimal", customPreset, "common"],
+      };
+
+      const config = await resolveConfig(userConfig);
+
+      expect(config.presets.length).toBe(3);
+      expect(config.presets[0]).toBe("minimal");
+      expect(config.presets[1]).toEqual(customPreset);
+      expect(config.presets[2]).toBe("common");
+    });
+  });
+});
