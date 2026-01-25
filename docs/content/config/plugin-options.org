@@ -1,0 +1,172 @@
+#+TITLE: Plugin Options
+#+DESCRIPTION: Configure plugins, org-based plugins, and themes
+
+* Plugin Options
+
+Options for configuring plugins, org-based plugins, and themes.
+
+** plugins
+
+- *Type:* =BlockPlugin[]=
+- *Default:* =[]= (built-in plugins only)
+
+Array of JavaScript/TypeScript block plugins to use.
+
+#+begin_export html
+<pre><code class="language-typescript">// .org-press/config.ts
+import { excalidrawPlugin } from "@org-press/block-excalidraw";
+import { jscadPlugin } from "@org-press/block-jscad";
+import { testPlugin } from "@org-press/block-test";
+
+export default {
+  plugins: [
+    excalidrawPlugin,
+    jscadPlugin,
+    testPlugin,
+  ],
+};
+</code></pre>
+#+end_export
+
+*** Plugin Order
+
+Plugins are processed in order. If multiple plugins match a block, the last one wins. Place more specific plugins after general ones.
+
+*** Built-in Plugins
+
+These are always available without configuration:
+
+- *JavaScript/TypeScript* - Execute JS/TS blocks with =:use dom=
+- *CSS* - Inject CSS blocks into the page
+- *Server-side* - Run blocks on the server with =:use server=
+- *API endpoints* - Create HTTP endpoints with =:use api=
+
+*** Configurable Plugins
+
+Some plugins accept options via factory functions:
+
+#+begin_export html
+<pre><code class="language-typescript">import { createExcalidrawPlugin } from "@org-press/block-excalidraw";
+
+export default {
+  plugins: [
+    createExcalidrawPlugin({
+      // Plugin-specific options
+      darkMode: true,
+    }),
+  ],
+};
+</code></pre>
+#+end_export
+
+** Importing Plugins from Org Files
+
+Plugins can be written as literate programming files and imported using standard module syntax:
+
+#+begin_export html
+<pre><code class="language-typescript">// Import from a published literate plugin package
+import { echartsPlugin } from "@org-press/block-echarts";
+
+// Import a named block directly from an org file
+import { plugin } from "./my-plugin.org?name=plugin";
+
+export default {
+  plugins: [echartsPlugin, plugin],
+};
+</code></pre>
+#+end_export
+
+To build a literate plugin for publishing:
+
+#+begin_export html
+<pre><code class="language-bash"># Extract and compile named blocks to dist/
+orgp build index.org --block plugin --out dist/
+</code></pre>
+#+end_export
+
+See [[/plugins/creating-plugins.html][Creating Plugins]] for details on writing literate plugins.
+
+** theme
+
+- *Type:* =string | ThemeConfig=
+- *Default:* =".org-press/themes/index.tsx"=
+
+Theme configuration. Can be a path to a theme entry file or a full theme config object.
+
+*** String Path
+
+#+begin_export html
+<pre><code class="language-typescript">export default {
+  theme: ".org-press/themes/index.tsx",
+};
+</code></pre>
+#+end_export
+
+*** Theme Config Object
+
+#+begin_export html
+<pre><code class="language-typescript">export default {
+  theme: {
+    entry: ".org-press/themes/docs.tsx",
+    layouts: {
+      // Optional: explicit layout overrides
+    },
+  },
+};
+</code></pre>
+#+end_export
+
+*** Theme Entry File
+
+The theme entry should export layout components:
+
+#+begin_export html
+<pre><code class="language-typescript">// .org-press/themes/index.tsx
+import React from "react";
+import type { LayoutProps } from "org-press/config-types";
+
+export function DefaultLayout({ children, metadata, base }: LayoutProps) {
+  return (
+    &lt;html&gt;
+      &lt;head&gt;
+        &lt;title&gt;{metadata.title}&lt;/title&gt;
+      &lt;/head&gt;
+      &lt;body&gt;
+        &lt;main&gt;{children}&lt;/main&gt;
+      &lt;/body&gt;
+    &lt;/html&gt;
+  );
+}
+
+export function BlogLayout({ children, metadata }: LayoutProps) {
+  return (
+    &lt;article&gt;
+      &lt;h1&gt;{metadata.title}&lt;/h1&gt;
+      &lt;time&gt;{metadata.date}&lt;/time&gt;
+      {children}
+    &lt;/article&gt;
+  );
+}
+</code></pre>
+#+end_export
+
+*** Selecting Layouts
+
+Use the =#+LAYOUT:= keyword in org files to select a layout:
+
+#+begin_export html
+<pre><code class="language-org">#+TITLE: My Blog Post
+#+LAYOUT: BlogLayout
+#+DATE: 2024-01-15
+
+* Introduction
+
+Content here...
+</code></pre>
+#+end_export
+
+** See Also
+
+- [[/plugins/index.html][Plugins Overview]] - Available plugins
+- [[/plugins/creating-plugins.html][Creating Plugins]] - Write your own plugins
+- [[/api/plugin-api.html][Plugin API]] - BlockPlugin interface reference

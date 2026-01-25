@@ -1,0 +1,2545 @@
+#+TITLE: Halftone Spheres
+#+DESCRIPTION: 3D halftone effect using Three.js spheres
+
+A reusable Three.js component that creates a halftone effect using 3D spheres.
+Sphere sizes are based on pixel brightness - darker pixels create larger spheres.
+
+* CORS Image Proxy
+
+External images (like GitHub avatars) often have CORS restrictions that prevent
+loading them directly in the browser. This API endpoint proxies image requests
+through the server to bypass CORS.
+
+#+NAME: image-proxy
+#+begin_src javascript :use api :endpoint "/api/image-proxy" :method GET
+export default async (req, res) => {
+  const url = req.query.url;
+
+  if (!url) {
+    res.status(400).json({ error: 'Missing url parameter' });
+    return;
+  }
+
+  try {
+    // Validate URL
+    const parsedUrl = new URL(url);
+
+    // Only allow http/https protocols
+    if (!['http:', 'https:'].includes(parsedUrl.protocol)) {
+      res.status(400).json({ error: 'Invalid protocol' });
+      return;
+    }
+
+    // Fetch the image
+    const response = await fetch(url, {
+      headers: {
+        'User-Agent': 'OrgPress-ImageProxy/1.0',
+      },
+    });
+
+    if (!response.ok) {
+      res.status(response.status).json({
+        error: `Failed to fetch image: ${response.statusText}`
+      });
+      return;
+    }
+
+    // Get content type
+    const contentType = response.headers.get('content-type') || 'application/octet-stream';
+
+    // Only allow image content types
+    if (!contentType.startsWith('image/')) {
+      res.status(400).json({ error: 'URL does not point to an image' });
+      return;
+    }
+
+    // Get the image data as buffer
+    const arrayBuffer = await response.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+
+    // Set headers and send
+    res.setHeader('Content-Type', contentType);
+    res.setHeader('Content-Length', buffer.length);
+    res.setHeader('Cache-Control', 'public, max-age=86400'); // Cache for 24h
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.end(buffer);
+  } catch (error) {
+    res.status(500).json({
+      error: error instanceof Error ? error.message : 'Failed to proxy image'
+    });
+  }
+};
+#+end_src
+
+** Image URL Helper
+
+Helper function to wrap external URLs through the CORS proxy.
+
+#+NAME: image-utils
+#+begin_src typescript :use sourceOnly
+/**
+ * Check if a URL is external (not same origin)
+ */
+export function isExternalUrl(url: string): boolean {
+  if (url.startsWith('/') || url.startsWith('./') || url.startsWith('../')) {
+    return false;
+  }
+  try {
+    const parsed = new URL(url, window.location.origin);
+    return parsed.origin !== window.location.origin;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Wrap an external URL through the CORS proxy
+ * Returns the original URL for local paths
+ */
+export function proxyImageUrl(url: string): string {
+  if (!isExternalUrl(url)) {
+    return url;
+  }
+  return `/api/image-proxy?url=${encodeURIComponent(url)}`;
+}
+
+/**
+ * Process image with optional background removal
+ */
+export async function processImage(
+  url: string,
+  options: {
+    whiteThreshold?: number;
+    grayscale?: boolean;
+    invert?: boolean;
+    contrast?: number;
+  } = {}
+): Promise<{ imageData: ImageData; canvas: HTMLCanvasElement }> {
+  const { whiteThreshold = 240, grayscale = false, invert = false, contrast = 1 } = options;
+
+  // Use proxy for external URLs
+  const proxyUrl = proxyImageUrl(url);
+
+  const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => resolve(img);
+    img.onerror = () => reject(new Error(`Failed to load image: ${url}`));
+    img.src = proxyUrl;
+  });
+
+  const canvas = document.createElement('canvas');
+  canvas.width = img.width;
+  canvas.height = img.height;
+  const ctx = canvas.getContext('2d')!;
+  ctx.drawImage(img, 0, 0);
+
+  const imageData = ctx.getImageData(0, 0, img.width, img.height);
+  const { data } = imageData;
+
+  // Process pixels
+  for (let i = 0; i < data.length; i += 4) {
+    let r = data[i];
+    let g = data[i + 1];
+    let b = data[i + 2];
+    const a = data[i + 3];
+
+    // Remove white background
+    if (r >= whiteThreshold && g >= whiteThreshold && b >= whiteThreshold) {
+      data[i + 3] = 0; // Make transparent
+      continue;
+    }
+
+    // Apply contrast
+    if (contrast !== 1) {
+      r = Math.min(255, Math.max(0, ((r / 255 - 0.5) * contrast + 0.5) * 255));
+      g = Math.min(255, Math.max(0, ((g / 255 - 0.5) * contrast + 0.5) * 255));
+      b = Math.min(255, Math.max(0, ((b / 255 - 0.5) * contrast + 0.5) * 255));
+    }
+
+    // Grayscale
+    if (grayscale) {
+      const gray = 0.299 * r + 0.587 * g + 0.114 * b;
+      r = g = b = gray;
+    }
+
+    // Invert
+    if (invert) {
+      r = 255 - r;
+      g = 255 - g;
+      b = 255 - b;
+    }
+
+    data[i] = r;
+    data[i + 1] = g;
+    data[i + 2] = b;
+  }
+
+  ctx.putImageData(imageData, 0, 0);
+  return { imageData, canvas };
+}
+#+end_src
+
+* Usage
+
+Import and use the =createHalftoneSpheres= function:
+
+#+begin_src typescript :use sourceOnly
+import { createHalftoneSpheres } from './components/halftone-spheres.org?name=halftone-spheres';
+
+// Create the effect with an image URL
+const { renderer, animate, dispose } = await createHalftoneSpheres({
+  imageUrl: '/path/to/image.png',
+  gridSize: 50,        // Number of sample points per axis
+  sphereScale: 0.8,    // Max sphere size multiplier
+  backgroundColor: 0x000000,
+  sphereColor: 0xffffff,
+});
+
+// Mount to DOM
+document.getElementById('container').appendChild(renderer.domElement);
+
+// Start animation loop
+animate();
+
+// Cleanup when done
+dispose();
+#+end_src
+
+* Implementation
+
+#+NAME: halftone-spheres
+#+begin_src typescript :use sourceOnly
+import * as THREE from 'three';
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+import { proxyImageUrl } from './halftone-spheres.org?name=image-utils';
+
+export interface HalftoneOptions {
+  imageUrl: string;
+  gridSize?: number;
+  sphereScale?: number;
+  backgroundColor?: number;
+  sphereColor?: number;
+  width?: number;
+  height?: number;
+  /** Animation duration in seconds for spheres to reach final position */
+  animationDuration?: number;
+  /** Spread of random delays (0-1), higher = more staggered */
+  animationSpread?: number;
+}
+
+export interface HalftoneResult {
+  renderer: THREE.WebGLRenderer;
+  scene: THREE.Scene;
+  camera: THREE.PerspectiveCamera;
+  controls: OrbitControls;
+  animate: () => void;
+  dispose: () => void;
+  /** Restart the expansion animation */
+  replay: () => void;
+}
+
+interface SphereData {
+  targetPosition: THREE.Vector3;
+  scale: number;
+  /** Random delay before this sphere starts moving (0-1) */
+  delay: number;
+  /** Random speed multiplier for variety */
+  speed: number;
+}
+
+/**
+ * Load an image and get its pixel data
+ * Uses CORS proxy for external URLs automatically
+ */
+async function getImageData(url: string): Promise<ImageData> {
+  // Use proxy for external URLs to avoid CORS issues
+  const proxyUrl = proxyImageUrl(url);
+
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = img.width;
+      canvas.height = img.height;
+      const ctx = canvas.getContext('2d')!;
+      ctx.drawImage(img, 0, 0);
+      resolve(ctx.getImageData(0, 0, img.width, img.height));
+    };
+    img.onerror = reject;
+    img.src = proxyUrl;
+  });
+}
+
+/**
+ * Get brightness (0-1) at a specific pixel
+ */
+function getBrightness(data: Uint8ClampedArray, x: number, y: number, width: number): number {
+  const i = (y * width + x) * 4;
+  const r = data[i];
+  const g = data[i + 1];
+  const b = data[i + 2];
+  const a = data[i + 3];
+
+  // Skip transparent pixels
+  if (a < 128) return 1;
+
+  // Calculate luminosity (human perception weighted)
+  return (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+}
+
+/**
+ * Easing function for smooth animation
+ */
+function easeOutCubic(t: number): number {
+  return 1 - Math.pow(1 - t, 3);
+}
+
+/**
+ * Create 3D halftone spheres from an image with expansion animation
+ */
+export async function createHalftoneSpheres(options: HalftoneOptions): Promise<HalftoneResult> {
+  const {
+    imageUrl,
+    gridSize = 40,
+    sphereScale = 0.5,
+    backgroundColor = 0x111111,
+    sphereColor = 0xffffff,
+    width = 800,
+    height = 600,
+    animationDuration = 3,
+    animationSpread = 0.8,
+  } = options;
+
+  // Load image data
+  const imageData = await getImageData(imageUrl);
+  const { width: imgWidth, height: imgHeight, data } = imageData;
+
+  // Setup Three.js
+  const scene = new THREE.Scene();
+  scene.background = new THREE.Color(backgroundColor);
+
+  const camera = new THREE.PerspectiveCamera(50, width / height, 0.1, 1000);
+  camera.position.z = gridSize * 1.2;
+
+  const renderer = new THREE.WebGLRenderer({ antialias: true });
+  renderer.setSize(width, height);
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+  // Orbit controls for interactivity
+  const controls = new OrbitControls(camera, renderer.domElement);
+  controls.enableDamping = true;
+  controls.dampingFactor = 0.05;
+
+  // Create instanced mesh for performance
+  const sphereGeometry = new THREE.SphereGeometry(0.5, 16, 16);
+  const sphereMaterial = new THREE.MeshStandardMaterial({
+    color: sphereColor,
+    metalness: 0.3,
+    roughness: 0.7,
+  });
+
+  // Calculate sphere data with animation properties
+  const spheres: SphereData[] = [];
+  const stepX = imgWidth / gridSize;
+  const stepY = imgHeight / gridSize;
+
+  for (let gy = 0; gy < gridSize; gy++) {
+    for (let gx = 0; gx < gridSize; gx++) {
+      // Sample image at grid point
+      const imgX = Math.floor(gx * stepX);
+      const imgY = Math.floor(gy * stepY);
+      const brightness = getBrightness(data, imgX, imgY, imgWidth);
+
+      // Invert brightness: darker pixels = larger spheres
+      const size = (1 - brightness) * sphereScale;
+
+      if (size > 0.01) {
+        // Center the grid
+        const x = gx - gridSize / 2;
+        const y = (gridSize - gy) - gridSize / 2; // Flip Y
+
+        spheres.push({
+          targetPosition: new THREE.Vector3(x, y, 0),
+          scale: size,
+          // Random delay creates the "flow" effect
+          delay: Math.random() * animationSpread,
+          // Random speed adds variety (0.7 to 1.3)
+          speed: 0.7 + Math.random() * 0.6,
+        });
+      }
+    }
+  }
+
+  // Create instanced mesh
+  const instancedMesh = new THREE.InstancedMesh(
+    sphereGeometry,
+    sphereMaterial,
+    spheres.length
+  );
+  scene.add(instancedMesh);
+
+  // Lighting
+  const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+  scene.add(ambientLight);
+
+  const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+  directionalLight.position.set(10, 10, 10);
+  scene.add(directionalLight);
+
+  const backLight = new THREE.DirectionalLight(0xffffff, 0.3);
+  backLight.position.set(-10, -10, -10);
+  scene.add(backLight);
+
+  // Animation state
+  let animationId: number;
+  let startTime: number | null = null;
+  const matrix = new THREE.Matrix4();
+  const currentPos = new THREE.Vector3();
+  const center = new THREE.Vector3(0, 0, 0);
+
+  /**
+   * Update sphere positions based on animation progress
+   */
+  function updateSpheres(elapsedSeconds: number) {
+    let allComplete = true;
+
+    spheres.forEach((sphere, i) => {
+      // Calculate this sphere's progress (accounting for delay and speed)
+      const adjustedTime = (elapsedSeconds - sphere.delay * animationDuration) * sphere.speed;
+      const progress = Math.max(0, Math.min(1, adjustedTime / animationDuration));
+
+      if (progress < 1) allComplete = false;
+
+      // Apply easing
+      const easedProgress = easeOutCubic(progress);
+
+      // Interpolate from center to target
+      currentPos.lerpVectors(center, sphere.targetPosition, easedProgress);
+
+      // Scale also animates in (starts small, grows to full size)
+      const currentScale = sphere.scale * easedProgress;
+
+      // Update matrix
+      matrix.makeScale(currentScale, currentScale, currentScale);
+      matrix.setPosition(currentPos);
+      instancedMesh.setMatrixAt(i, matrix);
+    });
+
+    instancedMesh.instanceMatrix.needsUpdate = true;
+    return allComplete;
+  }
+
+  // Initialize all spheres at center
+  updateSpheres(0);
+
+  // Animation loop
+  const animate = () => {
+    animationId = requestAnimationFrame(animate);
+
+    // Track animation time
+    if (startTime === null) startTime = performance.now();
+    const elapsedSeconds = (performance.now() - startTime) / 1000;
+
+    // Update sphere positions
+    updateSpheres(elapsedSeconds);
+
+    controls.update();
+    renderer.render(scene, camera);
+  };
+
+  // Replay function to restart animation
+  const replay = () => {
+    startTime = null;
+    // Re-randomize delays for different flow pattern
+    spheres.forEach(sphere => {
+      sphere.delay = Math.random() * animationSpread;
+      sphere.speed = 0.7 + Math.random() * 0.6;
+    });
+  };
+
+  // Cleanup function
+  const dispose = () => {
+    cancelAnimationFrame(animationId);
+    controls.dispose();
+    renderer.dispose();
+    sphereGeometry.dispose();
+    sphereMaterial.dispose();
+  };
+
+  return { renderer, scene, camera, controls, animate, dispose, replay };
+}
+
+export default createHalftoneSpheres;
+#+end_src
+
+* Demo
+
+#+NAME: demo
+#+begin_src typescript :use sourceOnly
+import { createHalftoneSpheres } from './halftone-spheres.org?name=halftone-spheres';
+
+// Create wrapper with controls
+const wrapper = document.createElement('div');
+wrapper.style.position = 'relative';
+
+// Create container for Three.js
+const container = document.createElement('div');
+container.style.width = '100%';
+container.style.height = '400px';
+container.style.borderRadius = '8px';
+container.style.overflow = 'hidden';
+
+// Create replay button
+const replayBtn = document.createElement('button');
+replayBtn.textContent = '↻ Replay';
+replayBtn.style.cssText = `
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  padding: 8px 16px;
+  background: rgba(0, 217, 255, 0.2);
+  border: 1px solid #00d9ff;
+  color: #00d9ff;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  z-index: 10;
+`;
+replayBtn.onmouseenter = () => replayBtn.style.background = 'rgba(0, 217, 255, 0.4)';
+replayBtn.onmouseleave = () => replayBtn.style.background = 'rgba(0, 217, 255, 0.2)';
+
+wrapper.appendChild(container);
+wrapper.appendChild(replayBtn);
+
+// Demo with a sample image (replace with your image)
+const imageUrl = 'https://avatars.githubusercontent.com/u/651290?v=4&s=200';
+
+createHalftoneSpheres({
+  imageUrl,
+  gridSize: 50,
+  sphereScale: 0.6,
+  backgroundColor: 0x1a1a2e,
+  sphereColor: 0x00d9ff,
+  width: container.clientWidth || 800,
+  height: 400,
+  animationDuration: 2.5,
+  animationSpread: 0.7,
+}).then(({ renderer, animate, replay }) => {
+  container.appendChild(renderer.domElement);
+  replayBtn.onclick = replay;
+  animate();
+});
+
+export default wrapper;
+#+end_src
+
+* Variations
+
+** Background Mode (Scroll-Driven)
+
+A variant designed for use as a page background with scroll-driven camera
+and smooth image transitions. Features:
+- All spheres are always used (none disappear)
+- Z-axis elevation based on brightness creates relief/depth effect
+- Very slow settling animation (configurable up to 5 minutes)
+- Image preprocessing to clean backgrounds
+
+#+NAME: background-halftone
+#+begin_src typescript :use sourceOnly
+import * as THREE from 'three';
+import { processImage, proxyImageUrl } from './halftone-spheres.org?name=image-utils';
+
+export interface CameraKeyframe {
+  /** Scroll progress (0-1) when this keyframe is active */
+  at: number;
+  /** Camera position */
+  position: { x: number; y: number; z: number };
+  /** Camera look-at target */
+  lookAt?: { x: number; y: number; z: number };
+}
+
+export interface FlowWaypoint {
+  /** Position offset from center */
+  x: number;
+  y: number;
+  /** Time to reach this point (0-1 of flow cycle) */
+  at: number;
+}
+
+export interface BackgroundHalftoneOptions {
+  /** Initial image URL */
+  imageUrl: string;
+  /** Grid size (default 80 for more dots) */
+  gridSize?: number;
+  /** Base sphere scale (default 0.4) */
+  sphereScale?: number;
+  /** Background color */
+  backgroundColor?: number;
+  /** Sphere color */
+  sphereColor?: number;
+  /** Camera keyframes for scroll animation */
+  cameraKeyframes?: CameraKeyframe[];
+  /** Duration for quick image visibility (seconds, default 3) */
+  quickRevealDuration?: number;
+  /** Duration for full settling animation (seconds, default 300 = 5 minutes) */
+  settlingDuration?: number;
+  /** Z-depth multiplier for relief effect (default 8) */
+  depthScale?: number;
+  /** Image scale relative to grid (0.5 = 50% of grid, default 0.5) */
+  imageScale?: number;
+  /** Flow path waypoints - composition drifts through these positions */
+  flowPath?: FlowWaypoint[];
+  /** Duration of one flow cycle in seconds (default 60) */
+  flowDuration?: number;
+  /** Image preprocessing options */
+  imageProcessing?: {
+    removeWhiteBackground?: boolean;
+    whiteThreshold?: number;
+    grayscale?: boolean;
+    invert?: boolean;
+    contrast?: number;
+  };
+}
+
+export interface TypeCaseConfig {
+  /** Grid columns (default 6) */
+  cols?: number;
+  /** Grid rows (default 8) */
+  rows?: number;
+  /** Size of each cell in grid units (default auto-calculated) */
+  cellSize?: number;
+  /** Letters to display - can include featured word */
+  letters?: string[];
+  /** Featured word to highlight (e.g., "ORG-PRESS") */
+  featuredWord?: string;
+  /** Font family (default "Georgia, serif") */
+  fontFamily?: string;
+  /** Gap between cells as fraction of cell size (default 0.15) */
+  cellGap?: number;
+  /** Perspective tilt in radians (default 0) */
+  perspectiveTilt?: number;
+  /** Letter elevation multiplier (default 1) */
+  letterElevation?: number;
+}
+
+/** Forward declaration - full type defined in editor section */
+export interface HalftoneIllustration {
+  version: 1;
+  name: string;
+  type: 'image' | 'typecase' | 'custom';
+  source?: string | object;
+  points: Array<{ nx: number; ny: number; nz: number; scale: number }>;
+  transform: { x: number; y: number; z: number; scale: number };
+  camera: { position: { x: number; y: number; z: number }; lookAt: { x: number; y: number; z: number }; fov: number };
+  created?: string;
+}
+
+export interface GlobeConfig {
+  /** Colors for random sphere glows (hex numbers) */
+  colors?: number[];
+  /** Radius of the globe */
+  radius?: number;
+  /** Number of spheres to show (uses fewer, bigger spheres) */
+  sphereCount?: number;
+}
+
+export interface SolarSystemConfig {
+  /** Colors for orbiting spheres */
+  orbitColors?: number[];
+  /** Center sphere color */
+  centerColor?: number;
+  /** Center sphere glow intensity */
+  glowIntensity?: number;
+}
+
+export interface BackgroundHalftoneResult {
+  canvas: HTMLCanvasElement;
+  start: () => void;
+  stop: () => void;
+  setScrollProgress: (progress: number) => void;
+  transitionToImage: (imageUrl: string) => Promise<void>;
+  transitionToTypeCase: (config?: TypeCaseConfig) => Promise<void>;
+  transitionToIllustration: (illustration: HalftoneIllustration) => void;
+  /** Arrange spheres as a rotating globe with colored glows */
+  transitionToGlobe: (config?: GlobeConfig) => void;
+  /** Arrange spheres as a solar system with orbiting spheres */
+  transitionToSolarSystem: (config?: SolarSystemConfig) => void;
+  /** Collapse all spheres to center as a single floating sphere */
+  collapseToCenter: () => void;
+  /** Restore spheres to their expanded formation */
+  restore: () => void;
+  /** Check if currently collapsed */
+  isCollapsed: () => boolean;
+  dispose: () => void;
+  resize: (width: number, height: number) => void;
+}
+
+interface SphereState {
+  /** Grid position (fixed) */
+  gridX: number;
+  gridY: number;
+  /** Current animated position */
+  currentPosition: THREE.Vector3;
+  /** Target position from current image */
+  targetPosition: THREE.Vector3;
+  /** Current scale (animated) */
+  currentScale: number;
+  /** Target scale from current image */
+  targetScale: number;
+  /** Random delay for staggered animation (0-1) */
+  delay: number;
+  /** Random speed multiplier */
+  speed: number;
+  /** Whether this sphere is "active" (has image data) */
+  active: boolean;
+}
+
+/**
+ * Load and process image, returning target data for ALL grid positions
+ * @param imageScale - Scale of image relative to grid (0.5 = 50% of grid size)
+ */
+async function loadImageData(
+  url: string,
+  gridSize: number,
+  sphereScale: number,
+  depthScale: number,
+  imageScale: number,
+  processing?: BackgroundHalftoneOptions['imageProcessing']
+): Promise<Map<string, { x: number; y: number; z: number; scale: number }>> {
+  // Process image if options provided
+  let imageData: ImageData;
+
+  if (processing?.removeWhiteBackground) {
+    const processed = await processImage(url, {
+      whiteThreshold: processing.whiteThreshold ?? 240,
+      grayscale: processing.grayscale,
+      invert: processing.invert,
+      contrast: processing.contrast,
+    });
+    imageData = processed.imageData;
+  } else {
+    // Load directly (use proxy for external URLs)
+    const proxyUrl = proxyImageUrl(url);
+    const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = () => resolve(img);
+      img.onerror = reject;
+      img.src = proxyUrl;
+    });
+    const canvas = document.createElement('canvas');
+    canvas.width = img.width;
+    canvas.height = img.height;
+    const ctx = canvas.getContext('2d')!;
+    ctx.drawImage(img, 0, 0);
+    imageData = ctx.getImageData(0, 0, img.width, img.height);
+  }
+
+  const { width, height, data } = imageData;
+  const targets = new Map<string, { x: number; y: number; z: number; scale: number }>();
+  const stepX = width / gridSize;
+  const stepY = height / gridSize;
+
+  // Calculate scaled grid bounds (image is smaller and centered)
+  const scaledGridSize = gridSize * imageScale;
+  const offset = (gridSize - scaledGridSize) / 2;
+
+  for (let gy = 0; gy < gridSize; gy++) {
+    for (let gx = 0; gx < gridSize; gx++) {
+      const imgX = Math.floor(gx * stepX);
+      const imgY = Math.floor(gy * stepY);
+      const i = (imgY * width + imgX) * 4;
+
+      const r = data[i];
+      const g = data[i + 1];
+      const b = data[i + 2];
+      const a = data[i + 3];
+
+      // Grid position scaled and centered
+      const x = (gx - gridSize / 2) * imageScale;
+      const y = ((gridSize - gy) - gridSize / 2) * imageScale;
+
+      // Calculate brightness and scale
+      const brightness = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+      const isVisible = a > 30;
+
+      // Z-axis based on brightness (darker = closer to camera)
+      const z = isVisible ? (1 - brightness) * depthScale : 0;
+
+      // Scale based on darkness (darker = larger sphere), also scaled down
+      const scale = isVisible ? (1 - brightness) * sphereScale * imageScale : 0;
+
+      const key = `${gx},${gy}`;
+      targets.set(key, { x, y, z, scale });
+    }
+  }
+
+  return targets;
+}
+
+function easeInOutCubic(t: number): number {
+  return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+}
+
+/**
+ * Render a letter to canvas and return bitmap for voxelization
+ */
+function renderLetterBitmap(
+  letter: string,
+  size: number,
+  fontFamily: string
+): boolean[][] {
+  const canvas = document.createElement('canvas');
+  canvas.width = size;
+  canvas.height = size;
+  const ctx = canvas.getContext('2d')!;
+
+  // Clear
+  ctx.fillStyle = '#000000';
+  ctx.fillRect(0, 0, size, size);
+
+  // Draw letter
+  ctx.fillStyle = '#ffffff';
+  ctx.font = `bold ${size * 0.75}px ${fontFamily}`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(letter, size / 2, size / 2);
+
+  // Get pixel data and convert to bitmap
+  const imageData = ctx.getImageData(0, 0, size, size);
+  const bitmap: boolean[][] = [];
+
+  for (let y = 0; y < size; y++) {
+    bitmap[y] = [];
+    for (let x = 0; x < size; x++) {
+      const i = (y * size + x) * 4;
+      const brightness = imageData.data[i]; // Just red channel
+      bitmap[y][x] = brightness > 128;
+    }
+  }
+
+  return bitmap;
+}
+
+/**
+ * Generate true 3D type case layout
+ * Creates compartment walls and 3D letter blocks that can rise up
+ */
+function generateTypeCaseData(
+  gridSize: number,
+  sphereScale: number,
+  depthScale: number,
+  config: TypeCaseConfig = {}
+): Map<string, { x: number; y: number; z: number; scale: number }> {
+  const {
+    cols = 6,
+    rows = 8,
+    letters: customLetters,
+    featuredWord = 'ORG-PRESS',
+    fontFamily = 'Georgia, Times, serif',
+    cellGap = 0.15,
+    letterElevation = 1,
+  } = config;
+
+  const targets = new Map<string, { x: number; y: number; z: number; scale: number }>();
+
+  // Calculate dimensions
+  // The type case should fit nicely in the view
+  const caseWidth = gridSize * 0.4;  // 40% of grid width
+  const caseHeight = gridSize * 0.5; // 50% of grid height
+  const caseDepth = depthScale * 1.5; // How deep the compartments are
+
+  const cellWidth = caseWidth / cols;
+  const cellHeight = caseHeight / rows;
+  const wallThickness = cellWidth * cellGap;
+  const letterResolution = 12; // Dots per letter dimension
+  const letterDepth = 4; // How many layers deep the letter block is
+
+  // Generate letter arrangement
+  const defaultLetters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789&'.split('');
+  const cellLetters: (string | null)[][] = [];
+  const featuredChars = featuredWord.split('');
+
+  // Place featured word in middle rows
+  const featuredStartRow = Math.floor(rows / 2) - 1;
+  let featuredIndex = 0;
+  let letterIndex = 0;
+
+  for (let row = 0; row < rows; row++) {
+    cellLetters[row] = [];
+    for (let col = 0; col < cols; col++) {
+      // Featured word placement - spread across two middle rows
+      if (row === featuredStartRow || row === featuredStartRow + 1) {
+        if (featuredIndex < featuredChars.length) {
+          cellLetters[row][col] = featuredChars[featuredIndex++];
+        } else {
+          cellLetters[row][col] = null;
+        }
+      } else {
+        // Random letters with some empty spaces
+        if (Math.random() > 0.15) {
+          const available = customLetters?.length ? customLetters : defaultLetters;
+          cellLetters[row][col] = available[letterIndex % available.length];
+          letterIndex++;
+        } else {
+          cellLetters[row][col] = null;
+        }
+      }
+    }
+  }
+
+  // Helper to add a sphere target
+  let sphereIndex = 0;
+  const addSphere = (x: number, y: number, z: number, scale: number) => {
+    // Map to grid coordinates
+    const gx = Math.floor((x + gridSize / 2) + Math.random() * 0.5);
+    const gy = Math.floor((gridSize / 2 - y) + Math.random() * 0.5);
+    const key = `${gx},${gy},${sphereIndex++}`;
+    targets.set(key, { x, y, z, scale });
+  };
+
+  // Center offset for the case
+  const offsetX = -caseWidth / 2;
+  const offsetY = caseHeight / 2;
+
+  // Build compartment walls (3D box edges)
+  const wallDotSpacing = wallThickness * 1.5;
+  const wallDotScale = sphereScale * 0.3;
+
+  // Vertical walls (between columns)
+  for (let col = 0; col <= cols; col++) {
+    const x = offsetX + col * cellWidth;
+    for (let row = 0; row < rows; row++) {
+      const yTop = offsetY - row * cellHeight;
+      const yBottom = offsetY - (row + 1) * cellHeight;
+
+      // Dots along the vertical edge, going down into Z
+      for (let wy = yBottom; wy <= yTop; wy += wallDotSpacing) {
+        for (let wz = -caseDepth; wz <= 0; wz += wallDotSpacing) {
+          addSphere(x, wy, wz, wallDotScale);
+        }
+      }
+    }
+  }
+
+  // Horizontal walls (between rows)
+  for (let row = 0; row <= rows; row++) {
+    const y = offsetY - row * cellHeight;
+    for (let col = 0; col < cols; col++) {
+      const xLeft = offsetX + col * cellWidth;
+      const xRight = offsetX + (col + 1) * cellWidth;
+
+      // Dots along the horizontal edge, going down into Z
+      for (let wx = xLeft; wx <= xRight; wx += wallDotSpacing) {
+        for (let wz = -caseDepth; wz <= 0; wz += wallDotSpacing) {
+          addSphere(wx, y, wz, wallDotScale);
+        }
+      }
+    }
+  }
+
+  // Bottom of compartments (floor)
+  const floorDotSpacing = cellWidth / 4;
+  const floorDotScale = sphereScale * 0.15;
+
+  for (let row = 0; row < rows; row++) {
+    for (let col = 0; col < cols; col++) {
+      const cellCenterX = offsetX + (col + 0.5) * cellWidth;
+      const cellCenterY = offsetY - (row + 0.5) * cellHeight;
+
+      // Sparse dots on the floor
+      for (let fx = -cellWidth / 2 + wallThickness; fx < cellWidth / 2 - wallThickness; fx += floorDotSpacing) {
+        for (let fy = -cellHeight / 2 + wallThickness; fy < cellHeight / 2 - wallThickness; fy += floorDotSpacing) {
+          if (Math.random() > 0.5) { // Sparse
+            addSphere(cellCenterX + fx, cellCenterY + fy, -caseDepth, floorDotScale);
+          }
+        }
+      }
+    }
+  }
+
+  // Build 3D letter blocks
+  const letterDotScale = sphereScale * 0.5;
+  const letterBlockHeight = depthScale * letterElevation; // How high letters rise
+
+  for (let row = 0; row < rows; row++) {
+    for (let col = 0; col < cols; col++) {
+      const letter = cellLetters[row][col];
+      if (!letter) continue;
+
+      // Get letter bitmap
+      const bitmap = renderLetterBitmap(letter, letterResolution, fontFamily);
+
+      // Cell center position
+      const cellCenterX = offsetX + (col + 0.5) * cellWidth;
+      const cellCenterY = offsetY - (row + 0.5) * cellHeight;
+
+      // Letter block dimensions (slightly smaller than cell)
+      const letterWidth = cellWidth * 0.7;
+      const letterHeight = cellHeight * 0.7;
+      const dotSpacingX = letterWidth / letterResolution;
+      const dotSpacingY = letterHeight / letterResolution;
+      const dotSpacingZ = letterBlockHeight / letterDepth;
+
+      // Create 3D voxelized letter
+      for (let ly = 0; ly < letterResolution; ly++) {
+        for (let lx = 0; lx < letterResolution; lx++) {
+          if (!bitmap[ly][lx]) continue; // Skip empty pixels
+
+          // Position within the cell
+          const x = cellCenterX + (lx - letterResolution / 2) * dotSpacingX;
+          const y = cellCenterY + (letterResolution / 2 - ly) * dotSpacingY;
+
+          // Create vertical stack of dots for the letter block
+          // Letters rise from inside the case (negative Z) to above (positive Z)
+          for (let lz = 0; lz < letterDepth; lz++) {
+            const z = -caseDepth * 0.3 + lz * dotSpacingZ + letterBlockHeight;
+            // Slightly vary scale for top surface vs sides
+            const scale = lz === letterDepth - 1 ? letterDotScale : letterDotScale * 0.8;
+            addSphere(x, y, z, scale);
+          }
+        }
+      }
+    }
+  }
+
+  // Now we need to map these 3D positions back to the grid indices
+  // Since we have more spheres than grid positions, we'll use the grid as a pool
+  // and assign spheres to grid positions based on proximity
+
+  // Convert to grid-indexed map
+  const gridTargets = new Map<string, { x: number; y: number; z: number; scale: number }>();
+  const sphereList = Array.from(targets.values());
+
+  // Assign spheres to grid positions
+  for (let gy = 0; gy < gridSize; gy++) {
+    for (let gx = 0; gx < gridSize; gx++) {
+      const key = `${gx},${gy}`;
+
+      if (sphereList.length > 0) {
+        // Pop a sphere from our list
+        const sphere = sphereList.pop()!;
+        gridTargets.set(key, sphere);
+      } else {
+        // No more spheres, make this one invisible
+        gridTargets.set(key, {
+          x: (gx - gridSize / 2) * 0.5,
+          y: ((gridSize - gy) - gridSize / 2) * 0.5,
+          z: -depthScale * 2,
+          scale: 0,
+        });
+      }
+    }
+  }
+
+  return gridTargets;
+}
+
+function easeOutExpo(t: number): number {
+  return t === 1 ? 1 : 1 - Math.pow(2, -10 * t);
+}
+
+/**
+ * Interpolate between camera keyframes
+ */
+function interpolateCamera(
+  keyframes: CameraKeyframe[],
+  progress: number,
+  camera: THREE.PerspectiveCamera
+) {
+  if (keyframes.length === 0) return;
+  if (keyframes.length === 1) {
+    const kf = keyframes[0];
+    camera.position.set(kf.position.x, kf.position.y, kf.position.z);
+    if (kf.lookAt) camera.lookAt(kf.lookAt.x, kf.lookAt.y, kf.lookAt.z);
+    return;
+  }
+
+  let prevKf = keyframes[0];
+  let nextKf = keyframes[keyframes.length - 1];
+
+  for (let i = 0; i < keyframes.length - 1; i++) {
+    if (progress >= keyframes[i].at && progress <= keyframes[i + 1].at) {
+      prevKf = keyframes[i];
+      nextKf = keyframes[i + 1];
+      break;
+    }
+  }
+
+  const range = nextKf.at - prevKf.at;
+  const localProgress = range > 0 ? (progress - prevKf.at) / range : 0;
+  const t = easeInOutCubic(Math.max(0, Math.min(1, localProgress)));
+
+  camera.position.set(
+    THREE.MathUtils.lerp(prevKf.position.x, nextKf.position.x, t),
+    THREE.MathUtils.lerp(prevKf.position.y, nextKf.position.y, t),
+    THREE.MathUtils.lerp(prevKf.position.z, nextKf.position.z, t)
+  );
+
+  const prevLookAt = prevKf.lookAt || { x: 0, y: 0, z: 0 };
+  const nextLookAt = nextKf.lookAt || { x: 0, y: 0, z: 0 };
+  camera.lookAt(
+    THREE.MathUtils.lerp(prevLookAt.x, nextLookAt.x, t),
+    THREE.MathUtils.lerp(prevLookAt.y, nextLookAt.y, t),
+    THREE.MathUtils.lerp(prevLookAt.z, nextLookAt.z, t)
+  );
+}
+
+/**
+ * Interpolate flow position based on time
+ */
+function getFlowOffset(
+  flowPath: FlowWaypoint[],
+  flowProgress: number
+): { x: number; y: number } {
+  if (flowPath.length === 0) return { x: 0, y: 0 };
+  if (flowPath.length === 1) return { x: flowPath[0].x, y: flowPath[0].y };
+
+  // Find surrounding waypoints
+  let prevWp = flowPath[0];
+  let nextWp = flowPath[flowPath.length - 1];
+
+  for (let i = 0; i < flowPath.length - 1; i++) {
+    if (flowProgress >= flowPath[i].at && flowProgress <= flowPath[i + 1].at) {
+      prevWp = flowPath[i];
+      nextWp = flowPath[i + 1];
+      break;
+    }
+  }
+
+  const range = nextWp.at - prevWp.at;
+  const localProgress = range > 0 ? (flowProgress - prevWp.at) / range : 0;
+  // Smooth easing for flow
+  const t = easeInOutCubic(Math.max(0, Math.min(1, localProgress)));
+
+  return {
+    x: prevWp.x + (nextWp.x - prevWp.x) * t,
+    y: prevWp.y + (nextWp.y - prevWp.y) * t,
+  };
+}
+
+/**
+ * Create background halftone with relief effect and slow settling
+ */
+export async function createBackgroundHalftone(
+  options: BackgroundHalftoneOptions
+): Promise<BackgroundHalftoneResult> {
+  const {
+    imageUrl,
+    gridSize = 80,
+    sphereScale = 0.4,
+    backgroundColor = 0x111111,
+    sphereColor = 0xffffff,
+    cameraKeyframes = [
+      { at: 0, position: { x: 0, y: 0, z: 70 }, lookAt: { x: 0, y: 0, z: 0 } },
+      { at: 0.5, position: { x: 25, y: 10, z: 60 }, lookAt: { x: 0, y: 0, z: 0 } },
+      { at: 1, position: { x: -15, y: -5, z: 50 }, lookAt: { x: 0, y: 0, z: 0 } },
+    ],
+    quickRevealDuration = 3,
+    settlingDuration = 300, // 5 minutes
+    depthScale = 8,
+    imageScale = 0.5, // Image takes 50% of grid by default
+    flowPath = [
+      // Default flow: top-left → bottom-right → center → loop
+      { x: -15, y: 10, at: 0 },
+      { x: 10, y: -8, at: 0.33 },
+      { x: 0, y: 0, at: 0.66 },
+      { x: -15, y: 10, at: 1 }, // Loop back
+    ],
+    flowDuration = 90, // 90 seconds per cycle
+    imageProcessing = { removeWhiteBackground: true },
+  } = options;
+
+  // Setup Three.js
+  const scene = new THREE.Scene();
+  scene.background = new THREE.Color(backgroundColor);
+  const camera = new THREE.PerspectiveCamera(50, 1, 0.1, 1000);
+  const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+  // Flat white spheres (no lighting)
+  const sphereGeometry = new THREE.SphereGeometry(0.5, 8, 8);
+  const sphereMaterial = new THREE.MeshBasicMaterial({ color: sphereColor });
+
+  const totalSpheres = gridSize * gridSize;
+  const instancedMesh = new THREE.InstancedMesh(sphereGeometry, sphereMaterial, totalSpheres);
+  scene.add(instancedMesh);
+
+  // Initialize ALL spheres at center with zero scale
+  const sphereStates: SphereState[] = [];
+  for (let gy = 0; gy < gridSize; gy++) {
+    for (let gx = 0; gx < gridSize; gx++) {
+      sphereStates.push({
+        gridX: gx,
+        gridY: gy,
+        currentPosition: new THREE.Vector3(0, 0, 0),
+        targetPosition: new THREE.Vector3(0, 0, 0),
+        currentScale: 0,
+        targetScale: 0,
+        delay: Math.random(),
+        speed: 0.7 + Math.random() * 0.6,
+        active: false,
+      });
+    }
+  }
+
+  // Load initial image data
+  const initialData = await loadImageData(imageUrl, gridSize, sphereScale, depthScale, imageScale, imageProcessing);
+
+  // Set initial targets for all spheres
+  sphereStates.forEach((state, i) => {
+    const key = `${state.gridX},${state.gridY}`;
+    const data = initialData.get(key);
+    if (data && data.scale > 0.01) {
+      state.targetPosition.set(data.x, data.y, data.z);
+      state.targetScale = data.scale;
+      state.active = true;
+    } else {
+      // Inactive spheres go to their grid position but with 0 scale
+      const x = state.gridX - gridSize / 2;
+      const y = (gridSize - state.gridY) - gridSize / 2;
+      state.targetPosition.set(x, y, 0);
+      state.targetScale = 0;
+      state.active = false;
+    }
+  });
+
+  // Animation state
+  let animationId: number | null = null;
+  let startTime: number | null = null;
+  let transitionStartTime: number | null = null;
+  let currentScrollProgress = 0;
+  const matrix = new THREE.Matrix4();
+
+  // Store previous state for transitions
+  const prevPositions: THREE.Vector3[] = sphereStates.map(() => new THREE.Vector3());
+  const prevScales: number[] = sphereStates.map(() => 0);
+
+  // Collapse/restore state
+  let collapsed = false;
+  const expandedTargets: Array<{ position: THREE.Vector3; scale: number; active: boolean }> =
+    sphereStates.map(s => ({
+      position: s.targetPosition.clone(),
+      scale: s.targetScale,
+      active: s.active,
+    }));
+
+  // Mouse tracking for perspective tilt
+  let mouseX = 0; // -1 to 1 (left to right)
+  let mouseY = 0; // -1 to 1 (top to bottom)
+  let targetMouseX = 0;
+  let targetMouseY = 0;
+  const tiltSmoothing = 0.06; // Smoothing factor (lower = smoother)
+
+  // Track mouse movement
+  const handleMouseMove = (e: MouseEvent) => {
+    // Normalize to -1 to 1 range
+    targetMouseX = (e.clientX / window.innerWidth) * 2 - 1;
+    targetMouseY = (e.clientY / window.innerHeight) * 2 - 1;
+  };
+  window.addEventListener('mousemove', handleMouseMove, { passive: true });
+
+  // Fluid motion parameters for collapsed state (per-sphere)
+  const fluidParams: Array<{
+    orbitRadius: number;
+    orbitSpeed: number;
+    orbitPhase: number;
+    verticalSpeed: number;
+    verticalPhase: number;
+    pulseSpeed: number;
+    pulsePhase: number;
+  }> = sphereStates.map(() => ({
+    orbitRadius: 0.5 + Math.random() * 1.5,      // How far from center it orbits
+    orbitSpeed: 0.3 + Math.random() * 0.4,       // Orbit speed
+    orbitPhase: Math.random() * Math.PI * 2,     // Starting angle
+    verticalSpeed: 0.2 + Math.random() * 0.3,    // Vertical bob speed
+    verticalPhase: Math.random() * Math.PI * 2,  // Vertical phase
+    pulseSpeed: 0.5 + Math.random() * 0.5,       // Scale pulse speed
+    pulsePhase: Math.random() * Math.PI * 2,     // Scale pulse phase
+  }));
+
+  // Formation mode: 'normal' | 'globe' | 'solarSystem'
+  let formationMode: 'normal' | 'globe' | 'solarSystem' = 'normal';
+  let formationStartTime: number | null = null;
+
+  // Per-sphere colors for special formations
+  const sphereColors: THREE.Color[] = sphereStates.map(() => new THREE.Color(sphereColor));
+  const defaultColor = new THREE.Color(sphereColor);
+  let useInstanceColors = false;
+
+  // Globe formation parameters
+  const globeParams: Array<{
+    theta: number; // longitude
+    phi: number;   // latitude
+    rotationSpeed: number;
+    glowPhase: number;
+  }> = sphereStates.map(() => ({
+    theta: Math.random() * Math.PI * 2,
+    phi: Math.acos(2 * Math.random() - 1),
+    rotationSpeed: 0.15 + Math.random() * 0.1,
+    glowPhase: Math.random() * Math.PI * 2,
+  }));
+
+  // Solar system formation parameters
+  const solarParams: Array<{
+    orbitRadius: number;  // Distance from center
+    orbitAngle: number;   // Current angle in orbit
+    orbitSpeed: number;   // Speed of orbit
+    orbitTilt: number;    // Tilt of orbit plane
+    glowPhase: number;    // For pulsing
+    isCenter: boolean;    // Is this the center sphere?
+  }> = sphereStates.map((_, i) => ({
+    orbitRadius: 5 + Math.random() * 15,
+    orbitAngle: Math.random() * Math.PI * 2,
+    orbitSpeed: 0.1 + Math.random() * 0.15,
+    orbitTilt: (Math.random() - 0.5) * Math.PI * 0.3,
+    glowPhase: Math.random() * Math.PI * 2,
+    isCenter: i === 0, // First sphere is center
+  }));
+
+  function updateSpheres(timestamp: number) {
+    if (startTime === null) startTime = timestamp;
+    const elapsed = (timestamp - startTime) / 1000;
+
+    // Calculate flow offset (continuous looping movement)
+    const flowProgress = (elapsed % flowDuration) / flowDuration;
+    const flowOffset = getFlowOffset(flowPath, flowProgress);
+
+    // Handle image transition
+    if (transitionStartTime !== null) {
+      const transitionElapsed = (timestamp - transitionStartTime) / 1000;
+      const transitionDuration = 2; // 2 second transition
+      const tProgress = Math.min(1, transitionElapsed / transitionDuration);
+      const tEased = easeInOutCubic(tProgress);
+
+      sphereStates.forEach((state, i) => {
+        state.currentPosition.lerpVectors(prevPositions[i], state.targetPosition, tEased);
+        state.currentScale = THREE.MathUtils.lerp(prevScales[i], state.targetScale, tEased);
+      });
+
+      if (tProgress >= 1) {
+        transitionStartTime = null;
+      }
+    } else {
+      // Normal animation: quick reveal then slow settling
+      sphereStates.forEach((state, i) => {
+        // Staggered start based on delay
+        const adjustedTime = Math.max(0, elapsed - state.delay * quickRevealDuration);
+
+        // Quick reveal phase (first few seconds - image becomes visible)
+        const quickProgress = Math.min(1, adjustedTime / quickRevealDuration);
+        const quickEased = easeOutExpo(quickProgress);
+
+        // Slow settling phase (continues for minutes - subtle drift to final position)
+        const settlingProgress = Math.min(1, adjustedTime / settlingDuration);
+        const settlingEased = easeOutExpo(settlingProgress);
+
+        // Combine: quick reveal gets ~90% there, settling gets the last 10%
+        const totalProgress = quickEased * 0.9 + settlingEased * 0.1;
+
+        // Position interpolation from center
+        const centerX = 0;
+        const centerY = 0;
+        const centerZ = -20; // Start behind the "plane"
+
+        state.currentPosition.set(
+          THREE.MathUtils.lerp(centerX, state.targetPosition.x, totalProgress),
+          THREE.MathUtils.lerp(centerY, state.targetPosition.y, totalProgress),
+          THREE.MathUtils.lerp(centerZ, state.targetPosition.z, totalProgress)
+        );
+
+        // Scale animation
+        state.currentScale = state.targetScale * quickEased;
+      });
+    }
+
+    // Update instanced mesh with flow offset applied
+    sphereStates.forEach((state, i) => {
+      let scale = state.currentScale;
+      let posX = state.currentPosition.x + flowOffset.x;
+      let posY = state.currentPosition.y + flowOffset.y;
+      let posZ = state.currentPosition.z;
+
+      // Apply fluid motion when collapsed
+      if (collapsed && transitionStartTime === null) {
+        const fp = fluidParams[i];
+
+        // Gentle orbital motion around center
+        const orbitAngle = fp.orbitPhase + elapsed * fp.orbitSpeed;
+        const orbitX = Math.cos(orbitAngle) * fp.orbitRadius;
+        const orbitY = Math.sin(orbitAngle) * fp.orbitRadius * 0.6; // Elliptical
+
+        // Vertical floating bob
+        const verticalBob = Math.sin(fp.verticalPhase + elapsed * fp.verticalSpeed) * 0.8;
+
+        // Subtle depth oscillation
+        const depthBob = Math.sin(fp.orbitPhase + elapsed * fp.orbitSpeed * 0.5) * 0.5;
+
+        // Apply fluid offsets
+        posX += orbitX;
+        posY += orbitY + verticalBob;
+        posZ += depthBob;
+
+        // Gentle scale pulsing (breathing effect)
+        const pulse = 1 + Math.sin(fp.pulsePhase + elapsed * fp.pulseSpeed) * 0.15;
+        scale *= pulse;
+      }
+
+      // Globe formation: spheres on a rotating sphere surface
+      if (formationMode === 'globe' && transitionStartTime === null) {
+        const gp = globeParams[i];
+        const globeRadius = 12;
+
+        // Rotate theta over time (longitude rotation)
+        const theta = gp.theta + elapsed * gp.rotationSpeed;
+        const phi = gp.phi;
+
+        // Spherical to Cartesian
+        posX = globeRadius * Math.sin(phi) * Math.cos(theta);
+        posY = globeRadius * Math.cos(phi);
+        posZ = globeRadius * Math.sin(phi) * Math.sin(theta) + 8; // Offset forward
+
+        // Random glow pulsing with color
+        const glowPulse = 0.5 + 0.5 * Math.sin(gp.glowPhase + elapsed * 0.8);
+        scale = 0.6 + glowPulse * 0.3;
+      }
+
+      // Solar system formation: center sphere with orbiting smaller spheres
+      if (formationMode === 'solarSystem' && transitionStartTime === null) {
+        const sp = solarParams[i];
+
+        if (sp.isCenter) {
+          // Large glowing center sphere
+          posX = 0;
+          posY = 0;
+          posZ = 8;
+          // Pulsing glow effect for center
+          const centerPulse = 1 + 0.15 * Math.sin(elapsed * 0.5);
+          scale = 3 * centerPulse;
+        } else {
+          // Orbiting spheres
+          const angle = sp.orbitAngle + elapsed * sp.orbitSpeed;
+          const tiltedY = Math.sin(angle) * Math.sin(sp.orbitTilt);
+          const tiltedZ = Math.sin(angle) * Math.cos(sp.orbitTilt);
+
+          posX = Math.cos(angle) * sp.orbitRadius;
+          posY = tiltedY * sp.orbitRadius * 0.3;
+          posZ = tiltedZ * sp.orbitRadius * 0.5 + 8;
+
+          // Orbiting spheres are smaller with gentle pulse
+          const orbitPulse = 0.8 + 0.2 * Math.sin(sp.glowPhase + elapsed * 0.6);
+          scale = 0.4 * orbitPulse;
+        }
+      }
+
+      if (scale < 0.001) {
+        matrix.makeScale(0, 0, 0);
+      } else {
+        matrix.makeScale(scale, scale, scale);
+        matrix.setPosition(posX, posY, posZ);
+      }
+      instancedMesh.setMatrixAt(i, matrix);
+
+      // Update instance colors if enabled
+      if (useInstanceColors) {
+        instancedMesh.setColorAt(i, sphereColors[i]);
+      }
+    });
+    instancedMesh.instanceMatrix.needsUpdate = true;
+    if (useInstanceColors && instancedMesh.instanceColor) {
+      instancedMesh.instanceColor.needsUpdate = true;
+    }
+  }
+
+  function render(timestamp: number) {
+    animationId = requestAnimationFrame(render);
+    updateSpheres(timestamp);
+
+    // Smooth mouse tracking
+    mouseX += (targetMouseX - mouseX) * tiltSmoothing;
+    mouseY += (targetMouseY - mouseY) * tiltSmoothing;
+
+    // Interpolate camera from keyframes
+    interpolateCamera(cameraKeyframes, currentScrollProgress, camera);
+
+    // Apply Y-axis rotation based on mouse position
+    // Like turning your head left/right to look around
+    const rotateY = -mouseX * 0.12; // Radians, subtle rotation
+    const rotateX = mouseY * 0.06;  // Slight vertical look
+
+    // Rotate camera around world Y axis (look left/right)
+    camera.rotateOnWorldAxis(new THREE.Vector3(0, 1, 0), rotateY);
+    // Slight X rotation for vertical mouse movement
+    camera.rotateX(rotateX);
+
+    renderer.render(scene, camera);
+  }
+
+  const start = () => {
+    if (animationId === null) {
+      animationId = requestAnimationFrame(render);
+    }
+  };
+
+  const stop = () => {
+    if (animationId !== null) {
+      cancelAnimationFrame(animationId);
+      animationId = null;
+    }
+  };
+
+  const setScrollProgress = (progress: number) => {
+    currentScrollProgress = Math.max(0, Math.min(1, progress));
+  };
+
+  const transitionToImage = async (newImageUrl: string) => {
+    // Store current state
+    sphereStates.forEach((state, i) => {
+      prevPositions[i].copy(state.currentPosition);
+      prevScales[i] = state.currentScale;
+    });
+
+    // Load new image data
+    const newData = await loadImageData(newImageUrl, gridSize, sphereScale, depthScale, imageScale, imageProcessing);
+
+    // Update ALL sphere targets
+    sphereStates.forEach((state, i) => {
+      const key = `${state.gridX},${state.gridY}`;
+      const data = newData.get(key);
+      if (data && data.scale > 0.01) {
+        state.targetPosition.set(data.x, data.y, data.z);
+        state.targetScale = data.scale;
+        state.active = true;
+      } else {
+        // Keep position but fade out
+        state.targetScale = 0;
+        state.active = false;
+      }
+      // Also update expanded targets for collapse/restore
+      expandedTargets[i].position.copy(state.targetPosition);
+      expandedTargets[i].scale = state.targetScale;
+      expandedTargets[i].active = state.active;
+    });
+
+    collapsed = false; // New content means we're expanded
+    transitionStartTime = performance.now();
+  };
+
+  const transitionToTypeCase = async (config: TypeCaseConfig = {}) => {
+    // Store current state
+    sphereStates.forEach((state, i) => {
+      prevPositions[i].copy(state.currentPosition);
+      prevScales[i] = state.currentScale;
+    });
+
+    // Generate type case data
+    const typeCaseData = generateTypeCaseData(gridSize, sphereScale, depthScale, config);
+
+    // Update ALL sphere targets
+    sphereStates.forEach((state, i) => {
+      const key = `${state.gridX},${state.gridY}`;
+      const data = typeCaseData.get(key);
+      if (data && data.scale > 0.01) {
+        state.targetPosition.set(data.x, data.y, data.z);
+        state.targetScale = data.scale;
+        state.active = true;
+      } else {
+        // Sphere becomes inactive
+        state.targetScale = 0;
+        state.active = false;
+      }
+      // Also update expanded targets for collapse/restore
+      expandedTargets[i].position.copy(state.targetPosition);
+      expandedTargets[i].scale = state.targetScale;
+      expandedTargets[i].active = state.active;
+    });
+
+    collapsed = false; // New content means we're expanded
+    transitionStartTime = performance.now();
+  };
+
+  const transitionToIllustration = (illustration: HalftoneIllustration) => {
+    // Store current state
+    sphereStates.forEach((state, i) => {
+      prevPositions[i].copy(state.currentPosition);
+      prevScales[i] = state.currentScale;
+    });
+
+    // Render illustration points at current grid size
+    const { points, transform } = illustration;
+    const halfGrid = gridSize / 2;
+    const renderedPoints: Array<{ x: number; y: number; z: number; scale: number }> = [];
+
+    for (const point of points) {
+      const x = (point.nx - 0.5) * gridSize * transform.scale * imageScale + transform.x;
+      const y = (0.5 - point.ny) * gridSize * transform.scale * imageScale + transform.y;
+      const z = point.nz * depthScale + transform.z;
+      const scale = point.scale * transform.scale * sphereScale * imageScale;
+      renderedPoints.push({ x, y, z, scale });
+    }
+
+    // Map rendered points to grid positions
+    const illustrationData = new Map<string, { x: number; y: number; z: number; scale: number }>();
+
+    renderedPoints.forEach((point, i) => {
+      const gx = Math.floor(point.x + halfGrid);
+      const gy = Math.floor(halfGrid - point.y);
+      const key = `${gx},${gy}`;
+
+      const existing = illustrationData.get(key);
+      if (!existing || point.scale > existing.scale) {
+        illustrationData.set(key, point);
+      }
+    });
+
+    // Update ALL sphere targets
+    sphereStates.forEach((state, i) => {
+      const key = `${state.gridX},${state.gridY}`;
+      const data = illustrationData.get(key);
+      if (data && data.scale > 0.01) {
+        state.targetPosition.set(data.x, data.y, data.z);
+        state.targetScale = data.scale;
+        state.active = true;
+      } else {
+        state.targetScale = 0;
+        state.active = false;
+      }
+      // Also update expanded targets for collapse/restore
+      expandedTargets[i].position.copy(state.targetPosition);
+      expandedTargets[i].scale = state.targetScale;
+      expandedTargets[i].active = state.active;
+    });
+
+    collapsed = false; // New content means we're expanded
+    transitionStartTime = performance.now();
+  };
+
+  const collapseToCenter = () => {
+    if (collapsed) return;
+
+    // Store current expanded state before collapsing
+    sphereStates.forEach((state, i) => {
+      expandedTargets[i].position.copy(state.targetPosition);
+      expandedTargets[i].scale = state.targetScale;
+      expandedTargets[i].active = state.active;
+      // Store current animated position for smooth transition
+      prevPositions[i].copy(state.currentPosition);
+      prevScales[i] = state.currentScale;
+    });
+
+    // Collapse to a visible floating sphere cluster
+    // Keep it centered but compact - visible as a glowing orb
+    const centerX = 0;
+    const centerY = 0;
+    const centerZ = 8; // Slightly forward
+
+    // Create a visible sphere cluster
+    const clusterRadius = 4; // Visible cluster size
+
+    sphereStates.forEach((state, i) => {
+      // Spherical distribution for a nice floating orb effect
+      const theta = Math.random() * Math.PI * 2;
+      const phi = Math.acos(2 * Math.random() - 1);
+      const r = clusterRadius * Math.cbrt(Math.random()); // Cubic root for even distribution
+
+      const offsetX = r * Math.sin(phi) * Math.cos(theta);
+      const offsetY = r * Math.sin(phi) * Math.sin(theta);
+      const offsetZ = r * Math.cos(phi);
+
+      state.targetPosition.set(centerX + offsetX, centerY + offsetY, centerZ + offsetZ);
+      // Visible scale - creates a glowing orb effect
+      state.targetScale = 0.35 + Math.random() * 0.15;
+      state.active = true;
+    });
+
+    collapsed = true;
+    transitionStartTime = performance.now();
+  };
+
+  const restore = () => {
+    if (!collapsed) return;
+
+    // Store current collapsed state for smooth transition
+    sphereStates.forEach((state, i) => {
+      prevPositions[i].copy(state.currentPosition);
+      prevScales[i] = state.currentScale;
+    });
+
+    // Restore expanded targets
+    sphereStates.forEach((state, i) => {
+      state.targetPosition.copy(expandedTargets[i].position);
+      state.targetScale = expandedTargets[i].scale;
+      state.active = expandedTargets[i].active;
+    });
+
+    collapsed = false;
+    transitionStartTime = performance.now();
+  };
+
+  const isCollapsed = () => collapsed;
+
+  // Default globe colors (vibrant rainbow)
+  const defaultGlobeColors = [
+    0xff6b6b, // coral red
+    0x4ecdc4, // teal
+    0xffe66d, // yellow
+    0x95e1d3, // mint
+    0xf38181, // salmon
+    0xaa96da, // lavender
+    0xfcbad3, // pink
+    0xa8d8ea, // sky blue
+  ];
+
+  // Default solar system colors (warm golden center, cool orbits)
+  const defaultOrbitColors = [
+    0x60a5fa, // blue
+    0xa78bfa, // purple
+    0xf472b6, // pink
+    0x34d399, // green
+    0xfbbf24, // amber
+    0xf87171, // red
+  ];
+
+  const transitionToGlobe = (config: GlobeConfig = {}) => {
+    const {
+      colors = defaultGlobeColors,
+      radius = 12,
+      sphereCount = 80,
+    } = config;
+
+    // Store current state for smooth transition
+    sphereStates.forEach((state, i) => {
+      prevPositions[i].copy(state.currentPosition);
+      prevScales[i] = state.currentScale;
+    });
+
+    // Enable instance colors
+    useInstanceColors = true;
+
+    // Randomly select which spheres to show (fewer, bigger spheres)
+    const activeIndices = new Set<number>();
+    while (activeIndices.size < Math.min(sphereCount, sphereStates.length)) {
+      activeIndices.add(Math.floor(Math.random() * sphereStates.length));
+    }
+
+    // Set up globe positions and colors
+    sphereStates.forEach((state, i) => {
+      if (activeIndices.has(i)) {
+        // Assign sphere to globe surface
+        const theta = Math.random() * Math.PI * 2;
+        const phi = Math.acos(2 * Math.random() - 1);
+
+        // Update globe params for animation
+        globeParams[i].theta = theta;
+        globeParams[i].phi = phi;
+        globeParams[i].rotationSpeed = 0.12 + Math.random() * 0.08;
+        globeParams[i].glowPhase = Math.random() * Math.PI * 2;
+
+        // Set initial target position on globe
+        state.targetPosition.set(
+          radius * Math.sin(phi) * Math.cos(theta),
+          radius * Math.cos(phi),
+          radius * Math.sin(phi) * Math.sin(theta) + 8
+        );
+        state.targetScale = 0.8 + Math.random() * 0.4; // Bigger spheres
+        state.active = true;
+
+        // Assign random color from palette
+        sphereColors[i].setHex(colors[Math.floor(Math.random() * colors.length)]);
+      } else {
+        state.targetScale = 0;
+        state.active = false;
+      }
+    });
+
+    formationMode = 'globe';
+    collapsed = false;
+    transitionStartTime = performance.now();
+  };
+
+  const transitionToSolarSystem = (config: SolarSystemConfig = {}) => {
+    const {
+      orbitColors = defaultOrbitColors,
+      centerColor = 0xffd700, // Golden
+      glowIntensity = 1.5,
+    } = config;
+
+    // Store current state for smooth transition
+    sphereStates.forEach((state, i) => {
+      prevPositions[i].copy(state.currentPosition);
+      prevScales[i] = state.currentScale;
+    });
+
+    // Enable instance colors
+    useInstanceColors = true;
+
+    // Set up solar system: one large center, rest orbiting
+    sphereStates.forEach((state, i) => {
+      if (i === 0) {
+        // Center sphere - large and golden
+        solarParams[i].isCenter = true;
+        state.targetPosition.set(0, 0, 8);
+        state.targetScale = 3;
+        state.active = true;
+        sphereColors[i].setHex(centerColor);
+      } else if (i < 60) {
+        // Orbiting spheres (use first ~60 spheres)
+        solarParams[i].isCenter = false;
+        solarParams[i].orbitRadius = 6 + Math.random() * 14;
+        solarParams[i].orbitAngle = Math.random() * Math.PI * 2;
+        solarParams[i].orbitSpeed = 0.08 + Math.random() * 0.12;
+        solarParams[i].orbitTilt = (Math.random() - 0.5) * Math.PI * 0.4;
+        solarParams[i].glowPhase = Math.random() * Math.PI * 2;
+
+        const angle = solarParams[i].orbitAngle;
+        const r = solarParams[i].orbitRadius;
+        state.targetPosition.set(
+          Math.cos(angle) * r,
+          Math.sin(angle) * r * 0.3,
+          8
+        );
+        state.targetScale = 0.4;
+        state.active = true;
+
+        // Assign random orbit color
+        sphereColors[i].setHex(orbitColors[Math.floor(Math.random() * orbitColors.length)]);
+      } else {
+        // Hide remaining spheres
+        state.targetScale = 0;
+        state.active = false;
+      }
+    });
+
+    formationMode = 'solarSystem';
+    collapsed = false;
+    transitionStartTime = performance.now();
+  };
+
+  const resize = (width: number, height: number) => {
+    camera.aspect = width / height;
+    camera.updateProjectionMatrix();
+    renderer.setSize(width, height);
+  };
+
+  const dispose = () => {
+    stop();
+    window.removeEventListener('mousemove', handleMouseMove);
+    renderer.dispose();
+    sphereGeometry.dispose();
+    sphereMaterial.dispose();
+  };
+
+  return {
+    canvas: renderer.domElement,
+    start,
+    stop,
+    setScrollProgress,
+    transitionToImage,
+    transitionToTypeCase,
+    transitionToIllustration,
+    transitionToGlobe,
+    transitionToSolarSystem,
+    collapseToCenter,
+    restore,
+    isCollapsed,
+    dispose,
+    resize,
+  };
+}
+#+end_src
+
+** Illustration Editor
+
+An interactive editor for creating, adjusting, and saving halftone illustrations.
+Saved illustrations are resolution-independent and can be rendered at any grid size.
+
+#+NAME: halftone-editor
+#+begin_src typescript :use sourceOnly
+import * as THREE from 'three';
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+import { proxyImageUrl } from './halftone-spheres.org?name=image-utils';
+
+/**
+ * Resolution-independent halftone illustration format
+ */
+export interface HalftoneIllustration {
+  version: 1;
+  name: string;
+  type: 'image' | 'typecase' | 'custom';
+  /** Original source (URL or config) for reference */
+  source?: string | object;
+  /** Normalized point data (0-1 range) */
+  points: Array<{
+    /** Normalized X position (0-1) */
+    nx: number;
+    /** Normalized Y position (0-1) */
+    ny: number;
+    /** Normalized Z depth (0-1, 0=back, 1=front) */
+    nz: number;
+    /** Normalized scale (0-1) */
+    scale: number;
+  }>;
+  /** Illustration transform */
+  transform: {
+    x: number;
+    y: number;
+    z: number;
+    scale: number;
+  };
+  /** Camera settings */
+  camera: {
+    position: { x: number; y: number; z: number };
+    lookAt: { x: number; y: number; z: number };
+    fov: number;
+  };
+  /** Creation metadata */
+  created?: string;
+}
+
+export interface EditorOptions {
+  width?: number;
+  height?: number;
+  backgroundColor?: number;
+  sphereColor?: number;
+  /** Initial grid size for preview (can change) */
+  gridSize?: number;
+}
+
+export interface EditorResult {
+  container: HTMLElement;
+  /** Load illustration from URL */
+  loadFromUrl: (url: string) => Promise<void>;
+  /** Load from saved illustration */
+  loadIllustration: (illustration: HalftoneIllustration) => void;
+  /** Export current state */
+  exportIllustration: (name: string) => HalftoneIllustration;
+  /** Update grid resolution (re-renders) */
+  setGridSize: (size: number) => void;
+  /** Dispose resources */
+  dispose: () => void;
+}
+
+/**
+ * Load an image from URL
+ * Uses CORS proxy for external URLs automatically
+ */
+async function loadImage(url: string): Promise<HTMLImageElement> {
+  // Use proxy for external URLs to avoid CORS issues
+  const proxyUrl = proxyImageUrl(url);
+
+  return new Promise<HTMLImageElement>((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => resolve(img);
+    img.onerror = () => reject(new Error(`Failed to load image: ${url}`));
+    img.src = proxyUrl;
+  });
+}
+
+/**
+ * Process image to normalized point data
+ */
+async function imageToNormalizedPoints(
+  url: string,
+  sampleSize: number = 100
+): Promise<HalftoneIllustration['points']> {
+  // Load image
+  const img = await loadImage(url);
+
+  // Draw to canvas
+  const canvas = document.createElement('canvas');
+  canvas.width = sampleSize;
+  canvas.height = sampleSize;
+  const ctx = canvas.getContext('2d')!;
+
+  // Draw image centered and scaled to fit
+  const scale = Math.min(sampleSize / img.width, sampleSize / img.height);
+  const w = img.width * scale;
+  const h = img.height * scale;
+  const x = (sampleSize - w) / 2;
+  const y = (sampleSize - h) / 2;
+
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, sampleSize, sampleSize);
+  ctx.drawImage(img, x, y, w, h);
+
+  // Sample pixels
+  const imageData = ctx.getImageData(0, 0, sampleSize, sampleSize);
+  const { data } = imageData;
+  const points: HalftoneIllustration['points'] = [];
+
+  for (let py = 0; py < sampleSize; py++) {
+    for (let px = 0; px < sampleSize; px++) {
+      const i = (py * sampleSize + px) * 4;
+      const r = data[i];
+      const g = data[i + 1];
+      const b = data[i + 2];
+      const a = data[i + 3];
+
+      // Skip transparent
+      if (a < 30) continue;
+
+      // Calculate brightness (inverted - dark = visible)
+      const brightness = 1 - (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+
+      // Skip very light areas
+      if (brightness < 0.05) continue;
+
+      points.push({
+        nx: px / sampleSize,
+        ny: py / sampleSize,
+        nz: brightness, // Depth based on darkness
+        scale: brightness,
+      });
+    }
+  }
+
+  return points;
+}
+
+/**
+ * Render normalized points at a specific grid size
+ */
+function renderPoints(
+  points: HalftoneIllustration['points'],
+  transform: HalftoneIllustration['transform'],
+  gridSize: number,
+  depthScale: number = 10
+): Array<{ x: number; y: number; z: number; scale: number }> {
+  const result: Array<{ x: number; y: number; z: number; scale: number }> = [];
+
+  const halfGrid = gridSize / 2;
+  const { x: tx, y: ty, z: tz, scale: tScale } = transform;
+
+  for (const point of points) {
+    // Convert normalized coords to grid coords
+    const x = (point.nx - 0.5) * gridSize * tScale + tx;
+    const y = (0.5 - point.ny) * gridSize * tScale + ty; // Flip Y
+    const z = point.nz * depthScale + tz;
+    const scale = point.scale * tScale * 0.5;
+
+    result.push({ x, y, z, scale });
+  }
+
+  return result;
+}
+
+/**
+ * Create the halftone illustration editor
+ */
+export function createHalftoneEditor(options: EditorOptions = {}): EditorResult {
+  const {
+    width = 800,
+    height = 600,
+    backgroundColor = 0x0a0a0f,
+    sphereColor = 0xffffff,
+    gridSize: initialGridSize = 80,
+  } = options;
+
+  // State
+  let currentPoints: HalftoneIllustration['points'] = [];
+  let currentSource: string | object | undefined;
+  let currentType: HalftoneIllustration['type'] = 'image';
+  let gridSize = initialGridSize;
+
+  let transform = {
+    x: 0,
+    y: 0,
+    z: 0,
+    scale: 1,
+  };
+
+  // Create container
+  const container = document.createElement('div');
+  container.style.cssText = `
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    padding: 1rem;
+    background: #1a1a2e;
+    border-radius: 8px;
+  `;
+
+  // Controls panel
+  const controls = document.createElement('div');
+  controls.style.cssText = `
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    align-items: center;
+  `;
+
+  // URL input
+  const urlInput = document.createElement('input');
+  urlInput.type = 'text';
+  urlInput.placeholder = 'Image URL...';
+  urlInput.style.cssText = `
+    flex: 1;
+    min-width: 200px;
+    padding: 0.5rem;
+    background: #2a2a4e;
+    border: 1px solid #3a3a6e;
+    border-radius: 4px;
+    color: white;
+  `;
+
+  // Load button
+  const loadBtn = document.createElement('button');
+  loadBtn.textContent = 'Load Image';
+  loadBtn.style.cssText = `
+    padding: 0.5rem 1rem;
+    background: #4a4a8e;
+    border: none;
+    border-radius: 4px;
+    color: white;
+    cursor: pointer;
+  `;
+
+  // Grid size selector
+  const gridLabel = document.createElement('label');
+  gridLabel.textContent = 'Grid: ';
+  gridLabel.style.color = 'white';
+
+  const gridSelect = document.createElement('select');
+  gridSelect.style.cssText = `
+    padding: 0.5rem;
+    background: #2a2a4e;
+    border: 1px solid #3a3a6e;
+    border-radius: 4px;
+    color: white;
+  `;
+  [40, 60, 80, 100, 120, 150, 200].forEach(size => {
+    const opt = document.createElement('option');
+    opt.value = String(size);
+    opt.textContent = String(size);
+    if (size === initialGridSize) opt.selected = true;
+    gridSelect.appendChild(opt);
+  });
+
+  // Export button
+  const exportBtn = document.createElement('button');
+  exportBtn.textContent = 'Export JSON';
+  exportBtn.style.cssText = `
+    padding: 0.5rem 1rem;
+    background: #2a8a4a;
+    border: none;
+    border-radius: 4px;
+    color: white;
+    cursor: pointer;
+  `;
+
+  // Import button
+  const importBtn = document.createElement('button');
+  importBtn.textContent = 'Import JSON';
+  importBtn.style.cssText = `
+    padding: 0.5rem 1rem;
+    background: #8a4a2a;
+    border: none;
+    border-radius: 4px;
+    color: white;
+    cursor: pointer;
+  `;
+
+  controls.appendChild(urlInput);
+  controls.appendChild(loadBtn);
+  controls.appendChild(gridLabel);
+  controls.appendChild(gridSelect);
+  controls.appendChild(exportBtn);
+  controls.appendChild(importBtn);
+
+  // Transform controls
+  const transformControls = document.createElement('div');
+  transformControls.style.cssText = `
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+    color: white;
+    font-size: 0.85rem;
+  `;
+
+  const createSlider = (label: string, min: number, max: number, value: number, step: number, onChange: (v: number) => void) => {
+    const wrapper = document.createElement('div');
+    wrapper.style.cssText = 'display: flex; align-items: center; gap: 0.25rem;';
+
+    const lbl = document.createElement('span');
+    lbl.textContent = label;
+
+    const slider = document.createElement('input');
+    slider.type = 'range';
+    slider.min = String(min);
+    slider.max = String(max);
+    slider.value = String(value);
+    slider.step = String(step);
+    slider.style.width = '80px';
+
+    const valDisplay = document.createElement('span');
+    valDisplay.textContent = String(value);
+    valDisplay.style.width = '40px';
+
+    slider.oninput = () => {
+      const v = parseFloat(slider.value);
+      valDisplay.textContent = v.toFixed(1);
+      onChange(v);
+    };
+
+    wrapper.appendChild(lbl);
+    wrapper.appendChild(slider);
+    wrapper.appendChild(valDisplay);
+    return { wrapper, slider, valDisplay };
+  };
+
+  const xSlider = createSlider('X:', -50, 50, 0, 1, v => { transform.x = v; updateMesh(); });
+  const ySlider = createSlider('Y:', -50, 50, 0, 1, v => { transform.y = v; updateMesh(); });
+  const zSlider = createSlider('Z:', -20, 20, 0, 1, v => { transform.z = v; updateMesh(); });
+  const scaleSlider = createSlider('Scale:', 0.1, 3, 1, 0.1, v => { transform.scale = v; updateMesh(); });
+
+  transformControls.appendChild(xSlider.wrapper);
+  transformControls.appendChild(ySlider.wrapper);
+  transformControls.appendChild(zSlider.wrapper);
+  transformControls.appendChild(scaleSlider.wrapper);
+
+  // Canvas container
+  const canvasContainer = document.createElement('div');
+  canvasContainer.style.cssText = `
+    width: 100%;
+    height: ${height}px;
+    border-radius: 4px;
+    overflow: hidden;
+  `;
+
+  // Status bar
+  const status = document.createElement('div');
+  status.style.cssText = `
+    color: #888;
+    font-size: 0.85rem;
+  `;
+  status.textContent = 'Ready. Enter an image URL and click Load.';
+
+  container.appendChild(controls);
+  container.appendChild(transformControls);
+  container.appendChild(canvasContainer);
+  container.appendChild(status);
+
+  // Three.js setup
+  const scene = new THREE.Scene();
+  scene.background = new THREE.Color(backgroundColor);
+
+  const camera = new THREE.PerspectiveCamera(50, width / height, 0.1, 1000);
+  camera.position.set(0, 0, 80);
+
+  const renderer = new THREE.WebGLRenderer({ antialias: true });
+  renderer.setSize(width, height);
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  canvasContainer.appendChild(renderer.domElement);
+
+  const orbitControls = new OrbitControls(camera, renderer.domElement);
+  orbitControls.enableDamping = true;
+  orbitControls.dampingFactor = 0.05;
+
+  // Sphere mesh
+  const sphereGeometry = new THREE.SphereGeometry(0.5, 8, 8);
+  const sphereMaterial = new THREE.MeshBasicMaterial({ color: sphereColor });
+  let instancedMesh: THREE.InstancedMesh | null = null;
+
+  const matrix = new THREE.Matrix4();
+
+  function updateMesh() {
+    if (currentPoints.length === 0) return;
+
+    const rendered = renderPoints(currentPoints, transform, gridSize);
+
+    // Recreate mesh if point count changed
+    if (!instancedMesh || instancedMesh.count !== rendered.length) {
+      if (instancedMesh) {
+        scene.remove(instancedMesh);
+        instancedMesh.dispose();
+      }
+      instancedMesh = new THREE.InstancedMesh(sphereGeometry, sphereMaterial, rendered.length);
+      scene.add(instancedMesh);
+    }
+
+    // Update positions
+    rendered.forEach((point, i) => {
+      matrix.makeScale(point.scale, point.scale, point.scale);
+      matrix.setPosition(point.x, point.y, point.z);
+      instancedMesh!.setMatrixAt(i, matrix);
+    });
+    instancedMesh.instanceMatrix.needsUpdate = true;
+
+    status.textContent = `Points: ${rendered.length} | Grid: ${gridSize} | Use mouse to orbit camera`;
+  }
+
+  // Animation loop
+  let animationId: number;
+  function animate() {
+    animationId = requestAnimationFrame(animate);
+    orbitControls.update();
+    renderer.render(scene, camera);
+  }
+  animate();
+
+  // Event handlers
+  const loadFromUrl = async (url: string) => {
+    status.textContent = 'Loading image...';
+    try {
+      currentPoints = await imageToNormalizedPoints(url, 100);
+      currentSource = url;
+      currentType = 'image';
+      updateMesh();
+      status.textContent = `Loaded ${currentPoints.length} points from image`;
+    } catch (e) {
+      status.textContent = `Error loading image: ${e}`;
+    }
+  };
+
+  loadBtn.onclick = () => {
+    if (urlInput.value) loadFromUrl(urlInput.value);
+  };
+
+  urlInput.onkeydown = (e) => {
+    if (e.key === 'Enter' && urlInput.value) loadFromUrl(urlInput.value);
+  };
+
+  gridSelect.onchange = () => {
+    gridSize = parseInt(gridSelect.value);
+    updateMesh();
+  };
+
+  const exportIllustration = (name: string): HalftoneIllustration => {
+    return {
+      version: 1,
+      name,
+      type: currentType,
+      source: currentSource,
+      points: currentPoints,
+      transform: { ...transform },
+      camera: {
+        position: { x: camera.position.x, y: camera.position.y, z: camera.position.z },
+        lookAt: { x: orbitControls.target.x, y: orbitControls.target.y, z: orbitControls.target.z },
+        fov: camera.fov,
+      },
+      created: new Date().toISOString(),
+    };
+  };
+
+  exportBtn.onclick = () => {
+    const name = prompt('Illustration name:', 'my-illustration') || 'illustration';
+    const illustration = exportIllustration(name);
+    const json = JSON.stringify(illustration, null, 2);
+
+    // Copy to clipboard
+    navigator.clipboard.writeText(json).then(() => {
+      status.textContent = 'JSON copied to clipboard!';
+    }).catch(() => {
+      // Fallback: show in prompt
+      console.log(json);
+      status.textContent = 'JSON logged to console (clipboard failed)';
+    });
+  };
+
+  const loadIllustration = (illustration: HalftoneIllustration) => {
+    currentPoints = illustration.points;
+    currentSource = illustration.source;
+    currentType = illustration.type;
+    transform = { ...illustration.transform };
+
+    // Update UI
+    xSlider.slider.value = String(transform.x);
+    xSlider.valDisplay.textContent = transform.x.toFixed(1);
+    ySlider.slider.value = String(transform.y);
+    ySlider.valDisplay.textContent = transform.y.toFixed(1);
+    zSlider.slider.value = String(transform.z);
+    zSlider.valDisplay.textContent = transform.z.toFixed(1);
+    scaleSlider.slider.value = String(transform.scale);
+    scaleSlider.valDisplay.textContent = transform.scale.toFixed(1);
+
+    // Update camera
+    if (illustration.camera) {
+      camera.position.set(
+        illustration.camera.position.x,
+        illustration.camera.position.y,
+        illustration.camera.position.z
+      );
+      orbitControls.target.set(
+        illustration.camera.lookAt.x,
+        illustration.camera.lookAt.y,
+        illustration.camera.lookAt.z
+      );
+      camera.fov = illustration.camera.fov;
+      camera.updateProjectionMatrix();
+    }
+
+    updateMesh();
+    status.textContent = `Loaded illustration: ${illustration.name}`;
+  };
+
+  importBtn.onclick = () => {
+    const json = prompt('Paste illustration JSON:');
+    if (json) {
+      try {
+        const illustration = JSON.parse(json) as HalftoneIllustration;
+        loadIllustration(illustration);
+      } catch (e) {
+        status.textContent = `Error parsing JSON: ${e}`;
+      }
+    }
+  };
+
+  const setGridSize = (size: number) => {
+    gridSize = size;
+    gridSelect.value = String(size);
+    updateMesh();
+  };
+
+  const dispose = () => {
+    cancelAnimationFrame(animationId);
+    orbitControls.dispose();
+    renderer.dispose();
+    sphereGeometry.dispose();
+    sphereMaterial.dispose();
+    if (instancedMesh) instancedMesh.dispose();
+  };
+
+  return {
+    container,
+    loadFromUrl,
+    loadIllustration,
+    exportIllustration,
+    setGridSize,
+    dispose,
+  };
+}
+
+/**
+ * Render a saved illustration at a specific resolution
+ * Use this in production to render from cached data
+ */
+export function renderIllustration(
+  illustration: HalftoneIllustration,
+  gridSize: number,
+  options: {
+    depthScale?: number;
+    sphereScale?: number;
+  } = {}
+): Map<string, { x: number; y: number; z: number; scale: number }> {
+  const { depthScale = 10, sphereScale = 1 } = options;
+
+  const rendered = renderPoints(illustration.points, illustration.transform, gridSize, depthScale);
+  const targets = new Map<string, { x: number; y: number; z: number; scale: number }>();
+
+  // Map to grid positions
+  rendered.forEach((point, i) => {
+    const gx = Math.floor(point.x + gridSize / 2);
+    const gy = Math.floor(gridSize / 2 - point.y);
+    const key = `${gx},${gy}`;
+
+    // If position already has a point, keep the one with larger scale
+    const existing = targets.get(key);
+    if (!existing || point.scale > existing.scale) {
+      targets.set(key, {
+        x: point.x,
+        y: point.y,
+        z: point.z,
+        scale: point.scale * sphereScale,
+      });
+    }
+  });
+
+  // Fill remaining grid positions with invisible spheres
+  for (let gy = 0; gy < gridSize; gy++) {
+    for (let gx = 0; gx < gridSize; gx++) {
+      const key = `${gx},${gy}`;
+      if (!targets.has(key)) {
+        targets.set(key, {
+          x: gx - gridSize / 2,
+          y: gridSize / 2 - gy,
+          z: 0,
+          scale: 0,
+        });
+      }
+    }
+  }
+
+  return targets;
+}
+
+export default createHalftoneEditor;
+#+end_src
+
+*** Editor Demo
+
+Try the editor below - load an image, adjust position/scale, orbit the camera, then export!
+
+#+NAME: editor-demo
+#+begin_src typescript :use sourceOnly
+import { createHalftoneEditor } from './halftone-spheres.org?name=halftone-editor';
+
+const editor = createHalftoneEditor({
+  width: 800,
+  height: 500,
+  gridSize: 80,
+});
+
+// Pre-fill with a sample image
+const urlInput = editor.container.querySelector('input[type="text"]') as HTMLInputElement;
+if (urlInput) {
+  urlInput.value = '/images/typewriter-machine.png';
+}
+
+export default editor.container;
+#+end_src
+
+** Colored by brightness
+
+#+NAME: colored-halftone
+#+begin_src typescript :use sourceOnly
+import * as THREE from 'three';
+
+/**
+ * Halftone with color gradient based on brightness
+ * (Stub - extend BackgroundHalftone for full implementation)
+ */
+export async function createColoredHalftone(options: {
+  imageUrl: string;
+  gridSize?: number;
+  sphereScale?: number;
+  colorStart?: THREE.Color;
+  colorEnd?: THREE.Color;
+}) {
+  // Use InstancedMesh with per-instance colors
+  // Each sphere gets a color interpolated between colorStart and colorEnd
+  // based on its size/brightness
+}
+#+end_src
+
+** Animated wave
+
+#+NAME: wave-halftone
+#+begin_src typescript :use sourceOnly
+import * as THREE from 'three';
+
+/**
+ * Halftone with animated wave effect
+ * Spheres oscillate in Z based on time and position
+ */
+export function addWaveAnimation(
+  instancedMesh: THREE.InstancedMesh,
+  spherePositions: THREE.Vector3[],
+  amplitude = 2,
+  frequency = 0.1
+) {
+  const matrix = new THREE.Matrix4();
+
+  return (time: number) => {
+    spherePositions.forEach((pos, i) => {
+      const z = Math.sin(pos.x * frequency + time) *
+                Math.cos(pos.y * frequency + time) * amplitude;
+      matrix.setPosition(pos.x, pos.y, z);
+      instancedMesh.setMatrixAt(i, matrix);
+    });
+    instancedMesh.instanceMatrix.needsUpdate = true;
+  };
+}
+#+end_src

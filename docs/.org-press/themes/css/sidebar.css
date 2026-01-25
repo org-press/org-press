@@ -1,0 +1,127 @@
+/**
+ * Sidebar navigation styles
+ *
+ * Left sidebar with contextual navigation.
+ * Shows items for the currently active top nav section.
+ */
+
+.sidebar {
+  grid-area: sidebar;
+  position: sticky;
+  top: var(--docs-header-total-height);
+  height: calc(100vh - var(--docs-header-total-height));
+  overflow-y: auto;
+  overflow-x: hidden;
+  border-right: 1px solid var(--docs-sidebar-border);
+  background: var(--docs-sidebar-bg);
+}
+
+.sidebar-content {
+  padding: var(--docs-spacing-lg);
+}
+
+.sidebar-nav {
+  /* Navigation container */
+}
+
+/* Section title */
+.sidebar-section-title {
+  font-size: var(--docs-font-size-xs);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--docs-text);
+  margin: 0 0 var(--docs-spacing-sm);
+  padding: var(--docs-spacing-sm) 0;
+}
+
+/* Nav list */
+.sidebar-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.sidebar-list-nested {
+  padding-left: var(--docs-spacing-md);
+}
+
+/* Nav item */
+.sidebar-item {
+  margin: var(--docs-spacing-xs) 0;
+}
+
+/* Nav link */
+.sidebar-link {
+  display: block;
+  padding: var(--docs-spacing-xs) var(--docs-spacing-sm);
+  font-size: var(--docs-font-size-sm);
+  color: var(--docs-text-light);
+  text-decoration: none;
+  border-radius: var(--docs-radius-sm);
+  line-height: 1.5;
+  transition: color var(--docs-transition-fast),
+    background var(--docs-transition-fast);
+}
+
+.sidebar-link:hover {
+  color: var(--docs-text);
+  background: var(--docs-bg-soft);
+}
+
+.sidebar-link.active {
+  color: var(--docs-brand);
+  font-weight: 500;
+  background: var(--docs-bg-mute);
+}
+
+/* Group title (items without links) */
+.sidebar-group {
+  margin-top: var(--docs-spacing-md);
+}
+
+.sidebar-group-title {
+  display: block;
+  padding: var(--docs-spacing-xs) var(--docs-spacing-sm);
+  font-size: var(--docs-font-size-xs);
+  font-weight: 600;
+  color: var(--docs-text-lighter);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+/* Scrollbar styling */
+.sidebar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.sidebar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.sidebar::-webkit-scrollbar-thumb {
+  background: var(--docs-divider);
+  border-radius: 3px;
+}
+
+.sidebar::-webkit-scrollbar-thumb:hover {
+  background: var(--docs-text-lighter);
+}
+
+/* Active indicator line */
+.sidebar-item.active .sidebar-link::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3px;
+  height: 1em;
+  background: var(--docs-brand);
+  border-radius: 0 2px 2px 0;
+}
+
+/* Make sidebar-item relative for the indicator */
+.sidebar-item {
+  position: relative;
+}

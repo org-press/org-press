@@ -1,0 +1,67 @@
+#+TITLE: Consumer File
+
+This file imports and uses utilities from utils.org.
+
+* Using String Utils
+
+#+name: use-strings
+#+begin_src typescript
+import { capitalize, truncate, slugify } from "./utils/string-utils";
+
+const title = capitalize("hello world");
+const preview = truncate("This is a very long string that needs truncation", 20);
+const url = slugify("My Blog Post Title");
+
+console.log(title);
+console.log(preview);
+console.log(url);
+#+end_src
+
+* Using Math Utils
+
+#+name: use-math
+#+begin_src typescript
+import { clamp, lerp, randomInt } from "./utils/math-utils";
+
+const bounded = clamp(150, 0, 100);
+const interpolated = lerp(0, 100, 0.5);
+const random = randomInt(1, 10);
+
+console.log(bounded);
+console.log(interpolated);
+console.log(random);
+#+end_src
+
+* Using Array Utils
+
+#+name: use-arrays
+#+begin_src typescript
+import { unique, chunk, shuffle } from "./utils/array-utils";
+
+const numbers = [1, 2, 2, 3, 3, 3, 4];
+const uniqueNumbers = unique(numbers);
+const chunks = chunk([1, 2, 3, 4, 5, 6], 2);
+const shuffled = shuffle([1, 2, 3, 4, 5]);
+
+console.log(uniqueNumbers);
+console.log(chunks);
+console.log(shuffled);
+#+end_src
+
+* Combined Usage
+
+#+name: combined
+#+begin_src typescript
+import { capitalize, slugify } from "./utils/string-utils";
+import { clamp } from "./utils/math-utils";
+import { unique } from "./utils/array-utils";
+
+function processData(items: string[]): string[] {
+  return unique(items)
+    .map(item => capitalize(item))
+    .slice(0, clamp(items.length, 1, 5));
+}
+
+const result = processData(["apple", "banana", "apple", "cherry"]);
+console.log(result);
+#+end_src

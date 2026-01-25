@@ -1,0 +1,451 @@
+#+TITLE: React Plugin
+#+DESCRIPTION: Interactive React components with hooks and state management
+
+* React Plugin
+
+The React plugin enables writing React components directly in org-press documents with full support for hooks, state management, and TypeScript.
+
+** Installation
+
+#+begin_src bash
+npm install @org-press/react
+#+end_src
+
+** Configuration
+
+Add the React plugin to your org-press configuration:
+
+#+begin_src typescript :use sourceOnly
+// .org-press/config.ts
+import type { OrgPressUserConfig } from "org-press/config-types";
+import { reactPlugin } from "@org-press/react";
+
+const config: OrgPressUserConfig = {
+  plugins: [reactPlugin],
+};
+
+export default config;
+#+end_src
+
+** Basic Usage
+
+Use =:use react= to create React components:
+
+#+begin_export html
+<pre><code>#+begin_src tsx :use react
+import { useState } from 'react';
+
+export function render() {
+  const [count, setCount] = useState(0);
+
+  return (
+    &lt;button onClick={() => setCount(c => c + 1)}&gt;
+      Count: {count}
+    &lt;/button&gt;
+  );
+}
+#+end_src</code></pre>
+#+end_export
+
+** The =render= Function
+
+Every React block must export a =render= function that returns JSX:
+
+#+begin_export html
+<pre><code>export function render() {
+  return &lt;div&gt;Your component here&lt;/div&gt;;
+}</code></pre>
+#+end_export
+
+This function is called by org-press to render your component into the page.
+
+** Hooks Support
+
+All React hooks work as expected:
+
+*** useState
+
+#+begin_export html
+<pre><code>#+begin_src tsx :use react
+import { useState } from 'react';
+
+export function render() {
+  const [name, setName] = useState('');
+
+  return (
+    &lt;div&gt;
+      &lt;input
+        value={name}
+        onChange={(e) => setName(e.target.value)}
+        placeholder="Enter your name"
+      /&gt;
+      &lt;p&gt;Hello, {name || 'stranger'}!&lt;/p&gt;
+    &lt;/div&gt;
+  );
+}
+#+end_src</code></pre>
+#+end_export
+
+*** useEffect
+
+#+begin_export html
+<pre><code>#+begin_src tsx :use react
+import { useState, useEffect } from 'react';
+
+export function render() {
+  const [time, setTime] = useState(new Date());
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setTime(new Date());
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  return &lt;p&gt;Current time: {time.toLocaleTimeString()}&lt;/p&gt;;
+}
+#+end_src</code></pre>
+#+end_export
+
+*** useReducer
+
+#+begin_export html
+<pre><code>#+begin_src tsx :use react
+import { useReducer } from 'react';
+
+type State = { count: number };
+type Action = { type: 'increment' } | { type: 'decrement' } | { type: 'reset' };
+
+function reducer(state: State, action: Action): State {
+  switch (action.type) {
+    case 'increment': return { count: state.count + 1 };
+    case 'decrement': return { count: state.count - 1 };
+    case 'reset': return { count: 0 };
+  }
+}
+
+export function render() {
+  const [state, dispatch] = useReducer(reducer, { count: 0 });
+
+  return (
+    &lt;div&gt;
+      &lt;p&gt;Count: {state.count}&lt;/p&gt;
+      &lt;button onClick={() => dispatch({ type: 'decrement' })}&gt;-&lt;/button&gt;
+      &lt;button onClick={() => dispatch({ type: 'increment' })}&gt;+&lt;/button&gt;
+      &lt;button onClick={() => dispatch({ type: 'reset' })}&gt;Reset&lt;/button&gt;
+    &lt;/div&gt;
+  );
+}
+#+end_src</code></pre>
+#+end_export
+
+*** Custom Hooks
+
+#+begin_export html
+<pre><code>#+begin_src tsx :use react
+import { useState, useCallback } from 'react';
+
+function useToggle(initial = false) {
+  const [value, setValue] = useState(initial);
+  const toggle = useCallback(() => setValue(v => !v), []);
+  return [value, toggle] as const;
+}
+
+export function render() {
+  const [isOpen, toggleOpen] = useToggle();
+
+  return (
+    &lt;div&gt;
+      &lt;button onClick={toggleOpen}&gt;
+        {isOpen ? 'Close' : 'Open'}
+      &lt;/button&gt;
+      {isOpen && &lt;p&gt;Content is visible!&lt;/p&gt;}
+    &lt;/div&gt;
+  );
+}
+#+end_src</code></pre>
+#+end_export
+
+** TypeScript Support
+
+The React plugin has full TypeScript support:
+
+#+begin_export html
+<pre><code>#+begin_src tsx :use react
+import { useState } from 'react';
+
+interface Todo {
+  id: number;
+  text: string;
+  completed: boolean;
+}
+
+export function render() {
+  const [todos, setTodos] = useState&lt;Todo[]&gt;([]);
+  const [input, setInput] = useState('');
+
+  const addTodo = () => {
+    if (!input.trim()) return;
+    setTodos(prev => [
+      ...prev,
+      { id: Date.now(), text: input, completed: false }
+    ]);
+    setInput('');
+  };
+
+  const toggleTodo = (id: number) => {
+    setTodos(prev => prev.map(todo =>
+      todo.id === id ? { ...todo, completed: !todo.completed } : todo
+    ));
+  };
+
+  return (
+    &lt;div&gt;
+      &lt;div&gt;
+        &lt;input
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          onKeyPress={(e) => e.key === 'Enter' && addTodo()}
+        /&gt;
+        &lt;button onClick={addTodo}&gt;Add&lt;/button&gt;
+      &lt;/div&gt;
+      &lt;ul&gt;
+        {todos.map(todo => (
+          &lt;li
+            key={todo.id}
+            onClick={() => toggleTodo(todo.id)}
+            style={{ textDecoration: todo.completed ? 'line-through' : 'none' }}
+          &gt;
+            {todo.text}
+          &lt;/li&gt;
+        ))}
+      &lt;/ul&gt;
+    &lt;/div&gt;
+  );
+}
+#+end_src</code></pre>
+#+end_export
+
+** Styling Components
+
+*** Inline Styles
+
+#+begin_export html
+<pre><code>#+begin_src tsx :use react
+export function render() {
+  return (
+    &lt;button style={{
+      padding: '0.5rem 1rem',
+      background: '#4ecdc4',
+      color: 'white',
+      border: 'none',
+      borderRadius: '6px',
+      cursor: 'pointer',
+    }}&gt;
+      Styled Button
+    &lt;/button&gt;
+  );
+}
+#+end_src</code></pre>
+#+end_export
+
+*** CSS Classes
+
+Use CSS blocks to define styles, then apply them in your React components:
+
+#+begin_export html
+<pre><code>#+begin_src css
+.my-component {
+  padding: 1rem;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 8px;
+  color: white;
+}
+
+.my-component button {
+  background: white;
+  color: #667eea;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  cursor: pointer;
+}
+#+end_src
+
+#+begin_src tsx :use react
+export function render() {
+  return (
+    &lt;div className="my-component"&gt;
+      &lt;h3&gt;Styled Component&lt;/h3&gt;
+      &lt;button&gt;Click me&lt;/button&gt;
+    &lt;/div&gt;
+  );
+}
+#+end_src</code></pre>
+#+end_export
+
+** Combining with Wrappers
+
+Use the pipe syntax to add wrappers:
+
+#+begin_export html
+<pre><code>#+begin_src tsx :use react | withSourceCode
+import { useState } from 'react';
+
+export function render() {
+  const [count, setCount] = useState(0);
+  return &lt;button onClick={() => setCount(c => c + 1)}&gt;{count}&lt;/button&gt;;
+}
+#+end_src</code></pre>
+#+end_export
+
+This displays both the source code and the rendered component.
+
+** Custom Layouts
+
+Create custom layouts using React:
+
+#+begin_src typescript :use sourceOnly
+// .org-press/themes/layout.tsx
+import type { LayoutProps } from "org-press/types";
+
+export function Layout({ children, frontmatter }: LayoutProps) {
+  return (
+    <html lang="en">
+      <head>
+        <meta charSet="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>{frontmatter.title}</title>
+      </head>
+      <body>
+        <header>
+          <nav>
+            <a href="/">Home</a>
+            <a href="/docs">Docs</a>
+          </nav>
+        </header>
+        <main>{children}</main>
+        <footer>
+          <p>Built with org-press</p>
+        </footer>
+      </body>
+    </html>
+  );
+}
+#+end_src
+
+Configure it in your config:
+
+#+begin_src typescript :use sourceOnly
+// .org-press/config.ts
+import type { OrgPressUserConfig } from "org-press/config-types";
+import { reactPlugin } from "@org-press/react";
+
+const config: OrgPressUserConfig = {
+  theme: ".org-press/themes/layout.tsx",
+  plugins: [reactPlugin],
+};
+
+export default config;
+#+end_src
+
+** API Reference
+
+*** =reactPlugin=
+
+The main plugin export. Add to your config's =plugins= array.
+
+#+begin_src typescript :use sourceOnly
+import { reactPlugin } from "@org-press/react";
+
+// In config
+plugins: [reactPlugin]
+#+end_src
+
+*** Block Parameters
+
+| Parameter | Description |
+|-----------+-------------|
+| =:use react= | Enable React mode for this block |
+| =\vert withSourceCode= | Show source alongside rendered output |
+
+*** Supported Languages
+
+| Language | Extension | Description |
+|----------+-----------+-------------|
+| TSX | =.tsx= | TypeScript with JSX (recommended) |
+| JSX | =.jsx= | JavaScript with JSX |
+| TypeScript | =.ts= | TypeScript (requires manual createElement) |
+| JavaScript | =.js= | JavaScript (requires manual createElement) |
+
+** Comparison with DOM Mode
+
+| Feature | =:use dom= | =:use react= |
+|---------+------------+--------------|
+| Dependencies | None | React, ReactDOM |
+| State management | Manual | useState, useReducer |
+| Side effects | Manual | useEffect |
+| JSX support | No | Yes |
+| Virtual DOM | No | Yes |
+| Component lifecycle | Manual | Automatic |
+
+*** When to Use React Mode
+
+- Complex interactive UIs
+- Components with state
+- When you need React hooks
+- Building reusable components
+
+*** When to Use DOM Mode
+
+- Simple displays
+- Minimal interactivity
+- Avoid framework dependencies
+- Performance-critical scenarios
+
+** Troubleshooting
+
+*** Component not rendering
+
+Ensure you export a =render= function:
+
+#+begin_export html
+<pre><code>// ❌ Wrong
+function MyComponent() { return &lt;div&gt;Hello&lt;/div&gt;; }
+
+// ✅ Correct
+export function render() { return &lt;div&gt;Hello&lt;/div&gt;; }</code></pre>
+#+end_export
+
+*** Hooks not working
+
+Make sure hooks are called inside the =render= function:
+
+#+begin_export html
+<pre><code>// ❌ Wrong - hooks outside render
+const [count, setCount] = useState(0);
+export function render() { return &lt;div&gt;{count}&lt;/div&gt;; }
+
+// ✅ Correct - hooks inside render
+export function render() {
+  const [count, setCount] = useState(0);
+  return &lt;div&gt;{count}&lt;/div&gt;;
+}</code></pre>
+#+end_export
+
+*** TypeScript errors
+
+Ensure your block uses =tsx= language:
+
+#+begin_export html
+<pre><code>#+begin_src tsx :use react
+// TypeScript + JSX works here
+#+end_src</code></pre>
+#+end_export
+
+** See Also
+
+- [[/guide/rendering-modes.html][Rendering Modes]] - Overview of all modes
+- [[/plugins/index.html][Plugins]] - All available plugins
+- [[/guide/getting-started.html][Getting Started]] - Basic setup guide

@@ -1,0 +1,17 @@
+#+TITLE: Org-Press
+#+DESCRIPTION: Static site generator for org-mode files
+#+LAYOUT: landing
+
+#+NAME: landing-page
+#+begin_src typescript :use dom
+/**
+ * Landing Page Entry Point
+ *
+ * This minimal entry point imports and exports the complete landing page
+ * from the modular controller.
+ */
+
+import landingPage from './landing/controller.org?name=controller';
+
+export default landingPage;
+#+end_src

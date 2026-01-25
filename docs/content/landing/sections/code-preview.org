@@ -1,0 +1,179 @@
+#+TITLE: Code Preview Section
+#+DESCRIPTION: Code blocks demo with confetti
+
+* Code Preview Section
+
+Section demonstrating executable code blocks with tabs and confetti effect.
+
+#+NAME: code-preview
+#+begin_src typescript
+/**
+ * Code Preview Section
+ *
+ * Features:
+ * - Tabbed code examples (React vs DOM)
+ * - Confetti button demo
+ * - Syntax-highlighted code preview
+ */
+
+/**
+ * Create confetti particles from a point
+ */
+function createConfetti(originX: number, originY: number) {
+  const colors = ['#ff6b6b', '#4ecdc4', '#45b7d1', '#96ceb4', '#ffeaa7', '#dfe6e9', '#fd79a8'];
+  const particleCount = 80;
+
+  for (let i = 0; i < particleCount; i++) {
+    const particle = document.createElement('div');
+    particle.className = 'confetti-particle';
+
+    const color = colors[Math.floor(Math.random() * colors.length)];
+    const size = 6 + Math.random() * 6;
+    const angle = (Math.random() * 120 - 60) * (Math.PI / 180);
+    const velocity = 8 + Math.random() * 8;
+    const spin = (Math.random() - 0.5) * 720;
+
+    particle.style.cssText = `
+      position: fixed;
+      width: ${size}px;
+      height: ${size * 0.6}px;
+      background: ${color};
+      left: ${originX}px;
+      top: ${originY}px;
+      pointer-events: none;
+      z-index: 9999;
+      border-radius: 2px;
+    `;
+
+    document.body.appendChild(particle);
+
+    let x = 0;
+    let y = 0;
+    let vy = -velocity * Math.sin(Math.PI / 3 + angle * 0.5);
+    let vx = velocity * Math.cos(Math.PI / 3) * (Math.random() > 0.5 ? 1 : -1) * (0.5 + Math.random());
+    let rotation = 0;
+    let opacity = 1;
+    const gravity = 0.3;
+    const startTime = performance.now();
+
+    function animateParticle() {
+      const elapsed = performance.now() - startTime;
+      if (elapsed > 2000 || opacity <= 0) {
+        particle.remove();
+        return;
+      }
+
+      vy += gravity;
+      x += vx;
+      y += vy;
+      rotation += spin / 60;
+      opacity = Math.max(0, 1 - elapsed / 2000);
+
+      particle.style.transform = `translate(${x}px, ${y}px) rotate(${rotation}deg)`;
+      particle.style.opacity = String(opacity);
+
+      requestAnimationFrame(animateParticle);
+    }
+
+    requestAnimationFrame(animateParticle);
+  }
+}
+
+export function createCodePreview(): HTMLElement {
+  const section = document.createElement('section');
+  section.className = 'landing-section code-preview-section';
+  section.id = 'code-blocks';
+
+  section.innerHTML = `
+    <div class="section-content">
+      <div class="section-text">
+        <span class="section-label">Executable Code</span>
+        <h2>Codeblocks with Superpowers</h2>
+        <p>
+          Your code blocks aren't just syntax-highlighted text.
+          They execute in the browser with full TypeScript, JSX, and CSS support.
+          Click the button to see it in action.
+        </p>
+        <div class="demo-button-area">
+          <button class="confetti-btn" type="button" id="confetti-trigger">
+            Click Me!
+          </button>
+        </div>
+      </div>
+      <div class="section-visual">
+        <div class="code-block-preview code-tabs-container">
+          <div class="code-tabs">
+            <button class="code-tab active" data-tab="react">:use react</button>
+            <button class="code-tab" data-tab="dom">:use dom</button>
+          </div>
+          <div class="code-tab-content active" data-content="react">
+            <pre class="code-content"><code><span class="code-keyword">#+begin_src</span> <span class="code-type">tsx</span> <span class="code-attr">:use react</span>
+<span class="code-keyword">import</span> { useState } <span class="code-keyword">from</span> <span class="code-string">'react'</span>;
+
+<span class="code-keyword">export function</span> <span class="code-var">render</span>() {
+  <span class="code-keyword">const</span> [count, setCount] = useState(<span class="code-number">0</span>);
+  <span class="code-keyword">return</span> (
+    <span class="code-tag">&lt;button</span> <span class="code-attr">onClick</span>={() => setCount(c => c + <span class="code-number">1</span>)}<span class="code-tag">&gt;</span>
+      Clicked {count} times
+    <span class="code-tag">&lt;/button&gt;</span>
+  );
+}
+<span class="code-keyword">#+end_src</span></code></pre>
+          </div>
+          <div class="code-tab-content" data-content="dom">
+            <pre class="code-content"><code><span class="code-keyword">#+begin_src</span> <span class="code-type">typescript</span> <span class="code-attr">:use dom</span>
+<span class="code-keyword">let</span> count = <span class="code-number">0</span>;
+<span class="code-keyword">const</span> btn = document.createElement(<span class="code-string">'button'</span>);
+btn.textContent = <span class="code-string">'Clicked '</span> + count + <span class="code-string">' times'</span>;
+btn.onclick = () => {
+  count++;
+  btn.textContent = <span class="code-string">'Clicked '</span> + count + <span class="code-string">' times'</span>;
+};
+
+<span class="code-keyword">export function</span> <span class="code-var">render</span>() { <span class="code-keyword">return</span> btn; }
+<span class="code-keyword">#+end_src</span></code></pre>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+
+  // Set up interactions
+  requestAnimationFrame(() => {
+    // Confetti button
+    const confettiBtn = section.querySelector('#confetti-trigger');
+    if (confettiBtn) {
+      confettiBtn.addEventListener('click', () => {
+        const rect = (confettiBtn as HTMLElement).getBoundingClientRect();
+        createConfetti(
+          rect.left + rect.width / 2,
+          rect.top + rect.height / 2
+        );
+      });
+    }
+
+    // Code tabs switching
+    const codeTabs = section.querySelectorAll('.code-tab');
+    codeTabs.forEach(tab => {
+      tab.addEventListener('click', () => {
+        const tabId = tab.getAttribute('data-tab');
+        const tabsContainer = tab.closest('.code-tabs-container');
+        if (!tabsContainer || !tabId) return;
+
+        // Update active tab
+        tabsContainer.querySelectorAll('.code-tab').forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+
+        // Update active content
+        tabsContainer.querySelectorAll('.code-tab-content').forEach(c => c.classList.remove('active'));
+        const content = tabsContainer.querySelector(`[data-content="${tabId}"]`);
+        if (content) content.classList.add('active');
+      });
+    });
+  });
+
+  return section;
+}
+
+export default createCodePreview();
+#+end_src
