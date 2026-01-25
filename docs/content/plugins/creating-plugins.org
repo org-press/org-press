@@ -1,0 +1,547 @@
+#+TITLE: Creating Plugins
+#+DESCRIPTION: Complete guide to creating org-press block plugins
+
+* Creating Plugins
+
+This guide covers everything you need to build custom block plugins for org-press.
+
+** What is a Block Plugin?
+
+A block plugin transforms org-mode source blocks into rendered output. When org-press encounters a code block, it checks each plugin to see if it matches, then calls the plugin's =transform= function to generate HTML, JavaScript, or CSS.
+
+** Plugin Interface
+
+Every plugin implements the =BlockPlugin= interface:
+
+#+begin_export html
+<pre><code>interface BlockPlugin {
+  /** Unique plugin identifier */
+  name: string;
+
+  /** Languages this plugin handles (e.g., ["javascript", "typescript"]) */
+  languages?: string[];
+
+  /** Custom matching logic (alternative to languages) */
+  matches?(block: CodeBlock): boolean;
+
+  /** Transform the block into renderable output */
+  transform(block: CodeBlock, ctx: TransformContext): Promise&lt;TransformResult&gt;;
+
+  /** Optional: Server-side execution at build time */
+  onServer?(block: CodeBlock, ctx: TransformContext): Promise&lt;ServerResult&gt;;
+
+  /** Optional: CLI command to add to orgp */
+  cli?: CliCommand;
+}
+</code></pre>
+#+end_export
+
+** Your First Plugin
+
+Here's a minimal plugin that renders blocks with =:use greeting=:
+
+#+begin_export html
+<pre><code>// greeting-plugin.ts
+import type { BlockPlugin } from "org-press";
+
+export const greetingPlugin: BlockPlugin = {
+  name: "greeting",
+
+  // Match blocks with :use greeting parameter
+  matches(block) {
+    return block.parameters.use === "greeting";
+  },
+
+  // Transform the block content
+  async transform(block, ctx) {
+    const name = block.value.trim() || "World";
+    return {
+      html: `&lt;div class="greeting"&gt;Hello, ${name}!&lt;/div&gt;`,
+      css: `.greeting { font-size: 2rem; color: blue; }`,
+    };
+  },
+};
+</code></pre>
+#+end_export
+
+Usage in org file:
+
+#+begin_export html
+<pre><code>#+begin_src text :use greeting
+Alice
+#+end_src</code></pre>
+#+end_export
+
+** Matching Blocks
+
+Plugins can match blocks in two ways:
+
+*** By Language
+
+#+begin_export html
+<pre><code>export const myPlugin: BlockPlugin = {
+  name: "my-plugin",
+  languages: ["python", "python3"],
+  // ...
+};
+</code></pre>
+#+end_export
+
+Matches: =#+begin_src python= and =#+begin_src python3=
+
+*** By Parameter
+
+#+begin_export html
+<pre><code>export const myPlugin: BlockPlugin = {
+  name: "my-plugin",
+
+  matches(block) {
+    // Match any block with :use myplugin
+    return block.parameters.use === "myplugin";
+  },
+  // ...
+};
+</code></pre>
+#+end_export
+
+Matches: =#+begin_src javascript :use myplugin=
+
+*** Combined Matching
+
+#+begin_export html
+<pre><code>export const myPlugin: BlockPlugin = {
+  name: "my-plugin",
+  languages: ["json"],
+
+  matches(block) {
+    // Only match JSON blocks with :use diagram
+    return block.language === "json" &&
+           block.parameters.use === "diagram";
+  },
+  // ...
+};
+</code></pre>
+#+end_export
+
+** Transform Context
+
+The =ctx= parameter provides context about the block and project:
+
+#+begin_export html
+<pre><code>interface TransformContext {
+  /** Block parameters from org (e.g., { exports: "both", use: "server" }) */
+  parameters: Record&lt;string, string&gt;;
+
+  /** Full path to the org file */
+  filePath: string;
+
+  /** Project configuration */
+  config: OrgPressConfig;
+
+  /** Cache directory for generated files */
+  cacheDir: string;
+
+  /** Block name if provided via #+NAME: */
+  blockName?: string;
+}
+</code></pre>
+#+end_export
+
+** Transform Results
+
+The =transform= function returns what to render:
+
+*** HTML Only
+
+#+begin_export html
+<pre><code>async transform(block, ctx) {
+  return {
+    html: `&lt;div class="my-component"&gt;${block.value}&lt;/div&gt;`,
+  };
+}
+</code></pre>
+#+end_export
+
+*** HTML + CSS
+
+#+begin_export html
+<pre><code>async transform(block, ctx) {
+  return {
+    html: `&lt;div class="chart"&gt;&lt;/div&gt;`,
+    css: `.chart { width: 100%; height: 300px; }`,
+  };
+}
+</code></pre>
+#+end_export
+
+*** JavaScript Execution
+
+#+begin_export html
+<pre><code>async transform(block, ctx) {
+  return {
+    // Code runs in browser when page loads
+    code: `
+      const data = ${JSON.stringify(block.value)};
+      console.log("Loaded:", data);
+    `,
+  };
+}
+</code></pre>
+#+end_export
+
+*** With React Wrapper
+
+For interactive components, provide a wrapper:
+
+#+begin_export html
+<pre><code>async transform(block, ctx) {
+  return {
+    // Data passed to wrapper component
+    code: JSON.stringify({ value: block.value }),
+
+    // React component to render
+    wrapper: {
+      path: "@my-plugin/components",
+      exportName: "MyInteractiveComponent",
+    },
+  };
+}
+</code></pre>
+#+end_export
+
+** Creating Wrapper Components
+
+Wrappers are React components that receive the block data:
+
+#+begin_export html
+<pre><code>// components/MyInteractiveComponent.tsx
+import React, { useState, useEffect } from "react";
+
+interface Props {
+  data: string;  // The code string from transform
+  container: HTMLElement;  // DOM element to render into
+}
+
+export function MyInteractiveComponent({ data, container }: Props) {
+  const [state, setState] = useState(JSON.parse(data));
+
+  return (
+    &lt;div className="interactive-wrapper"&gt;
+      &lt;pre&gt;{JSON.stringify(state, null, 2)}&lt;/pre&gt;
+      &lt;button onClick={() =&gt; setState({ ...state, clicked: true })}&gt;
+        Click me
+      &lt;/button&gt;
+    &lt;/div&gt;
+  );
+}
+</code></pre>
+#+end_export
+
+** Server-Side Execution
+
+For build-time processing, implement =onServer=:
+
+#+begin_export html
+<pre><code>export const dataPlugin: BlockPlugin = {
+  name: "data-loader",
+
+  matches(block) {
+    return block.parameters.use === "data";
+  },
+
+  // Runs at build time with Node.js access
+  async onServer(block, ctx) {
+    const fs = await import("fs/promises");
+    const filePath = block.value.trim();
+    const content = await fs.readFile(filePath, "utf-8");
+
+    return {
+      result: JSON.parse(content),
+    };
+  },
+
+  // Transform receives server result
+  async transform(block, ctx) {
+    // ctx.serverResult contains what onServer returned
+    return {
+      html: `&lt;pre&gt;${JSON.stringify(ctx.serverResult, null, 2)}&lt;/pre&gt;`,
+    };
+  },
+};
+</code></pre>
+#+end_export
+
+** Adding CLI Commands
+
+Plugins can extend the =orgp= CLI:
+
+#+begin_export html
+<pre><code>export const testPlugin: BlockPlugin = {
+  name: "test",
+
+  cli: {
+    command: "test",
+    description: "Run tests in :use test blocks",
+    options: [
+      { flag: "-w, --watch", description: "Watch mode" },
+      { flag: "--coverage", description: "Collect coverage" },
+      { flag: "-t, --filter &lt;pattern&gt;", description: "Filter tests" },
+    ],
+
+    async action(args, config, plugins) {
+      console.log("Running tests...");
+      console.log("Options:", args);
+
+      // Find all test blocks
+      // Run vitest or your test runner
+      // Report results
+    },
+  },
+};
+</code></pre>
+#+end_export
+
+Usage:
+
+#+begin_src bash
+orgp test --watch
+orgp test --coverage
+orgp test -t "user validation"
+#+end_src
+
+** Complete Example: Chart Plugin
+
+Here's a full plugin that renders charts using Chart.js:
+
+#+begin_export html
+<pre><code>// chart-plugin.ts
+import type { BlockPlugin } from "org-press";
+
+export const chartPlugin: BlockPlugin = {
+  name: "chart",
+  languages: ["json"],
+
+  matches(block) {
+    return block.parameters.use === "chart";
+  },
+
+  async transform(block, ctx) {
+    const chartId = `chart-${Math.random().toString(36).slice(2)}`;
+    const config = JSON.parse(block.value);
+
+    return {
+      html: `&lt;canvas id="${chartId}" style="max-width: 600px;"&gt;&lt;/canvas&gt;`,
+
+      code: `
+        import Chart from 'chart.js/auto';
+
+        const ctx = document.getElementById('${chartId}');
+        new Chart(ctx, ${JSON.stringify(config)});
+      `,
+
+      css: `
+        #${chartId} {
+          margin: 1rem 0;
+        }
+      `,
+    };
+  },
+};
+</code></pre>
+#+end_export
+
+Usage:
+
+#+begin_export html
+<pre><code>#+begin_src json :use chart
+{
+  "type": "bar",
+  "data": {
+    "labels": ["Red", "Blue", "Yellow"],
+    "datasets": [{
+      "label": "Votes",
+      "data": [12, 19, 3]
+    }]
+  }
+}
+#+end_src</code></pre>
+#+end_export
+
+** Plugin Configuration
+
+Plugins can accept options:
+
+#+begin_export html
+<pre><code>// Plugin factory function
+export function createChartPlugin(options: ChartPluginOptions = {}) {
+  const { defaultType = "bar", theme = "light" } = options;
+
+  return {
+    name: "chart",
+
+    async transform(block, ctx) {
+      const config = JSON.parse(block.value);
+      config.type = config.type || defaultType;
+      // Apply theme...
+
+      return { /* ... */ };
+    },
+  } satisfies BlockPlugin;
+}
+
+// Usage in config
+export default {
+  plugins: [
+    createChartPlugin({ defaultType: "line", theme: "dark" }),
+  ],
+};
+</code></pre>
+#+end_export
+
+** Writing Plugins as Org Files (Literate Plugins)
+
+Plugins can be written as literate programming files that combine documentation, examples, and code. The code is extracted and compiled using =orgp build --block=.
+
+*** Literate Plugin Structure
+
+#+begin_export html
+<pre><code>my-literate-plugin/
+├── index.org         # Literate source (plugin + docs + examples)
+├── package.json
+└── dist/             # Built output
+    ├── index.js
+    └── index.d.ts
+</code></pre>
+#+end_export
+
+*** Example index.org
+
+#+begin_export html
+<pre><code class="language-org">&#35;+TITLE: My Plugin
+&#35;+DESCRIPTION: A literate plugin example
+
+* Documentation
+
+This plugin does amazing things...
+
+* Plugin Implementation
+
+&#35;+NAME: plugin
+&#35;+begin_src typescript
+import type { BlockPlugin } from "org-press";
+
+export const myPlugin: BlockPlugin = {
+  name: "my-plugin",
+  async transform(block, ctx) {
+    return { html: "&lt;div&gt;" + block.value + "&lt;/div&gt;" };
+  },
+};
+
+export default myPlugin;
+&#35;+end_src
+
+* Examples
+
+...usage examples here...
+</code></pre>
+#+end_export
+
+*** Building the Plugin
+
+#+begin_export html
+<pre><code class="language-bash"># Extract and compile the "plugin" block to dist/
+orgp build index.org --block plugin --out dist/
+
+# The generated files:
+# dist/plugin.js    - Compiled JavaScript
+# dist/plugin.d.ts  - TypeScript declarations
+# dist/index.js     - Re-exports all blocks
+# dist/index.d.ts
+</code></pre>
+#+end_export
+
+*** package.json for Literate Plugins
+
+#+begin_export html
+<pre><code class="language-json">{
+  "name": "my-org-press-plugin",
+  "type": "module",
+  "exports": {
+    ".": { "import": "./dist/index.js", "types": "./dist/index.d.ts" }
+  },
+  "scripts": {
+    "build": "orgp build index.org --block plugin --out dist/"
+  },
+  "peerDependencies": {
+    "org-press": "^0.2.0"
+  }
+}
+</code></pre>
+#+end_export
+
+See the [[/plugins/echarts.html][ECharts Plugin]] for a complete literate plugin example.
+
+** Publishing Your Plugin
+
+*** Traditional Package Structure
+
+#+begin_export html
+<pre><code>my-org-press-plugin/
+├── src/
+│   ├── index.ts        # Plugin export
+│   └── components/     # Wrapper components (if any)
+├── package.json
+├── tsconfig.json
+└── README.md
+</code></pre>
+#+end_export
+
+*** package.json
+
+#+begin_export html
+<pre><code>{
+  "name": "my-org-press-plugin",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": "./dist/index.js",
+    "./components": "./dist/components/index.js"
+  },
+  "peerDependencies": {
+    "org-press": "^0.2.0"
+  }
+}
+</code></pre>
+#+end_export
+
+*** Export Your Plugin
+
+#+begin_export html
+<pre><code>// src/index.ts
+export { myPlugin } from "./plugin";
+export { createMyPlugin } from "./plugin";
+
+// Re-export types if useful
+export type { MyPluginOptions } from "./types";
+</code></pre>
+#+end_export
+
+** Best Practices
+
+1. *Use unique names* - Prefix with your package name to avoid conflicts
+2. *Handle errors gracefully* - Return helpful error HTML instead of throwing
+3. *Support rendering modes* - Respect =dom=, =sourceOnly=, =silent=, =raw=
+4. *Document your syntax* - Show example org blocks in README
+5. *Test your plugin* - Use =:use test= blocks to verify behavior
+6. *Minimize dependencies* - Keep bundle size small
+7. *Support SSR* - Ensure wrappers work with server-side rendering
+
+** See Also
+
+- [[/api/plugin-api.html][Plugin API Reference]] - Complete API documentation
+- [[/api/cli-plugins.html][CLI Plugins]] - Adding CLI commands
+- [[/plugins/excalidraw.html][Excalidraw Plugin]] - Example: diagram plugin
+- [[/plugins/jscad.html][JSCAD Plugin]] - Example: 3D modeling plugin
+- [[/plugins/test.html][Test Plugin]] - Example: CLI integration

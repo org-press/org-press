@@ -1,0 +1,67 @@
+#+TITLE: Utility Functions
+
+This file exports utility functions used by other files.
+
+* String Utilities
+
+#+name: string-utils
+#+begin_src typescript
+export function capitalize(str: string): string {
+  return str.charAt(0).toUpperCase() + str.slice(1);
+}
+
+export function truncate(str: string, length: number): string {
+  if (str.length <= length) return str;
+  return str.slice(0, length) + "...";
+}
+
+export function slugify(str: string): string {
+  return str
+    .toLowerCase()
+    .replace(/\s+/g, "-")
+    .replace(/[^a-z0-9-]/g, "");
+}
+#+end_src
+
+* Math Utilities
+
+#+name: math-utils
+#+begin_src typescript
+export function clamp(value: number, min: number, max: number): number {
+  return Math.min(Math.max(value, min), max);
+}
+
+export function lerp(start: number, end: number, t: number): number {
+  return start + (end - start) * t;
+}
+
+export function randomInt(min: number, max: number): number {
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+#+end_src
+
+* Array Utilities
+
+#+name: array-utils
+#+begin_src typescript
+export function unique<T>(arr: T[]): T[] {
+  return [...new Set(arr)];
+}
+
+export function chunk<T>(arr: T[], size: number): T[][] {
+  const chunks: T[][] = [];
+  for (let i = 0; i < arr.length; i += size) {
+    chunks.push(arr.slice(i, i + size));
+  }
+  return chunks;
+}
+
+export function shuffle<T>(arr: T[]): T[] {
+  const result = [...arr];
+  for (let i = result.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [result[i], result[j]] = [result[j], result[i]];
+  }
+  return result;
+}
+#+end_src
