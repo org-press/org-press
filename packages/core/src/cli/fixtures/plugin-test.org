@@ -1,0 +1,41 @@
+#!/usr/bin/env orgp
+#+TITLE: @org-press/test-plugin
+#+VERSION: 1.0.0
+#+DESCRIPTION: A test plugin for org-press
+#+AUTHOR: Test Author
+#+LICENSE: MIT
+#+KEYWORDS: org-press, plugin, test
+
+* Overview
+
+This is a test plugin that demonstrates the deploy functionality.
+
+* Implementation
+
+#+NAME: main
+#+begin_src typescript
+/**
+ * Test plugin entry point
+ */
+export function createPlugin(): object {
+  return {
+    name: 'test-plugin',
+    languages: ['test'],
+    transform(block: any) {
+      return { code: `export default ${JSON.stringify(block.value)};` };
+    }
+  };
+}
+
+export default createPlugin;
+#+end_src
+
+* Types
+
+#+NAME: types
+#+begin_src typescript
+export interface PluginConfig {
+  name: string;
+  enabled?: boolean;
+}
+#+end_src

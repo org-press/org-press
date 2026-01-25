@@ -1,0 +1,57 @@
+{
+  "name": "@org-press/mcp",
+  "version": "0.9.7",
+  "description": "MCP server for org-press - exposes code intelligence and tools to AI assistants",
+  "license": "GPL-2.0",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "bin": {
+    "org-press-mcp": "./dist/bin/org-press-mcp.js"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist",
+    "src",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "test": "vitest",
+    "test:ci": "vitest --run",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0",
+    "zod": "^3.25.0"
+  },
+  "peerDependencies": {
+    "org-press": "^0.9.7"
+  },
+  "devDependencies": {
+    "org-press": "workspace:*",
+    "@org-press/lsp": "workspace:*",
+    "@org-press/tools": "workspace:*",
+    "tsup": "^8.0.0",
+    "typescript": "~5.7.3",
+    "vitest": "^3.1.4",
+    "@types/node": "^20.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "homepage": "https://orgp.dev",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/org-press/org-press.git"
+  },
+  "bugs": {
+    "url": "https://github.com/org-press/org-press/issues"
+  }
+}

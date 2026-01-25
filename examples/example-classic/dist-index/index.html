@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Classic Example</title>
+  <base href="/">
+  <style>
+    .org-content {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 2rem;
+      font-family: system-ui, -apple-system, sans-serif;
+      line-height: 1.6;
+    }
+    .org-content pre {
+      background: #f4f4f4;
+      padding: 1rem;
+      overflow-x: auto;
+      border-radius: 4px;
+    }
+    .org-content code {
+      font-family: 'SF Mono', Consolas, monospace;
+    }
+    .org-content blockquote {
+      border-left: 4px solid #ddd;
+      margin-left: 0;
+      padding-left: 1rem;
+      color: #666;
+    }
+    .org-source-code {
+      margin: 1rem 0;
+    }
+    .org-source-label {
+      font-size: 0.85rem;
+      color: #666;
+      font-weight: 500;
+      margin-bottom: 0.5rem;
+    }
+    .org-server-output {
+      background: #f8f9fa;
+      border: 1px solid #e9ecef;
+      border-radius: 4px;
+      padding: 1rem;
+      margin: 1rem 0;
+      white-space: pre-wrap;
+      font-family: 'SF Mono', Consolas, monospace;
+      font-size: 0.9rem;
+    }
+    .org-preview-output {
+      background: #fff;
+      border: 1px solid #e9ecef;
+      border-radius: 4px;
+      padding: 1rem;
+      margin: 1rem 0;
+    }
+    .org-error {
+      color: #dc3545;
+    }
+  </style>
+</head>
+<body>
+  <article class="org-content">
+    <h1>Classic Example</h1><h2>Welcome to Org-Press</h2><p>This is a classic org-press project with a configuration file.
+</p><h3>Features</h3><ul><li><p>File-based routing
+</p></li><li><p>Configuration in <code>.org-press/config.ts</code></p></li><li><p>Multiple content files
+</p></li></ul><h3>Interactive Counter</h3><p>This button demonstrates client-side JavaScript:
+</p><div class="org-preview-output"><span class="org-error">Error: document is not defined</span></div><h3>Server-Side Content</h3><p>This block runs at build time:
+</p><div class="org-server-output">Build time: 2026-01-25T16:39:37.309Z</div><h3>Source Code Display</h3><p>Show source code without executing:
+</p><pre><code class="language-typescript">interface User {
+  id: number;
+  name: string;
+  email: string;
+}
+
+const getUser = async (id: number): Promise&lt;User&gt; =&gt; {
+  const response = await fetch(`/api/users/${id}`);
+  return response.json();
+};
+</code></pre>
+  </article>
+  
+</body>
+</html>
