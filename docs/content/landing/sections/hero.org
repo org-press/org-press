@@ -1,0 +1,82 @@
+#+TITLE: Hero Section
+#+DESCRIPTION: Landing page hero section
+
+* Hero Section
+
+The main hero section with logo, tagline, and call-to-action buttons.
+
+#+NAME: hero
+#+begin_src typescript
+/**
+ * Hero Section
+ *
+ * Features:
+ * - Logo with serif typography
+ * - Tagline text
+ * - CTA buttons (Get Started, GitHub)
+ * - Scroll indicator
+ */
+
+export function createHero(): HTMLElement {
+  const section = document.createElement('section');
+  section.className = 'hero-section';
+  section.id = 'hero';
+
+  section.innerHTML = `
+    <h1 class="hero-logo">ORG-PRESS</h1>
+    <div class="literate-panel">
+      <div class="literate-panel-line"></div>
+      <div class="literate-panel-content">
+        <div class="literate-panel-inner">
+          <p class="literate-panel-text">
+            Literate programming weaves documentation and code into one.<br/>
+            Think Markdown where the code examples actually run.<br/>
+            <a href="https://en.wikipedia.org/wiki/Literate_programming" target="_blank" rel="noopener">Learn more →</a>
+          </p>
+        </div>
+      </div>
+      <div class="literate-panel-bottom">
+        <span class="literate-panel-chevron">▼</span>
+      </div>
+    </div>
+    <p class="hero-tagline">
+      <span class="literate-toggle" role="button" tabindex="0">
+        <span class="literate-text">Literate computing</span><span class="literate-help">?</span>
+      </span> in plain text.<br/>
+      Write prose and code together. Everything executes.
+    </p>
+    <div class="hero-cta">
+      <a href="./guide/getting-started.html" class="primary">Get Started</a>
+      <a href="https://github.com/org-press/org-press" class="secondary">GitHub</a>
+    </div>
+    <div class="scroll-indicator">&#8595;</div>
+  `;
+
+  // Toggle explanation panel on click
+  const toggle = section.querySelector('.literate-toggle');
+  const panel = section.querySelector('.literate-panel');
+
+  toggle?.addEventListener('click', () => {
+    const isActive = panel?.classList.contains('active');
+    if (isActive) {
+      panel?.classList.remove('active');
+      toggle.classList.remove('active');
+    } else {
+      panel?.classList.add('active');
+      toggle.classList.add('active');
+    }
+  });
+
+  // Keyboard support
+  toggle?.addEventListener('keydown', (e: Event) => {
+    if ((e as KeyboardEvent).key === 'Enter' || (e as KeyboardEvent).key === ' ') {
+      e.preventDefault();
+      toggle.click();
+    }
+  });
+
+  return section;
+}
+
+export default createHero();
+#+end_src

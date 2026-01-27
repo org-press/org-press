@@ -1,0 +1,262 @@
+#+TITLE: Interactive Components
+#+DESCRIPTION: React component examples in org-press
+
+* Interactive Components
+
+This page showcases various interactive React components.
+
+** Color Picker
+
+A simple color picker with live preview:
+
+#+begin_src tsx :use react
+import React, { useState } from 'react';
+
+const colors = [
+  { name: 'Coral', value: '#ff6b6b' },
+  { name: 'Teal', value: '#4ecdc4' },
+  { name: 'Purple', value: '#667eea' },
+  { name: 'Gold', value: '#f7d794' },
+  { name: 'Mint', value: '#7bed9f' },
+  { name: 'Pink', value: '#ff9ff3' },
+];
+
+export function render() {
+  const [selectedColor, setSelectedColor] = useState(colors[0]);
+
+  return (
+    <div className="react-demo">
+      <h3>Color Picker</h3>
+      <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '1rem' }}>
+        {colors.map((color) => (
+          <button
+            key={color.value}
+            onClick={() => setSelectedColor(color)}
+            style={{
+              width: '50px',
+              height: '50px',
+              background: color.value,
+              border: selectedColor.value === color.value ? '3px solid #1a1a2e' : '3px solid transparent',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              transition: 'transform 0.2s',
+            }}
+            title={color.name}
+          />
+        ))}
+      </div>
+      <div
+        style={{
+          padding: '2rem',
+          background: selectedColor.value,
+          borderRadius: '8px',
+          textAlign: 'center',
+          color: 'white',
+          fontWeight: 'bold',
+          fontSize: '1.2rem',
+          textShadow: '1px 1px 2px rgba(0,0,0,0.3)',
+        }}
+      >
+        Selected: {selectedColor.name}
+      </div>
+    </div>
+  );
+}
+#+end_src
+
+** Todo List
+
+A functional todo list with add and remove:
+
+#+begin_src tsx :use react
+import React, { useState } from 'react';
+
+interface Todo {
+  id: number;
+  text: string;
+  completed: boolean;
+}
+
+export function render() {
+  const [todos, setTodos] = useState<Todo[]>([
+    { id: 1, text: 'Learn org-press', completed: true },
+    { id: 2, text: 'Build a React app', completed: false },
+    { id: 3, text: 'Deploy to production', completed: false },
+  ]);
+  const [input, setInput] = useState('');
+
+  const addTodo = () => {
+    if (input.trim()) {
+      setTodos([...todos, { id: Date.now(), text: input, completed: false }]);
+      setInput('');
+    }
+  };
+
+  const toggleTodo = (id: number) => {
+    setTodos(todos.map(t =>
+      t.id === id ? { ...t, completed: !t.completed } : t
+    ));
+  };
+
+  const deleteTodo = (id: number) => {
+    setTodos(todos.filter(t => t.id !== id));
+  };
+
+  return (
+    <div className="react-demo">
+      <h3>Todo List</h3>
+      <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem' }}>
+        <input
+          type="text"
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          onKeyPress={(e) => e.key === 'Enter' && addTodo()}
+          placeholder="Add a new todo..."
+          style={{
+            flex: 1,
+            padding: '0.5rem',
+            border: '2px solid #e0e0e0',
+            borderRadius: '6px',
+            fontSize: '1rem',
+          }}
+        />
+        <button
+          onClick={addTodo}
+          style={{
+            padding: '0.5rem 1rem',
+            background: '#667eea',
+            color: 'white',
+            border: 'none',
+            borderRadius: '6px',
+            cursor: 'pointer',
+          }}
+        >
+          Add
+        </button>
+      </div>
+      <ul style={{ listStyle: 'none', padding: 0 }}>
+        {todos.map((todo) => (
+          <li
+            key={todo.id}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              padding: '0.75rem',
+              background: todo.completed ? '#f0fff4' : 'white',
+              borderRadius: '6px',
+              marginBottom: '0.5rem',
+              border: '1px solid #e0e0e0',
+            }}
+          >
+            <input
+              type="checkbox"
+              checked={todo.completed}
+              onChange={() => toggleTodo(todo.id)}
+              style={{ width: '20px', height: '20px' }}
+            />
+            <span
+              style={{
+                flex: 1,
+                textDecoration: todo.completed ? 'line-through' : 'none',
+                color: todo.completed ? '#888' : '#1a1a2e',
+              }}
+            >
+              {todo.text}
+            </span>
+            <button
+              onClick={() => deleteTodo(todo.id)}
+              style={{
+                padding: '0.25rem 0.5rem',
+                background: '#ff6b6b',
+                color: 'white',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                fontSize: '0.8rem',
+              }}
+            >
+              Delete
+            </button>
+          </li>
+        ))}
+      </ul>
+      <p style={{ color: '#666', fontSize: '0.9rem', marginTop: '1rem' }}>
+        {todos.filter(t => !t.completed).length} items remaining
+      </p>
+    </div>
+  );
+}
+#+end_src
+
+** Accordion
+
+Expandable content sections:
+
+#+begin_src tsx :use react
+import React, { useState } from 'react';
+
+const sections = [
+  {
+    title: 'What is org-press?',
+    content: 'Org-press is a static site generator for org-mode files, inspired by VitePress. It allows you to write documentation and interactive content using org-mode syntax.',
+  },
+  {
+    title: 'Why use React with org-press?',
+    content: 'React provides powerful component-based architecture for building interactive UI. Combined with org-press, you can create rich documentation with live examples.',
+  },
+  {
+    title: 'How do custom layouts work?',
+    content: 'Custom layouts are React components that wrap your content. They receive props like title, description, and children, allowing full control over the page structure.',
+  },
+];
+
+export function render() {
+  const [openIndex, setOpenIndex] = useState<number | null>(0);
+
+  return (
+    <div className="react-demo">
+      <h3>FAQ Accordion</h3>
+      {sections.map((section, index) => (
+        <div
+          key={index}
+          style={{
+            border: '1px solid #e0e0e0',
+            borderRadius: '8px',
+            marginBottom: '0.5rem',
+            overflow: 'hidden',
+          }}
+        >
+          <button
+            onClick={() => setOpenIndex(openIndex === index ? null : index)}
+            style={{
+              width: '100%',
+              padding: '1rem',
+              background: openIndex === index ? '#667eea' : 'white',
+              color: openIndex === index ? 'white' : '#1a1a2e',
+              border: 'none',
+              textAlign: 'left',
+              cursor: 'pointer',
+              fontSize: '1rem',
+              fontWeight: 'bold',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+            }}
+          >
+            {section.title}
+            <span style={{ fontSize: '1.2rem' }}>
+              {openIndex === index ? '−' : '+'}
+            </span>
+          </button>
+          {openIndex === index && (
+            <div style={{ padding: '1rem', background: '#f8f9fa' }}>
+              {section.content}
+            </div>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+#+end_src

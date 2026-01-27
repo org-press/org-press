@@ -1,0 +1,121 @@
+#+TITLE: Build Options
+#+DESCRIPTION: Production build configuration for org-press
+
+* Build Options
+
+Options specific to production builds (=orgp build=).
+
+** buildConcurrency
+
+- *Type:* =number=
+- *Default:* =os.cpus().length= (number of CPU cores)
+
+Number of pages to render concurrently during build. Higher values speed up builds on multi-core machines but use more memory.
+
+#+begin_export html
+<pre><code class="language-typescript">export default {
+  // Limit to 4 concurrent pages
+  buildConcurrency: 4,
+};
+</code></pre>
+#+end_export
+
+For memory-constrained environments (CI, containers), you may want to reduce this:
+
+#+begin_export html
+<pre><code class="language-typescript">export default {
+  buildConcurrency: process.env.CI ? 2 : undefined,
+};
+</code></pre>
+#+end_export
+
+** uniorg
+
+- *Type:* =Record&lt;string, any&gt;=
+- *Default:* ={}=
+
+Options passed to the [[https://github.com/rasendubi/uniorg][uniorg]] parser. This controls how org-mode files are parsed.
+
+#+begin_export html
+<pre><code class="language-typescript">export default {
+  uniorg: {
+    // Parser options passed to uniorg
+  },
+};
+</code></pre>
+#+end_export
+
+** vite.build
+
+Vite build-specific configuration merged with org-press defaults.
+
+#+begin_export html
+<pre><code class="language-typescript">export default {
+  vite: {
+    build: {
+      // Enable source maps for debugging
+      sourcemap: true,
+
+      // Minification (default: esbuild)
+      minify: "esbuild",
+
+      // Output target
+      target: "esnext",
+
+      // Chunk size warnings
+      chunkSizeWarningLimit: 500,
+    },
+  },
+};
+</code></pre>
+#+end_export
+
+*** Common Build Options
+
+**** sourcemap
+
+Generate source maps for debugging production builds:
+
+#+begin_export html
+<pre><code class="language-typescript">vite: {
+  build: {
+    sourcemap: true,      // Generate .map files
+    sourcemap: "hidden",  // Generate but don't link
+    sourcemap: "inline",  // Inline in JS files
+  }
+}
+</code></pre>
+#+end_export
+
+**** target
+
+Browser compatibility target:
+
+#+begin_export html
+<pre><code class="language-typescript">vite: {
+  build: {
+    target: "es2020",  // Wider browser support
+    target: "esnext",  // Latest features (default)
+  }
+}
+</code></pre>
+#+end_export
+
+**** assetsInlineLimit
+
+Inline assets smaller than this limit (bytes):
+
+#+begin_export html
+<pre><code class="language-typescript">vite: {
+  build: {
+    assetsInlineLimit: 4096,  // 4kb (default)
+  }
+}
+</code></pre>
+#+end_export
+
+** See Also
+
+- [[/config/server-options.html][Server Options]] - Development server configuration
+- [[/config/shared-options.html][Shared Options]] - =outDir=, =base=, =cacheDir=
+- [[https://vitejs.dev/config/build-options.html][Vite Build Options]] - Full Vite build documentation

@@ -1,0 +1,378 @@
+#+TITLE: React Hooks
+#+DESCRIPTION: Examples of React hooks in org-press
+
+* React Hooks Examples
+
+This page demonstrates various React hooks in action.
+
+** useState - Form Input
+
+Basic controlled input with useState:
+
+#+begin_src tsx :use react
+import React, { useState } from 'react';
+
+export function render() {
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [submitted, setSubmitted] = useState(false);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (name && email) {
+      setSubmitted(true);
+    }
+  };
+
+  if (submitted) {
+    return (
+      <div className="react-demo">
+        <h3>Form Submitted!</h3>
+        <p>Thank you, <strong>{name}</strong>!</p>
+        <p>We'll contact you at: {email}</p>
+        <button
+          onClick={() => {
+            setName('');
+            setEmail('');
+            setSubmitted(false);
+          }}
+          style={{
+            padding: '0.5rem 1rem',
+            background: '#667eea',
+            color: 'white',
+            border: 'none',
+            borderRadius: '6px',
+            cursor: 'pointer',
+            marginTop: '1rem',
+          }}
+        >
+          Submit Another
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="react-demo">
+      <h3>Contact Form</h3>
+      <form onSubmit={handleSubmit}>
+        <div style={{ marginBottom: '1rem' }}>
+          <label style={{ display: 'block', marginBottom: '0.25rem', fontWeight: 'bold' }}>
+            Name
+          </label>
+          <input
+            type="text"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="Your name"
+            style={{
+              width: '100%',
+              padding: '0.5rem',
+              border: '2px solid #e0e0e0',
+              borderRadius: '6px',
+              fontSize: '1rem',
+            }}
+          />
+        </div>
+        <div style={{ marginBottom: '1rem' }}>
+          <label style={{ display: 'block', marginBottom: '0.25rem', fontWeight: 'bold' }}>
+            Email
+          </label>
+          <input
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="your@email.com"
+            style={{
+              width: '100%',
+              padding: '0.5rem',
+              border: '2px solid #e0e0e0',
+              borderRadius: '6px',
+              fontSize: '1rem',
+            }}
+          />
+        </div>
+        <button
+          type="submit"
+          style={{
+            padding: '0.75rem 1.5rem',
+            background: '#4ecdc4',
+            color: 'white',
+            border: 'none',
+            borderRadius: '6px',
+            cursor: 'pointer',
+            fontSize: '1rem',
+            fontWeight: 'bold',
+          }}
+        >
+          Submit
+        </button>
+      </form>
+    </div>
+  );
+}
+#+end_src
+
+** useEffect - Timer
+
+A timer demonstrating useEffect with cleanup:
+
+#+begin_src tsx :use react
+import React, { useState, useEffect } from 'react';
+
+export function render() {
+  const [seconds, setSeconds] = useState(0);
+  const [isRunning, setIsRunning] = useState(false);
+
+  useEffect(() => {
+    let interval: number | undefined;
+
+    if (isRunning) {
+      interval = window.setInterval(() => {
+        setSeconds(s => s + 1);
+      }, 1000);
+    }
+
+    return () => {
+      if (interval) {
+        clearInterval(interval);
+      }
+    };
+  }, [isRunning]);
+
+  const formatTime = (totalSeconds: number) => {
+    const mins = Math.floor(totalSeconds / 60);
+    const secs = totalSeconds % 60;
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  return (
+    <div className="react-demo">
+      <h3>Stopwatch</h3>
+      <div
+        style={{
+          fontSize: '3rem',
+          fontFamily: 'monospace',
+          textAlign: 'center',
+          padding: '1rem',
+          background: '#1a1a2e',
+          color: '#4ecdc4',
+          borderRadius: '8px',
+          marginBottom: '1rem',
+        }}
+      >
+        {formatTime(seconds)}
+      </div>
+      <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center' }}>
+        <button
+          onClick={() => setIsRunning(!isRunning)}
+          style={{
+            padding: '0.75rem 1.5rem',
+            background: isRunning ? '#ff6b6b' : '#4ecdc4',
+            color: 'white',
+            border: 'none',
+            borderRadius: '6px',
+            cursor: 'pointer',
+            fontSize: '1rem',
+            fontWeight: 'bold',
+          }}
+        >
+          {isRunning ? 'Pause' : 'Start'}
+        </button>
+        <button
+          onClick={() => {
+            setIsRunning(false);
+            setSeconds(0);
+          }}
+          style={{
+            padding: '0.75rem 1.5rem',
+            background: '#667eea',
+            color: 'white',
+            border: 'none',
+            borderRadius: '6px',
+            cursor: 'pointer',
+            fontSize: '1rem',
+            fontWeight: 'bold',
+          }}
+        >
+          Reset
+        </button>
+      </div>
+    </div>
+  );
+}
+#+end_src
+
+** useReducer - Shopping Cart
+
+Complex state management with useReducer:
+
+#+begin_src tsx :use react
+import React, { useReducer } from 'react';
+
+interface Product {
+  id: number;
+  name: string;
+  price: number;
+}
+
+interface CartItem extends Product {
+  quantity: number;
+}
+
+type CartAction =
+  | { type: 'ADD'; product: Product }
+  | { type: 'REMOVE'; id: number }
+  | { type: 'CLEAR' };
+
+const products: Product[] = [
+  { id: 1, name: 'TypeScript Book', price: 29.99 },
+  { id: 2, name: 'React Course', price: 49.99 },
+  { id: 3, name: 'VS Code Theme', price: 9.99 },
+];
+
+function cartReducer(state: CartItem[], action: CartAction): CartItem[] {
+  switch (action.type) {
+    case 'ADD':
+      const existing = state.find(item => item.id === action.product.id);
+      if (existing) {
+        return state.map(item =>
+          item.id === action.product.id
+            ? { ...item, quantity: item.quantity + 1 }
+            : item
+        );
+      }
+      return [...state, { ...action.product, quantity: 1 }];
+    case 'REMOVE':
+      return state.filter(item => item.id !== action.id);
+    case 'CLEAR':
+      return [];
+    default:
+      return state;
+  }
+}
+
+export function render() {
+  const [cart, dispatch] = useReducer(cartReducer, []);
+
+  const total = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+
+  return (
+    <div className="react-demo">
+      <h3>Shopping Cart</h3>
+
+      <div style={{ marginBottom: '1.5rem' }}>
+        <h4 style={{ marginBottom: '0.5rem' }}>Products</h4>
+        {products.map(product => (
+          <div
+            key={product.id}
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              padding: '0.75rem',
+              background: '#f8f9fa',
+              borderRadius: '6px',
+              marginBottom: '0.5rem',
+            }}
+          >
+            <span>
+              {product.name} - ${product.price.toFixed(2)}
+            </span>
+            <button
+              onClick={() => dispatch({ type: 'ADD', product })}
+              style={{
+                padding: '0.25rem 0.75rem',
+                background: '#4ecdc4',
+                color: 'white',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: 'pointer',
+              }}
+            >
+              Add
+            </button>
+          </div>
+        ))}
+      </div>
+
+      <div>
+        <h4 style={{ marginBottom: '0.5rem' }}>Cart ({cart.length} items)</h4>
+        {cart.length === 0 ? (
+          <p style={{ color: '#888' }}>Cart is empty</p>
+        ) : (
+          <>
+            {cart.map(item => (
+              <div
+                key={item.id}
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  padding: '0.75rem',
+                  background: 'white',
+                  border: '1px solid #e0e0e0',
+                  borderRadius: '6px',
+                  marginBottom: '0.5rem',
+                }}
+              >
+                <span>
+                  {item.name} x {item.quantity}
+                </span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <span style={{ fontWeight: 'bold' }}>
+                    ${(item.price * item.quantity).toFixed(2)}
+                  </span>
+                  <button
+                    onClick={() => dispatch({ type: 'REMOVE', id: item.id })}
+                    style={{
+                      padding: '0.25rem 0.5rem',
+                      background: '#ff6b6b',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '4px',
+                      cursor: 'pointer',
+                      fontSize: '0.8rem',
+                    }}
+                  >
+                    Remove
+                  </button>
+                </div>
+              </div>
+            ))}
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                padding: '1rem',
+                background: '#667eea',
+                color: 'white',
+                borderRadius: '6px',
+                marginTop: '1rem',
+              }}
+            >
+              <span style={{ fontWeight: 'bold', fontSize: '1.1rem' }}>
+                Total: ${total.toFixed(2)}
+              </span>
+              <button
+                onClick={() => dispatch({ type: 'CLEAR' })}
+                style={{
+                  padding: '0.5rem 1rem',
+                  background: 'rgba(255,255,255,0.2)',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                }}
+              >
+                Clear Cart
+              </button>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+#+end_src

@@ -1,0 +1,21 @@
+{
+  "name": "@org-press/example-react",
+  "version": "0.1.0",
+  "private": true,
+  "description": "React example with custom layout for org-press",
+  "type": "module",
+  "scripts": {
+    "dev": "node ../../packages/core/dist/bin/orgp.js dev",
+    "build": "node ../../packages/core/dist/bin/orgp.js build",
+    "preview": "orgp preview"
+  },
+  "dependencies": {
+    "org-press": "workspace:*",
+    "@org-press/react": "workspace:*",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "vite": "^7.0.0"
+  }
+}

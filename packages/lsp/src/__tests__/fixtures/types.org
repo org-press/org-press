@@ -1,0 +1,86 @@
+#+TITLE: Type Definitions
+
+This file contains TypeScript interfaces and types.
+
+* Basic Types
+
+#+name: basic-types
+#+begin_src typescript
+export type ID = string | number;
+
+export type Status = "pending" | "active" | "completed" | "cancelled";
+
+export type Nullable<T> = T | null;
+
+export type Optional<T> = T | undefined;
+#+end_src
+
+* Entity Interfaces
+
+#+name: entities
+#+begin_src typescript
+export interface Entity {
+  id: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface User extends Entity {
+  username: string;
+  email: string;
+  role: "admin" | "user" | "guest";
+}
+
+export interface Post extends Entity {
+  title: string;
+  content: string;
+  authorId: string;
+  tags: string[];
+  published: boolean;
+}
+
+export interface Comment extends Entity {
+  postId: string;
+  authorId: string;
+  content: string;
+  parentId?: string;
+}
+#+end_src
+
+* Generic Types
+
+#+name: generics
+#+begin_src typescript
+export interface ApiResponse<T> {
+  data: T;
+  status: number;
+  message: string;
+}
+
+export interface PaginatedResponse<T> {
+  items: T[];
+  total: number;
+  page: number;
+  pageSize: number;
+  hasMore: boolean;
+}
+
+export type Result<T, E = Error> =
+  | { success: true; data: T }
+  | { success: false; error: E };
+#+end_src
+
+* Function Types
+
+#+name: function-types
+#+begin_src typescript
+export type Comparator<T> = (a: T, b: T) => number;
+
+export type Predicate<T> = (item: T) => boolean;
+
+export type Mapper<T, U> = (item: T) => U;
+
+export type Reducer<T, U> = (accumulator: U, current: T) => U;
+
+export type AsyncCallback<T> = () => Promise<T>;
+#+end_src
