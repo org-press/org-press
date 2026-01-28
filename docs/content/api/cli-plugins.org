@@ -1,0 +1,88 @@
+#+TITLE: CLI Plugins
+#+DESCRIPTION: Extending the org-press CLI
+
+* CLI Plugins
+
+Plugins can add custom CLI commands.
+
+** Adding a CLI Command
+
+#+begin_export html
+<pre><code>import type { BlockPlugin } from "org-press";
+
+export const myPlugin: BlockPlugin = {
+  name: "my-plugin",
+
+  cli: {
+    command: "mycommand",
+    description: "Do something useful",
+    options: [
+      { flag: "-o, --output &lt;dir&gt;", description: "Output directory" },
+      { flag: "-v, --verbose", description: "Verbose output" },
+    ],
+    action: async (args, config, plugins) => {
+      console.log("Running mycommand");
+      console.log("Args:", args);
+      console.log("Config:", config);
+    },
+  },
+};
+</code></pre>
+#+end_export
+
+** CLI Interface
+
+#+begin_export html
+<pre><code>interface CliCommand {
+  /** Command name (e.g., "test", "fmt") */
+  command: string;
+
+  /** Description for --help */
+  description: string;
+
+  /** Command options */
+  options?: CliOption[];
+
+  /** Command implementation */
+  action: (
+    args: Record&lt;string, any&gt;,
+    config: OrgPressConfig,
+    plugins: BlockPlugin[]
+  ) => Promise&lt;void&gt;;
+}
+
+interface CliOption {
+  flag: string;      // e.g., "-o, --output &lt;dir&gt;"
+  description: string;
+  default?: any;
+}
+</code></pre>
+#+end_export
+
+** Built-in CLI Commands
+
+These are implemented as CLI plugins:
+- =orgp fmt= - Format code blocks
+- =orgp lint= - Lint code blocks
+- =orgp type-check= - Type-check TypeScript
+- =orgp test= - Run tests (via @org-press/block-test)
+
+** Example: Test Plugin CLI
+
+#+begin_export html
+<pre><code>export const testPlugin: BlockPlugin = {
+  name: "test",
+  cli: {
+    command: "test",
+    description: "Run tests in :use test blocks",
+    options: [
+      { flag: "--watch", description: "Watch mode" },
+      { flag: "--coverage", description: "Collect coverage" },
+    ],
+    action: async (args) => {
+      // Run vitest with collected test blocks
+    },
+  },
+};
+</code></pre>
+#+end_export

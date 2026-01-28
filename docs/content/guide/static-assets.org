@@ -1,0 +1,43 @@
+#+TITLE: Static Assets
+#+DESCRIPTION: Working with images, fonts, and other static files
+
+* Static Assets
+
+** Public Directory
+
+Files in =public/= are served at the root:
+
+#+begin_example
+public/
+  logo.png      → /logo.png
+  fonts/
+    inter.woff2 → /fonts/inter.woff2
+#+end_example
+
+** Importing Assets
+
+Import assets in code blocks:
+
+#+begin_export html
+<pre><code>#+begin_src javascript
+import logo from './assets/logo.png';
+document.querySelector('img').src = logo;
+#+end_src</code></pre>
+#+end_export
+
+** CSS References
+
+Reference assets in CSS:
+
+#+begin_src css
+.hero {
+  background-image: url('/images/hero.jpg');
+}
+#+end_src
+
+** Asset Processing
+
+Vite processes imported assets:
+- Hashes filenames for caching
+- Optimizes images
+- Inlines small files as base64
