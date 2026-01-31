@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charSet="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/><title>Image Utilities | org-press</title><meta name="description" content="Canvas-based image processing utilities"/><script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script><script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/highlight.min.js"></script><link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/styles/github.min.css" media="(prefers-color-scheme: light)"/><link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/styles/github-dark.min.css" media="(prefers-color-scheme: dark)"/><script>
+          // Register org-mode language for highlight.js
+          if (typeof hljs !== 'undefined') {
+            hljs.registerLanguage('org', function(hljs) {
+              return {
+                name: 'Org',
+                aliases: ['org', 'org-mode', 'orgmode'],
+                case_insensitive: true,
+                contains: [
+                  // Headlines
+                  {
+                    className: 'section',
+                    begin: /^\*+\s/,
+                    end: /$/,
+                    contains: [
+                      { className: 'keyword', begin: /\b(TODO|DONE|WAITING|CANCELLED|NEXT|HOLD)\b/ }
+                    ]
+                  },
+                  // Keywords (#+KEYWORD:)
+                  {
+                    className: 'meta',
+                    begin: /^#\+[A-Za-z_]+:/,
+                    end: /$/,
+                    contains: [{ className: 'string', begin: /\s/, end: /$/ }]
+                  },
+                  // Begin/end blocks
+                  { className: 'keyword', begin: /^#\+(begin|end)_[a-z]+/i, relevance: 10 },
+                  // Property drawers
+                  { className: 'attribute', begin: /^:\w+:/, end: /$/ },
+                  // Links [[url][description]]
+                  {
+                    className: 'link',
+                    begin: /\[\[/,
+                    end: /\]\]/,
+                    contains: [{ className: 'string', begin: /\]\[/, end: /(?=\]\])/ }]
+                  },
+                  // Comments (lines starting with #, but not #+)
+                  { className: 'comment', begin: /^#[^+]/, end: /$/ },
+                  // Timestamps
+                  { className: 'number', begin: /<\d{4}-\d{2}-\d{2}/, end: />/ },
+                  // Tags :tag1:tag2:
+                  { className: 'tag', begin: /\s:[a-zA-Z0-9_@#%:]+:\s*$/ }
+                ]
+              };
+            });
+            // Run highlighting after DOM is ready
+            document.addEventListener('DOMContentLoaded', function() {
+              hljs.highlightAll();
+            });
+          }
+        </script><script>
+          (function() {
+            // Set current path as data attribute for CSS styling
+            document.documentElement.dataset.path = window.location.pathname;
+
+            // Mobile menu toggle using event delegation
+            document.addEventListener('click', function(e) {
+              var button = e.target.closest('.mobile-menu-button');
+              if (button) {
+                e.stopPropagation();
+                document.body.classList.toggle('mobile-menu-open');
+                return;
+              }
+              // Close menu when clicking a link inside the menu
+              var menuLink = e.target.closest('.mobile-menu a');
+              if (menuLink) {
+                document.body.classList.remove('mobile-menu-open');
+                return;
+              }
+              // Close menu when clicking outside
+              if (document.body.classList.contains('mobile-menu-open')) {
+                var menu = document.querySelector('.mobile-menu');
+                if (menu && !menu.contains(e.target)) {
+                  document.body.classList.remove('mobile-menu-open');
+                }
+              }
+            });
+
+            // Highlight current page in navigation
+            document.addEventListener('DOMContentLoaded', function() {
+              var path = window.location.pathname;
+              // Highlight sidebar links
+              document.querySelectorAll('.sidebar-link').forEach(function(link) {
+                if (link.getAttribute('href') === path) {
+                  link.classList.add('active');
+                  link.closest('.sidebar-item')?.classList.add('active');
+                }
+              });
+              // Highlight top nav links
+              document.querySelectorAll('.top-nav-link').forEach(function(link) {
+                var href = link.getAttribute('href');
+                var match = link.dataset.match;
+                if (path === href || (match && path.startsWith(match))) {
+                  link.classList.add('active');
+                }
+              });
+            });
+          })();
+        </script><link rel="stylesheet" href="/assets/theme-DsForQV0.css"/><script type="module" src="/assets/entry-client-l0sNRNKZ.js"></script></head><body><div class="docs-layout"><header class="top-nav"><div class="top-nav-container"><a href="/index.html" class="top-nav-logo"><span class="logo-text">Org-Press</span></a><nav class="top-nav-links"><a href="/guide/index.html" class="top-nav-link " data-match="^\/(guide(\/|$)|getting-started|index\.html$)">Guide</a><a href="/config/index.html" class="top-nav-link " data-match="^\/config(\/|$)">Config</a><a href="/plugins/index.html" class="top-nav-link " data-match="^\/plugins(\/|$)">Plugins</a><a href="/api/index.html" class="top-nav-link " data-match="^\/api(\/|$)">API</a></nav><div class="top-nav-social"><a href="https://github.com/org-press/org-press/blob/main/docs/content/components/image-utils.org?plain=1" class="top-nav-source-link" target="_blank" rel="noopener noreferrer" title="View page source on GitHub">:view-source</a><a href="https://github.com/org-press/org-press" class="top-nav-social-link" target="_blank" rel="noopener noreferrer" aria-label="GitHub"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"></path></svg></a></div><button class="mobile-menu-button" aria-label="Toggle navigation menu" aria-expanded="false"><span class="hamburger-line"></span><span class="hamburger-line"></span><span class="hamburger-line"></span></button></div></header><div class="mobile-menu"><nav class="mobile-menu-nav"><div class="mobile-menu-section"><a href="/guide/index.html" class="mobile-menu-section-title ">Guide</a><ul class="mobile-menu-list"><li><a href="/guide/index.html" class="mobile-menu-link ">What is Org-Press?</a></li><li><a href="/guide/getting-started.html" class="mobile-menu-link ">Getting Started</a></li><li><a href="/guide/why-org-press.html" class="mobile-menu-link ">Why Org-Press?</a></li><li><a href="/guide/features.html" class="mobile-menu-link ">Features</a></li><li><a href="/guide/rendering-modes.html" class="mobile-menu-link ">Rendering Modes</a></li><li><a href="/guide/cli.html" class="mobile-menu-link ">CLI Reference</a></li><li><a href="/guide/using-plugins.html" class="mobile-menu-link ">Using Plugins</a></li><li><a href="/guide/block-imports.html" class="mobile-menu-link ">Block Imports</a></li><li><a href="/guide/static-assets.html" class="mobile-menu-link ">Static Assets</a></li><li><a href="/guide/building.html" class="mobile-menu-link ">Building for Production</a></li><li><a href="/guide/deploying.html" class="mobile-menu-link ">Deploying</a></li><li><a href="/guide/troubleshooting.html" class="mobile-menu-link ">Troubleshooting</a></li></ul></div><div class="mobile-menu-section"><a href="/config/index.html" class="mobile-menu-section-title ">Config</a><ul class="mobile-menu-list"><li><a href="/config/index.html" class="mobile-menu-link ">Overview</a></li><li><a href="/config/shared-options.html" class="mobile-menu-link ">Shared Options</a></li><li><a href="/config/build-options.html" class="mobile-menu-link ">Build Options</a></li><li><a href="/config/server-options.html" class="mobile-menu-link ">Server Options</a></li><li><a href="/config/plugin-options.html" class="mobile-menu-link ">Plugin Options</a></li></ul></div><div class="mobile-menu-section"><a href="/plugins/index.html" class="mobile-menu-section-title ">Plugins</a><ul class="mobile-menu-list"><li><a href="/plugins/index.html" class="mobile-menu-link ">Overview</a></li><li class="mobile-menu-group"><span class="mobile-menu-group-title">Official Plugins</span><ul class="mobile-menu-sublist"><li><a href="/plugins/react.html" class="mobile-menu-link ">React</a></li><li><a href="/plugins/echarts.html" class="mobile-menu-link ">ECharts</a></li><li><a href="/plugins/excalidraw.html" class="mobile-menu-link ">Excalidraw</a></li><li><a href="/plugins/jscad.html" class="mobile-menu-link ">JSCAD</a></li><li><a href="/plugins/test.html" class="mobile-menu-link ">Test</a></li></ul></li><li><a href="/plugins/creating-plugins.html" class="mobile-menu-link ">Creating Plugins</a></li></ul></div><div class="mobile-menu-section"><a href="/api/index.html" class="mobile-menu-section-title ">API</a><ul class="mobile-menu-list"><li><a href="/api/index.html" class="mobile-menu-link ">Overview</a></li><li><a href="/api/plugin-api.html" class="mobile-menu-link ">Plugin API</a></li><li><a href="/api/javascript-api.html" class="mobile-menu-link ">JavaScript API</a></li><li><a href="/api/hmr-api.html" class="mobile-menu-link ">HMR API</a></li><li><a href="/api/cli-plugins.html" class="mobile-menu-link ">CLI Plugins</a></li></ul></div></nav><div class="mobile-menu-footer"><a href="https://github.com/org-press/org-press" class="mobile-menu-link" target="_blank" rel="noopener noreferrer">GitHub</a></div></div><div class="alpha-banner"><span class="alpha-banner-icon">⚠️</span><span class="alpha-banner-text"><strong>Early Alpha</strong> — Org-press is experimental. Perfect for hackers and tinkerers, not ready for production. Documentation may be incomplete or inaccurate.</span></div><div class="docs-container"><aside class="sidebar"><div class="sidebar-content"><nav class="sidebar-nav" aria-label="Section navigation"><div class="sidebar-section"><h3 class="sidebar-section-title">Guide</h3><ul class="sidebar-list"><li class="sidebar-item "><a href="/guide/index.html" class="sidebar-link ">What is Org-Press?</a></li><li class="sidebar-item "><a href="/guide/getting-started.html" class="sidebar-link ">Getting Started</a></li><li class="sidebar-item "><a href="/guide/why-org-press.html" class="sidebar-link ">Why Org-Press?</a></li><li class="sidebar-item "><a href="/guide/features.html" class="sidebar-link ">Features</a></li><li class="sidebar-item "><a href="/guide/rendering-modes.html" class="sidebar-link ">Rendering Modes</a></li><li class="sidebar-item "><a href="/guide/cli.html" class="sidebar-link ">CLI Reference</a></li><li class="sidebar-item "><a href="/guide/using-plugins.html" class="sidebar-link ">Using Plugins</a></li><li class="sidebar-item "><a href="/guide/block-imports.html" class="sidebar-link ">Block Imports</a></li><li class="sidebar-item "><a href="/guide/static-assets.html" class="sidebar-link ">Static Assets</a></li><li class="sidebar-item "><a href="/guide/building.html" class="sidebar-link ">Building for Production</a></li><li class="sidebar-item "><a href="/guide/deploying.html" class="sidebar-link ">Deploying</a></li><li class="sidebar-item "><a href="/guide/troubleshooting.html" class="sidebar-link ">Troubleshooting</a></li></ul></div></nav></div></aside><main class="docs-content"><article class="docs-article"><div class="docs-body"><div><p>Image processing utilities for preparing images for the halftone effect.
+Includes background removal, thresholding, and masking.
+</p><h1 id="image-processing-pipeline">Image Processing Pipeline</h1><pre class="src-block"><code class="hljs language-typescript"><span class="hljs-comment">/**
+ * Options for image processing
+ */</span>
+<span class="hljs-keyword">export</span> <span class="hljs-keyword">interface</span> <span class="hljs-title class_">ImageProcessOptions</span> {
+  <span class="hljs-comment">/** Threshold for white background removal (0-255), default 240 */</span>
+  <span class="hljs-attr">whiteThreshold</span>?: <span class="hljs-built_in">number</span>;
+  <span class="hljs-comment">/** Fuzz factor for color matching (0-1), default 0.1 */</span>
+  <span class="hljs-attr">fuzzFactor</span>?: <span class="hljs-built_in">number</span>;
+  <span class="hljs-comment">/** Convert to grayscale */</span>
+  <span class="hljs-attr">grayscale</span>?: <span class="hljs-built_in">boolean</span>;
+  <span class="hljs-comment">/** Invert colors */</span>
+  <span class="hljs-attr">invert</span>?: <span class="hljs-built_in">boolean</span>;
+  <span class="hljs-comment">/** Contrast adjustment (-1 to 1), default 0 */</span>
+  <span class="hljs-attr">contrast</span>?: <span class="hljs-built_in">number</span>;
+}
+
+<span class="hljs-keyword">export</span> <span class="hljs-keyword">interface</span> <span class="hljs-title class_">ProcessedImage</span> {
+  <span class="hljs-attr">canvas</span>: <span class="hljs-title class_">HTMLCanvasElement</span>;
+  <span class="hljs-attr">imageData</span>: <span class="hljs-title class_">ImageData</span>;
+  <span class="hljs-attr">width</span>: <span class="hljs-built_in">number</span>;
+  <span class="hljs-attr">height</span>: <span class="hljs-built_in">number</span>;
+}
+
+<span class="hljs-comment">/**
+ * Load an image from URL and return as canvas
+ */</span>
+<span class="hljs-keyword">export</span> <span class="hljs-keyword">async</span> <span class="hljs-keyword">function</span> <span class="hljs-title function_">loadImage</span>(<span class="hljs-params"><span class="hljs-attr">url</span>: <span class="hljs-built_in">string</span></span>): <span class="hljs-title class_">Promise</span>&#x3C;<span class="hljs-title class_">HTMLImageElement</span>> {
+  <span class="hljs-keyword">return</span> <span class="hljs-keyword">new</span> <span class="hljs-title class_">Promise</span>(<span class="hljs-function">(<span class="hljs-params">resolve, reject</span>) =></span> {
+    <span class="hljs-keyword">const</span> img = <span class="hljs-keyword">new</span> <span class="hljs-title class_">Image</span>();
+    img.<span class="hljs-property">crossOrigin</span> = <span class="hljs-string">'anonymous'</span>;
+    img.<span class="hljs-property">onload</span> = <span class="hljs-function">() =></span> <span class="hljs-title function_">resolve</span>(img);
+    img.<span class="hljs-property">onerror</span> = reject;
+    img.<span class="hljs-property">src</span> = url;
+  });
+}
+
+<span class="hljs-comment">/**
+ * Remove white/light background from image, making it transparent
+ */</span>
+<span class="hljs-keyword">export</span> <span class="hljs-keyword">function</span> <span class="hljs-title function_">removeWhiteBackground</span>(<span class="hljs-params">
+  <span class="hljs-attr">imageData</span>: <span class="hljs-title class_">ImageData</span>,
+  <span class="hljs-attr">threshold</span>: <span class="hljs-built_in">number</span> = <span class="hljs-number">240</span>,
+  <span class="hljs-attr">fuzz</span>: <span class="hljs-built_in">number</span> = <span class="hljs-number">0.1</span>
+</span>): <span class="hljs-title class_">ImageData</span> {
+  <span class="hljs-keyword">const</span> data = imageData.<span class="hljs-property">data</span>;
+  <span class="hljs-keyword">const</span> fuzzAmount = <span class="hljs-title class_">Math</span>.<span class="hljs-title function_">floor</span>(<span class="hljs-number">255</span> * fuzz);
+
+  <span class="hljs-keyword">for</span> (<span class="hljs-keyword">let</span> i = <span class="hljs-number">0</span>; i &#x3C; data.<span class="hljs-property">length</span>; i += <span class="hljs-number">4</span>) {
+    <span class="hljs-keyword">const</span> r = data[i];
+    <span class="hljs-keyword">const</span> g = data[i + <span class="hljs-number">1</span>];
+    <span class="hljs-keyword">const</span> b = data[i + <span class="hljs-number">2</span>];
+
+    <span class="hljs-comment">// Check if pixel is close to white</span>
+    <span class="hljs-keyword">const</span> isWhite =
+      r >= threshold - fuzzAmount &#x26;&#x26;
+      g >= threshold - fuzzAmount &#x26;&#x26;
+      b >= threshold - fuzzAmount &#x26;&#x26;
+      <span class="hljs-title class_">Math</span>.<span class="hljs-title function_">abs</span>(r - g) &#x3C; fuzzAmount &#x26;&#x26;
+      <span class="hljs-title class_">Math</span>.<span class="hljs-title function_">abs</span>(g - b) &#x3C; fuzzAmount &#x26;&#x26;
+      <span class="hljs-title class_">Math</span>.<span class="hljs-title function_">abs</span>(r - b) &#x3C; fuzzAmount;
+
+    <span class="hljs-keyword">if</span> (isWhite) {
+      data[i + <span class="hljs-number">3</span>] = <span class="hljs-number">0</span>; <span class="hljs-comment">// Set alpha to transparent</span>
+    }
+  }
+
+  <span class="hljs-keyword">return</span> imageData;
+}
+
+<span class="hljs-comment">/**
+ * Convert image to grayscale
+ */</span>
+<span class="hljs-keyword">export</span> <span class="hljs-keyword">function</span> <span class="hljs-title function_">toGrayscale</span>(<span class="hljs-params"><span class="hljs-attr">imageData</span>: <span class="hljs-title class_">ImageData</span></span>): <span class="hljs-title class_">ImageData</span> {
+  <span class="hljs-keyword">const</span> data = imageData.<span class="hljs-property">data</span>;
+
+  <span class="hljs-keyword">for</span> (<span class="hljs-keyword">let</span> i = <span class="hljs-number">0</span>; i &#x3C; data.<span class="hljs-property">length</span>; i += <span class="hljs-number">4</span>) {
+    <span class="hljs-keyword">const</span> gray = <span class="hljs-number">0.299</span> * data[i] + <span class="hljs-number">0.587</span> * data[i + <span class="hljs-number">1</span>] + <span class="hljs-number">0.114</span> * data[i + <span class="hljs-number">2</span>];
+    data[i] = gray;
+    data[i + <span class="hljs-number">1</span>] = gray;
+    data[i + <span class="hljs-number">2</span>] = gray;
+  }
+
+  <span class="hljs-keyword">return</span> imageData;
+}
+
+<span class="hljs-comment">/**
+ * Invert image colors
+ */</span>
+<span class="hljs-keyword">export</span> <span class="hljs-keyword">function</span> <span class="hljs-title function_">invertColors</span>(<span class="hljs-params"><span class="hljs-attr">imageData</span>: <span class="hljs-title class_">ImageData</span></span>): <span class="hljs-title class_">ImageData</span> {
+  <span class="hljs-keyword">const</span> data = imageData.<span class="hljs-property">data</span>;
+
+  <span class="hljs-keyword">for</span> (<span class="hljs-keyword">let</span> i = <span class="hljs-number">0</span>; i &#x3C; data.<span class="hljs-property">length</span>; i += <span class="hljs-number">4</span>) {
+    data[i] = <span class="hljs-number">255</span> - data[i];
+    data[i + <span class="hljs-number">1</span>] = <span class="hljs-number">255</span> - data[i + <span class="hljs-number">1</span>];
+    data[i + <span class="hljs-number">2</span>] = <span class="hljs-number">255</span> - data[i + <span class="hljs-number">2</span>];
+  }
+
+  <span class="hljs-keyword">return</span> imageData;
+}
+
+<span class="hljs-comment">/**
+ * Adjust contrast
+ * <span class="hljs-doctag">@param</span> <span class="hljs-variable">factor</span> -1 to 1, where 0 is no change
+ */</span>
+<span class="hljs-keyword">export</span> <span class="hljs-keyword">function</span> <span class="hljs-title function_">adjustContrast</span>(<span class="hljs-params"><span class="hljs-attr">imageData</span>: <span class="hljs-title class_">ImageData</span>, <span class="hljs-attr">factor</span>: <span class="hljs-built_in">number</span></span>): <span class="hljs-title class_">ImageData</span> {
+  <span class="hljs-keyword">const</span> data = imageData.<span class="hljs-property">data</span>;
+  <span class="hljs-keyword">const</span> contrast = (factor + <span class="hljs-number">1</span>) / (<span class="hljs-number">1</span> - factor);
+
+  <span class="hljs-keyword">for</span> (<span class="hljs-keyword">let</span> i = <span class="hljs-number">0</span>; i &#x3C; data.<span class="hljs-property">length</span>; i += <span class="hljs-number">4</span>) {
+    data[i] = <span class="hljs-title class_">Math</span>.<span class="hljs-title function_">max</span>(<span class="hljs-number">0</span>, <span class="hljs-title class_">Math</span>.<span class="hljs-title function_">min</span>(<span class="hljs-number">255</span>, contrast * (data[i] - <span class="hljs-number">128</span>) + <span class="hljs-number">128</span>));
+    data[i + <span class="hljs-number">1</span>] = <span class="hljs-title class_">Math</span>.<span class="hljs-title function_">max</span>(<span class="hljs-number">0</span>, <span class="hljs-title class_">Math</span>.<span class="hljs-title function_">min</span>(<span class="hljs-number">255</span>, contrast * (data[i + <span class="hljs-number">1</span>] - <span class="hljs-number">128</span>) + <span class="hljs-number">128</span>));
+    data[i + <span class="hljs-number">2</span>] = <span class="hljs-title class_">Math</span>.<span class="hljs-title function_">max</span>(<span class="hljs-number">0</span>, <span class="hljs-title class_">Math</span>.<span class="hljs-title function_">min</span>(<span class="hljs-number">255</span>, contrast * (data[i + <span class="hljs-number">2</span>] - <span class="hljs-number">128</span>) + <span class="hljs-number">128</span>));
+  }
+
+  <span class="hljs-keyword">return</span> imageData;
+}
+
+<span class="hljs-comment">/**
+ * Process an image with the given options
+ */</span>
+<span class="hljs-keyword">export</span> <span class="hljs-keyword">async</span> <span class="hljs-keyword">function</span> <span class="hljs-title function_">processImage</span>(<span class="hljs-params">
+  <span class="hljs-attr">url</span>: <span class="hljs-built_in">string</span>,
+  <span class="hljs-attr">options</span>: <span class="hljs-title class_">ImageProcessOptions</span> = {}
+</span>): <span class="hljs-title class_">Promise</span>&#x3C;<span class="hljs-title class_">ProcessedImage</span>> {
+  <span class="hljs-keyword">const</span> {
+    whiteThreshold = <span class="hljs-number">240</span>,
+    fuzzFactor = <span class="hljs-number">0.1</span>,
+    grayscale = <span class="hljs-literal">false</span>,
+    invert = <span class="hljs-literal">false</span>,
+    contrast = <span class="hljs-number">0</span>,
+  } = options;
+
+  <span class="hljs-comment">// Load image</span>
+  <span class="hljs-keyword">const</span> img = <span class="hljs-keyword">await</span> <span class="hljs-title function_">loadImage</span>(url);
+
+  <span class="hljs-comment">// Create canvas</span>
+  <span class="hljs-keyword">const</span> canvas = <span class="hljs-variable language_">document</span>.<span class="hljs-title function_">createElement</span>(<span class="hljs-string">'canvas'</span>);
+  canvas.<span class="hljs-property">width</span> = img.<span class="hljs-property">width</span>;
+  canvas.<span class="hljs-property">height</span> = img.<span class="hljs-property">height</span>;
+  <span class="hljs-keyword">const</span> ctx = canvas.<span class="hljs-title function_">getContext</span>(<span class="hljs-string">'2d'</span>)!;
+
+  <span class="hljs-comment">// Draw image</span>
+  ctx.<span class="hljs-title function_">drawImage</span>(img, <span class="hljs-number">0</span>, <span class="hljs-number">0</span>);
+
+  <span class="hljs-comment">// Get image data</span>
+  <span class="hljs-keyword">let</span> imageData = ctx.<span class="hljs-title function_">getImageData</span>(<span class="hljs-number">0</span>, <span class="hljs-number">0</span>, canvas.<span class="hljs-property">width</span>, canvas.<span class="hljs-property">height</span>);
+
+  <span class="hljs-comment">// Apply processing pipeline</span>
+  imageData = <span class="hljs-title function_">removeWhiteBackground</span>(imageData, whiteThreshold, fuzzFactor);
+
+  <span class="hljs-keyword">if</span> (grayscale) {
+    imageData = <span class="hljs-title function_">toGrayscale</span>(imageData);
+  }
+
+  <span class="hljs-keyword">if</span> (invert) {
+    imageData = <span class="hljs-title function_">invertColors</span>(imageData);
+  }
+
+  <span class="hljs-keyword">if</span> (contrast !== <span class="hljs-number">0</span>) {
+    imageData = <span class="hljs-title function_">adjustContrast</span>(imageData, contrast);
+  }
+
+  <span class="hljs-comment">// Put processed data back</span>
+  ctx.<span class="hljs-title function_">putImageData</span>(imageData, <span class="hljs-number">0</span>, <span class="hljs-number">0</span>);
+
+  <span class="hljs-keyword">return</span> {
+    canvas,
+    imageData,
+    <span class="hljs-attr">width</span>: canvas.<span class="hljs-property">width</span>,
+    <span class="hljs-attr">height</span>: canvas.<span class="hljs-property">height</span>,
+  };
+}
+
+<span class="hljs-comment">/**
+ * Get brightness values from processed image for halftone
+ * Returns array of { x, y, brightness, alpha } for each grid point
+ */</span>
+<span class="hljs-keyword">export</span> <span class="hljs-keyword">function</span> <span class="hljs-title function_">sampleBrightness</span>(<span class="hljs-params">
+  <span class="hljs-attr">imageData</span>: <span class="hljs-title class_">ImageData</span>,
+  <span class="hljs-attr">gridSize</span>: <span class="hljs-built_in">number</span>
+</span>): <span class="hljs-title class_">Array</span>&#x3C;{ <span class="hljs-attr">x</span>: <span class="hljs-built_in">number</span>; <span class="hljs-attr">y</span>: <span class="hljs-built_in">number</span>; <span class="hljs-attr">brightness</span>: <span class="hljs-built_in">number</span>; <span class="hljs-attr">alpha</span>: <span class="hljs-built_in">number</span> }> {
+  <span class="hljs-keyword">const</span> { width, height, data } = imageData;
+  <span class="hljs-keyword">const</span> <span class="hljs-attr">samples</span>: <span class="hljs-title class_">Array</span>&#x3C;{ <span class="hljs-attr">x</span>: <span class="hljs-built_in">number</span>; <span class="hljs-attr">y</span>: <span class="hljs-built_in">number</span>; <span class="hljs-attr">brightness</span>: <span class="hljs-built_in">number</span>; <span class="hljs-attr">alpha</span>: <span class="hljs-built_in">number</span> }> = [];
+
+  <span class="hljs-keyword">const</span> stepX = width / gridSize;
+  <span class="hljs-keyword">const</span> stepY = height / gridSize;
+
+  <span class="hljs-keyword">for</span> (<span class="hljs-keyword">let</span> gy = <span class="hljs-number">0</span>; gy &#x3C; gridSize; gy++) {
+    <span class="hljs-keyword">for</span> (<span class="hljs-keyword">let</span> gx = <span class="hljs-number">0</span>; gx &#x3C; gridSize; gx++) {
+      <span class="hljs-keyword">const</span> imgX = <span class="hljs-title class_">Math</span>.<span class="hljs-title function_">floor</span>(gx * stepX);
+      <span class="hljs-keyword">const</span> imgY = <span class="hljs-title class_">Math</span>.<span class="hljs-title function_">floor</span>(gy * stepY);
+      <span class="hljs-keyword">const</span> i = (imgY * width + imgX) * <span class="hljs-number">4</span>;
+
+      <span class="hljs-keyword">const</span> r = data[i];
+      <span class="hljs-keyword">const</span> g = data[i + <span class="hljs-number">1</span>];
+      <span class="hljs-keyword">const</span> b = data[i + <span class="hljs-number">2</span>];
+      <span class="hljs-keyword">const</span> a = data[i + <span class="hljs-number">3</span>];
+
+      <span class="hljs-comment">// Calculate luminosity</span>
+      <span class="hljs-keyword">const</span> brightness = (<span class="hljs-number">0.299</span> * r + <span class="hljs-number">0.587</span> * g + <span class="hljs-number">0.114</span> * b) / <span class="hljs-number">255</span>;
+
+      samples.<span class="hljs-title function_">push</span>({
+        <span class="hljs-attr">x</span>: gx - gridSize / <span class="hljs-number">2</span>,
+        <span class="hljs-attr">y</span>: (gridSize - gy) - gridSize / <span class="hljs-number">2</span>, <span class="hljs-comment">// Flip Y</span>
+        brightness,
+        <span class="hljs-attr">alpha</span>: a / <span class="hljs-number">255</span>,
+      });
+    }
+  }
+
+  <span class="hljs-keyword">return</span> samples;
+}
+
+<span class="hljs-keyword">export</span> <span class="hljs-keyword">default</span> { processImage, sampleBrightness, loadImage };
+</code></pre></div></div></article></main></div><footer class="site-footer"><div class="footer-content"><div class="footer-grid"><div class="footer-column"><h4>Guide</h4><ul><li><a href="/guide/index.html">What is Org-Press?</a></li><li><a href="/guide/getting-started.html">Getting Started</a></li><li><a href="/guide/features.html">Features</a></li><li><a href="/guide/cli.html">CLI Reference</a></li><li><a href="/guide/building.html">Building</a></li></ul></div><div class="footer-column"><h4>Config</h4><ul><li><a href="/config/index.html">Overview</a></li><li><a href="/config/shared-options.html">Shared Options</a></li><li><a href="/config/build-options.html">Build Options</a></li><li><a href="/config/server-options.html">Server Options</a></li></ul></div><div class="footer-column"><h4>Plugins</h4><ul><li><a href="/plugins/index.html">Overview</a></li><li><a href="/plugins/excalidraw.html">Excalidraw</a></li><li><a href="/plugins/jscad.html">JSCAD</a></li><li><a href="/plugins/creating-plugins.html">Creating Plugins</a></li></ul></div><div class="footer-column"><h4>API</h4><ul><li><a href="/api/index.html">Overview</a></li><li><a href="/api/plugin-api.html">Plugin API</a></li><li><a href="/api/javascript-api.html">JavaScript API</a></li></ul></div><div class="footer-column"><h4>Resources</h4><ul><li><a href="/examples/index.html">Examples</a></li><li><a href="https://github.com/org-press/org-press" target="_blank" rel="noopener">GitHub</a></li><li><a href="https://github.com/org-press/org-press/releases" target="_blank" rel="noopener">Releases</a></li></ul></div></div><div class="footer-bottom"><p class="footer-copyright">Released under the GPL-2.0 License.</p><p class="footer-credit">Built with <a href="https://github.com/org-press/org-press">org-press</a></p></div></div></footer></div><script src="https://analytics.ideable.dev/api/script.js" data-site-id="5dc60eeeac5d" defer=""></script></body></html>

@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charSet="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/><title>Test Plugin | org-press</title><script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script><script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/highlight.min.js"></script><link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/styles/github.min.css" media="(prefers-color-scheme: light)"/><link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/styles/github-dark.min.css" media="(prefers-color-scheme: dark)"/><script>
+          // Register org-mode language for highlight.js
+          if (typeof hljs !== 'undefined') {
+            hljs.registerLanguage('org', function(hljs) {
+              return {
+                name: 'Org',
+                aliases: ['org', 'org-mode', 'orgmode'],
+                case_insensitive: true,
+                contains: [
+                  // Headlines
+                  {
+                    className: 'section',
+                    begin: /^\*+\s/,
+                    end: /$/,
+                    contains: [
+                      { className: 'keyword', begin: /\b(TODO|DONE|WAITING|CANCELLED|NEXT|HOLD)\b/ }
+                    ]
+                  },
+                  // Keywords (#+KEYWORD:)
+                  {
+                    className: 'meta',
+                    begin: /^#\+[A-Za-z_]+:/,
+                    end: /$/,
+                    contains: [{ className: 'string', begin: /\s/, end: /$/ }]
+                  },
+                  // Begin/end blocks
+                  { className: 'keyword', begin: /^#\+(begin|end)_[a-z]+/i, relevance: 10 },
+                  // Property drawers
+                  { className: 'attribute', begin: /^:\w+:/, end: /$/ },
+                  // Links [[url][description]]
+                  {
+                    className: 'link',
+                    begin: /\[\[/,
+                    end: /\]\]/,
+                    contains: [{ className: 'string', begin: /\]\[/, end: /(?=\]\])/ }]
+                  },
+                  // Comments (lines starting with #, but not #+)
+                  { className: 'comment', begin: /^#[^+]/, end: /$/ },
+                  // Timestamps
+                  { className: 'number', begin: /<\d{4}-\d{2}-\d{2}/, end: />/ },
+                  // Tags :tag1:tag2:
+                  { className: 'tag', begin: /\s:[a-zA-Z0-9_@#%:]+:\s*$/ }
+                ]
+              };
+            });
+            // Run highlighting after DOM is ready
+            document.addEventListener('DOMContentLoaded', function() {
+              hljs.highlightAll();
+            });
+          }
+        </script><script>
+          (function() {
+            // Set current path as data attribute for CSS styling
+            document.documentElement.dataset.path = window.location.pathname;
+
+            // Mobile menu toggle using event delegation
+            document.addEventListener('click', function(e) {
+              var button = e.target.closest('.mobile-menu-button');
+              if (button) {
+                e.stopPropagation();
+                document.body.classList.toggle('mobile-menu-open');
+                return;
+              }
+              // Close menu when clicking a link inside the menu
+              var menuLink = e.target.closest('.mobile-menu a');
+              if (menuLink) {
+                document.body.classList.remove('mobile-menu-open');
+                return;
+              }
+              // Close menu when clicking outside
+              if (document.body.classList.contains('mobile-menu-open')) {
+                var menu = document.querySelector('.mobile-menu');
+                if (menu && !menu.contains(e.target)) {
+                  document.body.classList.remove('mobile-menu-open');
+                }
+              }
+            });
+
+            // Highlight current page in navigation
+            document.addEventListener('DOMContentLoaded', function() {
+              var path = window.location.pathname;
+              // Highlight sidebar links
+              document.querySelectorAll('.sidebar-link').forEach(function(link) {
+                if (link.getAttribute('href') === path) {
+                  link.classList.add('active');
+                  link.closest('.sidebar-item')?.classList.add('active');
+                }
+              });
+              // Highlight top nav links
+              document.querySelectorAll('.top-nav-link').forEach(function(link) {
+                var href = link.getAttribute('href');
+                var match = link.dataset.match;
+                if (path === href || (match && path.startsWith(match))) {
+                  link.classList.add('active');
+                }
+              });
+            });
+          })();
+        </script><link rel="stylesheet" href="/assets/theme-DsForQV0.css"/><script type="module" src="/assets/entry-client-l0sNRNKZ.js"></script></head><body><div class="docs-layout"><header class="top-nav"><div class="top-nav-container"><a href="/index.html" class="top-nav-logo"><span class="logo-text">Org-Press</span></a><nav class="top-nav-links"><a href="/guide/index.html" class="top-nav-link " data-match="^\/(guide(\/|$)|getting-started|index\.html$)">Guide</a><a href="/config/index.html" class="top-nav-link " data-match="^\/config(\/|$)">Config</a><a href="/plugins/index.html" class="top-nav-link active" data-match="^\/plugins(\/|$)">Plugins</a><a href="/api/index.html" class="top-nav-link " data-match="^\/api(\/|$)">API</a></nav><div class="top-nav-social"><a href="https://github.com/org-press/org-press/blob/main/docs/content/plugins/test.org?plain=1" class="top-nav-source-link" target="_blank" rel="noopener noreferrer" title="View page source on GitHub">:view-source</a><a href="https://github.com/org-press/org-press" class="top-nav-social-link" target="_blank" rel="noopener noreferrer" aria-label="GitHub"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"></path></svg></a></div><button class="mobile-menu-button" aria-label="Toggle navigation menu" aria-expanded="false"><span class="hamburger-line"></span><span class="hamburger-line"></span><span class="hamburger-line"></span></button></div></header><div class="mobile-menu"><nav class="mobile-menu-nav"><div class="mobile-menu-section"><a href="/guide/index.html" class="mobile-menu-section-title ">Guide</a><ul class="mobile-menu-list"><li><a href="/guide/index.html" class="mobile-menu-link ">What is Org-Press?</a></li><li><a href="/guide/getting-started.html" class="mobile-menu-link ">Getting Started</a></li><li><a href="/guide/why-org-press.html" class="mobile-menu-link ">Why Org-Press?</a></li><li><a href="/guide/features.html" class="mobile-menu-link ">Features</a></li><li><a href="/guide/rendering-modes.html" class="mobile-menu-link ">Rendering Modes</a></li><li><a href="/guide/cli.html" class="mobile-menu-link ">CLI Reference</a></li><li><a href="/guide/using-plugins.html" class="mobile-menu-link ">Using Plugins</a></li><li><a href="/guide/block-imports.html" class="mobile-menu-link ">Block Imports</a></li><li><a href="/guide/static-assets.html" class="mobile-menu-link ">Static Assets</a></li><li><a href="/guide/building.html" class="mobile-menu-link ">Building for Production</a></li><li><a href="/guide/deploying.html" class="mobile-menu-link ">Deploying</a></li><li><a href="/guide/troubleshooting.html" class="mobile-menu-link ">Troubleshooting</a></li></ul></div><div class="mobile-menu-section"><a href="/config/index.html" class="mobile-menu-section-title ">Config</a><ul class="mobile-menu-list"><li><a href="/config/index.html" class="mobile-menu-link ">Overview</a></li><li><a href="/config/shared-options.html" class="mobile-menu-link ">Shared Options</a></li><li><a href="/config/build-options.html" class="mobile-menu-link ">Build Options</a></li><li><a href="/config/server-options.html" class="mobile-menu-link ">Server Options</a></li><li><a href="/config/plugin-options.html" class="mobile-menu-link ">Plugin Options</a></li></ul></div><div class="mobile-menu-section"><a href="/plugins/index.html" class="mobile-menu-section-title active">Plugins</a><ul class="mobile-menu-list"><li><a href="/plugins/index.html" class="mobile-menu-link ">Overview</a></li><li class="mobile-menu-group"><span class="mobile-menu-group-title">Official Plugins</span><ul class="mobile-menu-sublist"><li><a href="/plugins/react.html" class="mobile-menu-link ">React</a></li><li><a href="/plugins/echarts.html" class="mobile-menu-link ">ECharts</a></li><li><a href="/plugins/excalidraw.html" class="mobile-menu-link ">Excalidraw</a></li><li><a href="/plugins/jscad.html" class="mobile-menu-link ">JSCAD</a></li><li><a href="/plugins/test.html" class="mobile-menu-link ">Test</a></li></ul></li><li><a href="/plugins/creating-plugins.html" class="mobile-menu-link ">Creating Plugins</a></li></ul></div><div class="mobile-menu-section"><a href="/api/index.html" class="mobile-menu-section-title ">API</a><ul class="mobile-menu-list"><li><a href="/api/index.html" class="mobile-menu-link ">Overview</a></li><li><a href="/api/plugin-api.html" class="mobile-menu-link ">Plugin API</a></li><li><a href="/api/javascript-api.html" class="mobile-menu-link ">JavaScript API</a></li><li><a href="/api/hmr-api.html" class="mobile-menu-link ">HMR API</a></li><li><a href="/api/cli-plugins.html" class="mobile-menu-link ">CLI Plugins</a></li></ul></div></nav><div class="mobile-menu-footer"><a href="https://github.com/org-press/org-press" class="mobile-menu-link" target="_blank" rel="noopener noreferrer">GitHub</a></div></div><div class="alpha-banner"><span class="alpha-banner-icon">⚠️</span><span class="alpha-banner-text"><strong>Early Alpha</strong> — Org-press is experimental. Perfect for hackers and tinkerers, not ready for production. Documentation may be incomplete or inaccurate.</span></div><div class="docs-container"><aside class="sidebar"><div class="sidebar-content"><nav class="sidebar-nav" aria-label="Section navigation"><div class="sidebar-section"><h3 class="sidebar-section-title">Plugins</h3><ul class="sidebar-list"><li class="sidebar-item "><a href="/plugins/index.html" class="sidebar-link ">Overview</a></li><li class="sidebar-group"><span class="sidebar-group-title">Official Plugins</span><ul class="sidebar-list sidebar-list-nested"><li class="sidebar-item "><a href="/plugins/react.html" class="sidebar-link ">React</a></li><li class="sidebar-item "><a href="/plugins/echarts.html" class="sidebar-link ">ECharts</a></li><li class="sidebar-item "><a href="/plugins/excalidraw.html" class="sidebar-link ">Excalidraw</a></li><li class="sidebar-item "><a href="/plugins/jscad.html" class="sidebar-link ">JSCAD</a></li><li class="sidebar-item "><a href="/plugins/test.html" class="sidebar-link ">Test</a></li></ul></li><li class="sidebar-item "><a href="/plugins/creating-plugins.html" class="sidebar-link ">Creating Plugins</a></li></ul></div></nav></div></aside><main class="docs-content"><article class="docs-article"><div class="docs-body"><div><h1 id="overview">Overview</h1><p>The Test plugin enables literate testing directly within your org-mode documents using <a href="https://vitest.dev/">Vitest</a>. Write tests alongside your code, run them from the CLI, and see results rendered inline in your documents.
+</p><h2 id="features">Features</h2><ul><li>🧪 <strong>Literate Testing</strong> - Write tests in the same document as your code
+</li><li>⚡ <strong>Vitest Powered</strong> - Fast, modern test runner with excellent DX
+</li><li>📊 <strong>Inline Results</strong> - Test results render directly in your documents
+</li><li>🔍 <strong>Coverage Support</strong> - Optional code coverage reporting
+</li><li>👀 <strong>Watch Mode</strong> - Re-run tests automatically on changes
+</li><li>🎯 <strong>Filtering</strong> - Run tests by file or block name
+</li></ul><h1 id="installation">Installation</h1><pre class="src-block"><code class="hljs language-bash">npm install @org-press/block-test vitest
+</code></pre><p>Register in <code class="inline-verbatim">.org-press/config.ts</code>:
+</p><pre class="src-block"><code class="hljs language-typescript"><span class="hljs-keyword">import</span> { testPlugin } <span class="hljs-keyword">from</span> <span class="hljs-string">'@org-press/block-test'</span>;
+
+<span class="hljs-keyword">export</span> <span class="hljs-keyword">default</span> {
+  <span class="hljs-attr">plugins</span>: [testPlugin]
+};
+</code></pre><h1 id="basic-usage">Basic Usage</h1><h2 id="simple-example">Simple Example</h2><p>Write tests directly in your org file:
+</p><pre class="src-block"><code class="hljs language-typescript"><span class="hljs-title function_">describe</span>(<span class="hljs-string">'Math Operations'</span>, <span class="hljs-function">() =></span> {
+  <span class="hljs-title function_">it</span>(<span class="hljs-string">'adds numbers correctly'</span>, <span class="hljs-function">() =></span> {
+    <span class="hljs-title function_">expect</span>(<span class="hljs-number">1</span> + <span class="hljs-number">2</span>).<span class="hljs-title function_">toBe</span>(<span class="hljs-number">3</span>);
+  });
+
+  <span class="hljs-title function_">it</span>(<span class="hljs-string">'multiplies numbers correctly'</span>, <span class="hljs-function">() =></span> {
+    <span class="hljs-title function_">expect</span>(<span class="hljs-number">3</span> * <span class="hljs-number">4</span>).<span class="hljs-title function_">toBe</span>(<span class="hljs-number">12</span>);
+  });
+});
+</code></pre><h2 id="syntax">Syntax</h2><pre><code>#+NAME: my-tests
+#+begin_src typescript :use test
+import { describe, it, expect } from 'vitest';
+
+describe('feature', () => {
+  it('works correctly', () => {
+    expect(true).toBe(true);
+  });
+});
+#+end_src
+</code></pre>
+<h2 id="parameters">Parameters</h2><table><thead><tr><th>Parameter</th><th>Required</th><th>Description</th><th>Example</th></tr></thead><tbody><tr><td><code class="inline-verbatim">:use test</code></td><td>Yes</td><td>Activates test block processing</td><td><code class="inline-verbatim">:use test</code></td></tr><tr><td><code class="inline-verbatim">:name</code></td><td>No</td><td>Block name for filtering</td><td><code class="inline-verbatim">:name my-tests</code></td></tr><tr><td><code class="inline-verbatim">:coverage</code></td><td>No</td><td>Enable coverage display</td><td><code class="inline-verbatim">:coverage</code></td></tr></tbody></table><h1 id="cli-commands">CLI Commands</h1><h2 id="running-all-tests">Running All Tests</h2><pre class="src-block"><code class="hljs language-bash">orgp <span class="hljs-built_in">test</span>
+</code></pre><h2 id="running-tests-in-a-specific-file">Running Tests in a Specific File</h2><pre class="src-block"><code class="hljs language-bash">orgp <span class="hljs-built_in">test</span> content/math.org
+</code></pre><h2 id="filtering-by-block-name">Filtering by Block Name</h2><pre class="src-block"><code class="hljs language-bash">orgp <span class="hljs-built_in">test</span> --name math-tests
+</code></pre><h2 id="watch-mode">Watch Mode</h2><pre class="src-block"><code class="hljs language-bash">orgp <span class="hljs-built_in">test</span> --watch
+</code></pre><h2 id="with-coverage">With Coverage</h2><pre class="src-block"><code class="hljs language-bash">orgp <span class="hljs-built_in">test</span> --coverage
+</code></pre><h2 id="hashbang-support">Hashbang Support</h2><p>Make your org file executable:
+</p><pre><code>#!/usr/bin/env orgp
+#+TITLE: My Tests
+
+#+NAME: tests
+#+begin_src typescript :use test
+describe('tests', () => {
+  it('works', () => expect(1).toBe(1));
+});
+#+end_src
+</code></pre>
+<p>Then run directly:
+</p><pre class="src-block"><code class="hljs language-bash"><span class="hljs-built_in">chmod</span> +x my-tests.org
+./my-tests.org <span class="hljs-built_in">test</span>
+</code></pre><h1 id="testing-patterns">Testing Patterns</h1><h2 id="testing-functions-from-other-blocks">Testing Functions from Other Blocks</h2><p>Import functions from other code blocks in your org files:
+</p><pre><code>// In math.org - define the function
+#+NAME: add-function
+#+begin_src typescript :use sourceOnly
+export function add(a: number, b: number): number {
+  return a + b;
+}
+#+end_src
+
+// In the same or another file - test it
+#+NAME: add-tests
+#+begin_src typescript :use test
+import { add } from './math.org?name=add-function';
+
+describe('add', () => {
+  it('adds positive numbers', () => {
+    expect(add(1, 2)).toBe(3);
+  });
+
+  it('adds negative numbers', () => {
+    expect(add(-1, -2)).toBe(-3);
+  });
+
+  it('handles zero', () => {
+    expect(add(0, 5)).toBe(5);
+  });
+});
+#+end_src
+</code></pre>
+<h2 id="async-tests">Async Tests</h2><pre class="src-block"><code class="hljs language-typescript"><span class="hljs-title function_">describe</span>(<span class="hljs-string">'Async Operations'</span>, <span class="hljs-function">() =></span> {
+  <span class="hljs-title function_">it</span>(<span class="hljs-string">'resolves promises'</span>, <span class="hljs-title function_">async</span> () => {
+    <span class="hljs-keyword">const</span> result = <span class="hljs-keyword">await</span> <span class="hljs-title class_">Promise</span>.<span class="hljs-title function_">resolve</span>(<span class="hljs-number">42</span>);
+    <span class="hljs-title function_">expect</span>(result).<span class="hljs-title function_">toBe</span>(<span class="hljs-number">42</span>);
+  });
+
+  <span class="hljs-title function_">it</span>(<span class="hljs-string">'handles async/await'</span>, <span class="hljs-title function_">async</span> () => {
+    <span class="hljs-keyword">const</span> <span class="hljs-title function_">fetchData</span> = <span class="hljs-keyword">async</span> (<span class="hljs-params"></span>) => ({ <span class="hljs-attr">value</span>: <span class="hljs-string">'test'</span> });
+    <span class="hljs-keyword">const</span> data = <span class="hljs-keyword">await</span> <span class="hljs-title function_">fetchData</span>();
+    <span class="hljs-title function_">expect</span>(data.<span class="hljs-property">value</span>).<span class="hljs-title function_">toBe</span>(<span class="hljs-string">'test'</span>);
+  });
+});
+</code></pre><h2 id="mocking">Mocking</h2><pre class="src-block"><code class="hljs language-typescript"><span class="hljs-keyword">import</span> { vi } <span class="hljs-keyword">from</span> <span class="hljs-string">'vitest'</span>;
+
+<span class="hljs-title function_">describe</span>(<span class="hljs-string">'Mocking'</span>, <span class="hljs-function">() =></span> {
+  <span class="hljs-title function_">it</span>(<span class="hljs-string">'mocks functions'</span>, <span class="hljs-function">() =></span> {
+    <span class="hljs-keyword">const</span> mockFn = vi.<span class="hljs-title function_">fn</span>().<span class="hljs-title function_">mockReturnValue</span>(<span class="hljs-number">42</span>);
+    <span class="hljs-title function_">expect</span>(<span class="hljs-title function_">mockFn</span>()).<span class="hljs-title function_">toBe</span>(<span class="hljs-number">42</span>);
+    <span class="hljs-title function_">expect</span>(mockFn).<span class="hljs-title function_">toHaveBeenCalled</span>();
+  });
+
+  <span class="hljs-title function_">it</span>(<span class="hljs-string">'spies on methods'</span>, <span class="hljs-function">() =></span> {
+    <span class="hljs-keyword">const</span> obj = {
+      <span class="hljs-attr">method</span>: <span class="hljs-function">() =></span> <span class="hljs-string">'original'</span>
+    };
+    <span class="hljs-keyword">const</span> spy = vi.<span class="hljs-title function_">spyOn</span>(obj, <span class="hljs-string">'method'</span>).<span class="hljs-title function_">mockReturnValue</span>(<span class="hljs-string">'mocked'</span>);
+    <span class="hljs-title function_">expect</span>(obj.<span class="hljs-title function_">method</span>()).<span class="hljs-title function_">toBe</span>(<span class="hljs-string">'mocked'</span>);
+    spy.<span class="hljs-title function_">mockRestore</span>();
+  });
+});
+</code></pre><h2 id="setup-and-teardown">Setup and Teardown</h2><pre class="src-block"><code class="hljs language-typescript"><span class="hljs-title function_">describe</span>(<span class="hljs-string">'With Setup/Teardown'</span>, <span class="hljs-function">() =></span> {
+  <span class="hljs-keyword">let</span> <span class="hljs-attr">testData</span>: <span class="hljs-built_in">string</span>[];
+
+  <span class="hljs-title function_">beforeEach</span>(<span class="hljs-function">() =></span> {
+    testData = [<span class="hljs-string">'a'</span>, <span class="hljs-string">'b'</span>, <span class="hljs-string">'c'</span>];
+  });
+
+  <span class="hljs-title function_">afterEach</span>(<span class="hljs-function">() =></span> {
+    testData = [];
+  });
+
+  <span class="hljs-title function_">it</span>(<span class="hljs-string">'has initial data'</span>, <span class="hljs-function">() =></span> {
+    <span class="hljs-title function_">expect</span>(testData).<span class="hljs-title function_">toHaveLength</span>(<span class="hljs-number">3</span>);
+  });
+
+  <span class="hljs-title function_">it</span>(<span class="hljs-string">'can modify data'</span>, <span class="hljs-function">() =></span> {
+    testData.<span class="hljs-title function_">push</span>(<span class="hljs-string">'d'</span>);
+    <span class="hljs-title function_">expect</span>(testData).<span class="hljs-title function_">toHaveLength</span>(<span class="hljs-number">4</span>);
+  });
+});
+</code></pre><h1 id="inline-results-display">Inline Results Display</h1><p>When viewing your org file in the browser during development, test blocks show results inline:
+</p><h2 id="result-components">Result Components</h2><ul><li><strong>Summary Bar</strong> - Shows pass/fail/skip counts with color coding
+</li><li><strong>Test List</strong> - Individual test results with expand/collapse
+</li><li><strong>Error Details</strong> - Stack traces and diff output for failures
+</li><li><strong>Coverage Bars</strong> - Visual coverage metrics (when enabled)
+</li></ul><h2 id="result-states">Result States</h2><table><thead><tr><th>State</th><th>Color</th><th>Description</th></tr></thead><tbody><tr><td>Pass</td><td>Green</td><td>All tests passed</td></tr><tr><td>Fail</td><td>Red</td><td>One or more tests failed</td></tr><tr><td>Pending</td><td>Yellow</td><td>Tests not yet run</td></tr><tr><td>Skip</td><td>Blue</td><td>Tests marked as skipped</td></tr></tbody></table><h1 id="project-setup-example">Project Setup Example</h1><h2 id="directory-structure">Directory Structure</h2><pre><code>my-project/
+├── .org-press/
+│   └── config.ts        # Plugin registration
+├── content/
+│   ├── index.org        # Main content
+│   ├── math.org         # Math functions + tests
+│   └── utils.org        # Utility functions + tests
+└── package.json
+</code></pre>
+<h2 id="config-file">Config File</h2><pre class="src-block"><code class="hljs language-typescript"><span class="hljs-comment">// .org-press/config.ts</span>
+<span class="hljs-keyword">import</span> { testPlugin } <span class="hljs-keyword">from</span> <span class="hljs-string">'@org-press/block-test'</span>;
+
+<span class="hljs-keyword">export</span> <span class="hljs-keyword">default</span> {
+  <span class="hljs-attr">contentDir</span>: <span class="hljs-string">'content'</span>,
+  <span class="hljs-attr">plugins</span>: [testPlugin],
+};
+</code></pre><h2 id="package-scripts">Package Scripts</h2><pre class="src-block"><code class="hljs language-json"><span class="hljs-punctuation">{</span>
+  <span class="hljs-attr">"scripts"</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">{</span>
+    <span class="hljs-attr">"dev"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"orgp dev"</span><span class="hljs-punctuation">,</span>
+    <span class="hljs-attr">"build"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"orgp build"</span><span class="hljs-punctuation">,</span>
+    <span class="hljs-attr">"test"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"orgp test"</span><span class="hljs-punctuation">,</span>
+    <span class="hljs-attr">"test:watch"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"orgp test --watch"</span><span class="hljs-punctuation">,</span>
+    <span class="hljs-attr">"test:coverage"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"orgp test --coverage"</span>
+  <span class="hljs-punctuation">}</span>
+<span class="hljs-punctuation">}</span>
+</code></pre><h1 id="tips-and-best-practices">Tips and Best Practices</h1><h2 id="organization">Organization</h2><ul><li>Group related tests in the same org file as the code they test
+</li><li>Use descriptive <code class="inline-verbatim">#+NAME:</code> blocks for easy filtering
+</li><li>Keep test blocks close to the code they test
+</li></ul><h2 id="performance">Performance</h2><ul><li>Use <code class="inline-verbatim">--watch</code> during development for fast feedback
+</li><li>Filter by file or name when working on specific features
+</li><li>Run full test suite before committing
+</li></ul><h2 id="debugging">Debugging</h2><ul><li>Use <code class="inline-verbatim">console.log()</code> in tests - output appears in CLI
+</li><li>Check the generated test files in <code class="inline-verbatim">node_modules/.cache/org-test/</code></li><li>Run with <code class="inline-verbatim">--reporter=verbose</code> for detailed output
+</li></ul><h2 id="coverage">Coverage</h2><ul><li>Enable coverage to find untested code paths
+</li><li>Aim for meaningful coverage, not 100%
+</li><li>Focus coverage on critical business logic
+</li></ul><h1 id="api-reference">API Reference</h1><h2 id="plugin-configuration">Plugin Configuration</h2><pre class="src-block"><code class="hljs language-typescript"><span class="hljs-keyword">interface</span> <span class="hljs-title class_">TestPlugin</span> <span class="hljs-keyword">extends</span> <span class="hljs-title class_">BlockPlugin</span> {
+  <span class="hljs-attr">name</span>: <span class="hljs-string">'test'</span>;
+  <span class="hljs-attr">defaultExtension</span>: <span class="hljs-string">'js'</span>;
+
+  <span class="hljs-comment">// Match blocks with :use test</span>
+  <span class="hljs-attr">matches</span>: <span class="hljs-function">(<span class="hljs-params"><span class="hljs-attr">block</span>: <span class="hljs-title class_">CodeBlock</span></span>) =></span> <span class="hljs-built_in">boolean</span>;
+
+  <span class="hljs-comment">// Transform block for rendering</span>
+  <span class="hljs-attr">transform</span>: <span class="hljs-function">(<span class="hljs-params"><span class="hljs-attr">block</span>: <span class="hljs-title class_">CodeBlock</span>, <span class="hljs-attr">context</span>: <span class="hljs-title class_">TransformContext</span></span>) =></span> <span class="hljs-title class_">Promise</span>&#x3C;<span class="hljs-title class_">TransformResult</span>>;
+
+  <span class="hljs-comment">// CLI command registration</span>
+  <span class="hljs-attr">cli</span>: {
+    <span class="hljs-attr">command</span>: <span class="hljs-string">'test'</span>;
+    <span class="hljs-attr">description</span>: <span class="hljs-string">'Run test blocks in org files'</span>;
+    <span class="hljs-attr">execute</span>: <span class="hljs-function">(<span class="hljs-params"><span class="hljs-attr">args</span>: <span class="hljs-built_in">string</span>[], <span class="hljs-attr">context</span>: <span class="hljs-title class_">CliContext</span></span>) =></span> <span class="hljs-title class_">Promise</span>&#x3C;<span class="hljs-built_in">number</span>>;
+  };
+}
+</code></pre><h2 id="test-result-types">Test Result Types</h2><pre class="src-block"><code class="hljs language-typescript"><span class="hljs-keyword">interface</span> <span class="hljs-title class_">TestResult</span> {
+  <span class="hljs-attr">name</span>: <span class="hljs-built_in">string</span>;
+  <span class="hljs-attr">status</span>: <span class="hljs-string">'pass'</span> | <span class="hljs-string">'fail'</span> | <span class="hljs-string">'skip'</span>;
+  <span class="hljs-attr">duration</span>: <span class="hljs-built_in">number</span>;
+  <span class="hljs-attr">error</span>?: {
+    <span class="hljs-attr">message</span>: <span class="hljs-built_in">string</span>;
+    <span class="hljs-attr">expected</span>?: <span class="hljs-built_in">unknown</span>;
+    <span class="hljs-attr">actual</span>?: <span class="hljs-built_in">unknown</span>;
+    <span class="hljs-attr">stack</span>?: <span class="hljs-built_in">string</span>;
+  };
+}
+
+<span class="hljs-keyword">interface</span> <span class="hljs-title class_">TestBlockResult</span> {
+  <span class="hljs-attr">blockId</span>: <span class="hljs-built_in">string</span>;
+  <span class="hljs-attr">blockName</span>?: <span class="hljs-built_in">string</span>;
+  <span class="hljs-attr">tests</span>: <span class="hljs-title class_">TestResult</span>[];
+  <span class="hljs-attr">coverage</span>?: <span class="hljs-title class_">CoverageData</span>;
+  <span class="hljs-attr">duration</span>: <span class="hljs-built_in">number</span>;
+}
+</code></pre><h1 id="troubleshooting">Troubleshooting</h1><h2 id="tests-not-found">Tests Not Found</h2><ul><li>Verify <code class="inline-verbatim">:use test</code> parameter is present on the block
+</li><li>Check that the block language is TypeScript or JavaScript
+</li><li>Ensure the content directory is correctly configured
+</li></ul><h2 id="import-errors">Import Errors</h2><ul><li>Use relative paths: <code class="inline-verbatim">./file.org?name=block-name</code></li><li>Verify the target block exists and exports correctly
+</li><li>Check that Vitest can resolve the imports
+</li></ul><h2 id="cli-not-working">CLI Not Working</h2><ul><li>Ensure <code class="inline-verbatim">@org-press/block-test</code> is installed
+</li><li>Verify the plugin is registered in config
+</li><li>Check that <code class="inline-verbatim">orgp</code> is available in PATH
+</li></ul><h2 id="results-not-displaying">Results Not Displaying</h2><ul><li>Run <code class="inline-verbatim">orgp test</code> to generate results first
+</li><li>Check browser console for errors
+</li><li>Verify the wrapper component is loading
+</li></ul><h1 id="see-also">See Also</h1><ul><li><a href="/guide/using-plugins.html">Block Plugin System</a> - How plugins work
+</li><li><a href="/examples/block-imports.html">Block Imports Guide</a> - Importing code between blocks
+</li><li><a href="https://vitest.dev/">Vitest Documentation</a> - Full Vitest API reference
+</li><li><a href="/plugins/jscad.html">JSCad Plugin</a> - 3D modeling plugin
+</li><li><a href="/plugins/excalidraw.html">Excalidraw Plugin</a> - Diagram plugin
+</li></ul></div></div></article></main><aside class="toc"><div class="toc-content"><h4 class="toc-title">On this page</h4><nav class="toc-nav" aria-label="Table of contents"><ul class="toc-list"><li class="toc-item "><a href="#features" class="toc-link">Features</a></li><li class="toc-item "><a href="#simple-example" class="toc-link">Simple Example</a></li><li class="toc-item "><a href="#syntax" class="toc-link">Syntax</a></li><li class="toc-item "><a href="#parameters" class="toc-link">Parameters</a></li><li class="toc-item "><a href="#running-all-tests" class="toc-link">Running All Tests</a></li><li class="toc-item "><a href="#running-tests-in-a-specific-file" class="toc-link">Running Tests in a Specific File</a></li><li class="toc-item "><a href="#filtering-by-block-name" class="toc-link">Filtering by Block Name</a></li><li class="toc-item "><a href="#watch-mode" class="toc-link">Watch Mode</a></li><li class="toc-item "><a href="#with-coverage" class="toc-link">With Coverage</a></li><li class="toc-item "><a href="#hashbang-support" class="toc-link">Hashbang Support</a></li><li class="toc-item "><a href="#testing-functions-from-other-blocks" class="toc-link">Testing Functions from Other Blocks</a></li><li class="toc-item "><a href="#async-tests" class="toc-link">Async Tests</a></li><li class="toc-item "><a href="#mocking" class="toc-link">Mocking</a></li><li class="toc-item "><a href="#setup-and-teardown" class="toc-link">Setup and Teardown</a></li><li class="toc-item "><a href="#result-components" class="toc-link">Result Components</a></li><li class="toc-item "><a href="#result-states" class="toc-link">Result States</a></li><li class="toc-item "><a href="#directory-structure" class="toc-link">Directory Structure</a></li><li class="toc-item "><a href="#config-file" class="toc-link">Config File</a></li><li class="toc-item "><a href="#package-scripts" class="toc-link">Package Scripts</a></li><li class="toc-item "><a href="#organization" class="toc-link">Organization</a></li><li class="toc-item "><a href="#performance" class="toc-link">Performance</a></li><li class="toc-item "><a href="#debugging" class="toc-link">Debugging</a></li><li class="toc-item "><a href="#coverage" class="toc-link">Coverage</a></li><li class="toc-item "><a href="#plugin-configuration" class="toc-link">Plugin Configuration</a></li><li class="toc-item "><a href="#test-result-types" class="toc-link">Test Result Types</a></li><li class="toc-item "><a href="#tests-not-found" class="toc-link">Tests Not Found</a></li><li class="toc-item "><a href="#import-errors" class="toc-link">Import Errors</a></li><li class="toc-item "><a href="#cli-not-working" class="toc-link">CLI Not Working</a></li><li class="toc-item "><a href="#results-not-displaying" class="toc-link">Results Not Displaying</a></li></ul></nav></div></aside></div><footer class="site-footer"><div class="footer-content"><div class="footer-grid"><div class="footer-column"><h4>Guide</h4><ul><li><a href="/guide/index.html">What is Org-Press?</a></li><li><a href="/guide/getting-started.html">Getting Started</a></li><li><a href="/guide/features.html">Features</a></li><li><a href="/guide/cli.html">CLI Reference</a></li><li><a href="/guide/building.html">Building</a></li></ul></div><div class="footer-column"><h4>Config</h4><ul><li><a href="/config/index.html">Overview</a></li><li><a href="/config/shared-options.html">Shared Options</a></li><li><a href="/config/build-options.html">Build Options</a></li><li><a href="/config/server-options.html">Server Options</a></li></ul></div><div class="footer-column"><h4>Plugins</h4><ul><li><a href="/plugins/index.html">Overview</a></li><li><a href="/plugins/excalidraw.html">Excalidraw</a></li><li><a href="/plugins/jscad.html">JSCAD</a></li><li><a href="/plugins/creating-plugins.html">Creating Plugins</a></li></ul></div><div class="footer-column"><h4>API</h4><ul><li><a href="/api/index.html">Overview</a></li><li><a href="/api/plugin-api.html">Plugin API</a></li><li><a href="/api/javascript-api.html">JavaScript API</a></li></ul></div><div class="footer-column"><h4>Resources</h4><ul><li><a href="/examples/index.html">Examples</a></li><li><a href="https://github.com/org-press/org-press" target="_blank" rel="noopener">GitHub</a></li><li><a href="https://github.com/org-press/org-press/releases" target="_blank" rel="noopener">Releases</a></li></ul></div></div><div class="footer-bottom"><p class="footer-copyright">Released under the GPL-2.0 License.</p><p class="footer-credit">Built with <a href="https://github.com/org-press/org-press">org-press</a></p></div></div></footer></div><script src="https://analytics.ideable.dev/api/script.js" data-site-id="5dc60eeeac5d" defer=""></script></body></html>

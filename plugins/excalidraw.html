@@ -1,0 +1,872 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charSet="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/><title>Excalidraw Plugin for Org-Press | org-press</title><meta name="description" content="Hand-drawn style diagrams using Excalidraw - literate plugin implementation"/><script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script><script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/highlight.min.js"></script><link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/styles/github.min.css" media="(prefers-color-scheme: light)"/><link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/styles/github-dark.min.css" media="(prefers-color-scheme: dark)"/><script>
+          // Register org-mode language for highlight.js
+          if (typeof hljs !== 'undefined') {
+            hljs.registerLanguage('org', function(hljs) {
+              return {
+                name: 'Org',
+                aliases: ['org', 'org-mode', 'orgmode'],
+                case_insensitive: true,
+                contains: [
+                  // Headlines
+                  {
+                    className: 'section',
+                    begin: /^\*+\s/,
+                    end: /$/,
+                    contains: [
+                      { className: 'keyword', begin: /\b(TODO|DONE|WAITING|CANCELLED|NEXT|HOLD)\b/ }
+                    ]
+                  },
+                  // Keywords (#+KEYWORD:)
+                  {
+                    className: 'meta',
+                    begin: /^#\+[A-Za-z_]+:/,
+                    end: /$/,
+                    contains: [{ className: 'string', begin: /\s/, end: /$/ }]
+                  },
+                  // Begin/end blocks
+                  { className: 'keyword', begin: /^#\+(begin|end)_[a-z]+/i, relevance: 10 },
+                  // Property drawers
+                  { className: 'attribute', begin: /^:\w+:/, end: /$/ },
+                  // Links [[url][description]]
+                  {
+                    className: 'link',
+                    begin: /\[\[/,
+                    end: /\]\]/,
+                    contains: [{ className: 'string', begin: /\]\[/, end: /(?=\]\])/ }]
+                  },
+                  // Comments (lines starting with #, but not #+)
+                  { className: 'comment', begin: /^#[^+]/, end: /$/ },
+                  // Timestamps
+                  { className: 'number', begin: /<\d{4}-\d{2}-\d{2}/, end: />/ },
+                  // Tags :tag1:tag2:
+                  { className: 'tag', begin: /\s:[a-zA-Z0-9_@#%:]+:\s*$/ }
+                ]
+              };
+            });
+            // Run highlighting after DOM is ready
+            document.addEventListener('DOMContentLoaded', function() {
+              hljs.highlightAll();
+            });
+          }
+        </script><script>
+          (function() {
+            // Set current path as data attribute for CSS styling
+            document.documentElement.dataset.path = window.location.pathname;
+
+            // Mobile menu toggle using event delegation
+            document.addEventListener('click', function(e) {
+              var button = e.target.closest('.mobile-menu-button');
+              if (button) {
+                e.stopPropagation();
+                document.body.classList.toggle('mobile-menu-open');
+                return;
+              }
+              // Close menu when clicking a link inside the menu
+              var menuLink = e.target.closest('.mobile-menu a');
+              if (menuLink) {
+                document.body.classList.remove('mobile-menu-open');
+                return;
+              }
+              // Close menu when clicking outside
+              if (document.body.classList.contains('mobile-menu-open')) {
+                var menu = document.querySelector('.mobile-menu');
+                if (menu && !menu.contains(e.target)) {
+                  document.body.classList.remove('mobile-menu-open');
+                }
+              }
+            });
+
+            // Highlight current page in navigation
+            document.addEventListener('DOMContentLoaded', function() {
+              var path = window.location.pathname;
+              // Highlight sidebar links
+              document.querySelectorAll('.sidebar-link').forEach(function(link) {
+                if (link.getAttribute('href') === path) {
+                  link.classList.add('active');
+                  link.closest('.sidebar-item')?.classList.add('active');
+                }
+              });
+              // Highlight top nav links
+              document.querySelectorAll('.top-nav-link').forEach(function(link) {
+                var href = link.getAttribute('href');
+                var match = link.dataset.match;
+                if (path === href || (match && path.startsWith(match))) {
+                  link.classList.add('active');
+                }
+              });
+            });
+          })();
+        </script><link rel="stylesheet" href="/assets/theme-DsForQV0.css"/><script type="module" src="/assets/entry-client-l0sNRNKZ.js"></script><link rel="stylesheet" href="/assets/percentages-YKFLWNK2-B2XZkhZL.css"/></head><body><div class="docs-layout"><header class="top-nav"><div class="top-nav-container"><a href="/index.html" class="top-nav-logo"><span class="logo-text">Org-Press</span></a><nav class="top-nav-links"><a href="/guide/index.html" class="top-nav-link " data-match="^\/(guide(\/|$)|getting-started|index\.html$)">Guide</a><a href="/config/index.html" class="top-nav-link " data-match="^\/config(\/|$)">Config</a><a href="/plugins/index.html" class="top-nav-link active" data-match="^\/plugins(\/|$)">Plugins</a><a href="/api/index.html" class="top-nav-link " data-match="^\/api(\/|$)">API</a></nav><div class="top-nav-social"><a href="https://github.com/org-press/org-press/blob/main/docs/content/plugins/excalidraw.org?plain=1" class="top-nav-source-link" target="_blank" rel="noopener noreferrer" title="View page source on GitHub">:view-source</a><a href="https://github.com/org-press/org-press" class="top-nav-social-link" target="_blank" rel="noopener noreferrer" aria-label="GitHub"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"></path></svg></a></div><button class="mobile-menu-button" aria-label="Toggle navigation menu" aria-expanded="false"><span class="hamburger-line"></span><span class="hamburger-line"></span><span class="hamburger-line"></span></button></div></header><div class="mobile-menu"><nav class="mobile-menu-nav"><div class="mobile-menu-section"><a href="/guide/index.html" class="mobile-menu-section-title ">Guide</a><ul class="mobile-menu-list"><li><a href="/guide/index.html" class="mobile-menu-link ">What is Org-Press?</a></li><li><a href="/guide/getting-started.html" class="mobile-menu-link ">Getting Started</a></li><li><a href="/guide/why-org-press.html" class="mobile-menu-link ">Why Org-Press?</a></li><li><a href="/guide/features.html" class="mobile-menu-link ">Features</a></li><li><a href="/guide/rendering-modes.html" class="mobile-menu-link ">Rendering Modes</a></li><li><a href="/guide/cli.html" class="mobile-menu-link ">CLI Reference</a></li><li><a href="/guide/using-plugins.html" class="mobile-menu-link ">Using Plugins</a></li><li><a href="/guide/block-imports.html" class="mobile-menu-link ">Block Imports</a></li><li><a href="/guide/static-assets.html" class="mobile-menu-link ">Static Assets</a></li><li><a href="/guide/building.html" class="mobile-menu-link ">Building for Production</a></li><li><a href="/guide/deploying.html" class="mobile-menu-link ">Deploying</a></li><li><a href="/guide/troubleshooting.html" class="mobile-menu-link ">Troubleshooting</a></li></ul></div><div class="mobile-menu-section"><a href="/config/index.html" class="mobile-menu-section-title ">Config</a><ul class="mobile-menu-list"><li><a href="/config/index.html" class="mobile-menu-link ">Overview</a></li><li><a href="/config/shared-options.html" class="mobile-menu-link ">Shared Options</a></li><li><a href="/config/build-options.html" class="mobile-menu-link ">Build Options</a></li><li><a href="/config/server-options.html" class="mobile-menu-link ">Server Options</a></li><li><a href="/config/plugin-options.html" class="mobile-menu-link ">Plugin Options</a></li></ul></div><div class="mobile-menu-section"><a href="/plugins/index.html" class="mobile-menu-section-title active">Plugins</a><ul class="mobile-menu-list"><li><a href="/plugins/index.html" class="mobile-menu-link ">Overview</a></li><li class="mobile-menu-group"><span class="mobile-menu-group-title">Official Plugins</span><ul class="mobile-menu-sublist"><li><a href="/plugins/react.html" class="mobile-menu-link ">React</a></li><li><a href="/plugins/echarts.html" class="mobile-menu-link ">ECharts</a></li><li><a href="/plugins/excalidraw.html" class="mobile-menu-link ">Excalidraw</a></li><li><a href="/plugins/jscad.html" class="mobile-menu-link ">JSCAD</a></li><li><a href="/plugins/test.html" class="mobile-menu-link ">Test</a></li></ul></li><li><a href="/plugins/creating-plugins.html" class="mobile-menu-link ">Creating Plugins</a></li></ul></div><div class="mobile-menu-section"><a href="/api/index.html" class="mobile-menu-section-title ">API</a><ul class="mobile-menu-list"><li><a href="/api/index.html" class="mobile-menu-link ">Overview</a></li><li><a href="/api/plugin-api.html" class="mobile-menu-link ">Plugin API</a></li><li><a href="/api/javascript-api.html" class="mobile-menu-link ">JavaScript API</a></li><li><a href="/api/hmr-api.html" class="mobile-menu-link ">HMR API</a></li><li><a href="/api/cli-plugins.html" class="mobile-menu-link ">CLI Plugins</a></li></ul></div></nav><div class="mobile-menu-footer"><a href="https://github.com/org-press/org-press" class="mobile-menu-link" target="_blank" rel="noopener noreferrer">GitHub</a></div></div><div class="alpha-banner"><span class="alpha-banner-icon">⚠️</span><span class="alpha-banner-text"><strong>Early Alpha</strong> — Org-press is experimental. Perfect for hackers and tinkerers, not ready for production. Documentation may be incomplete or inaccurate.</span></div><div class="docs-container"><aside class="sidebar"><div class="sidebar-content"><nav class="sidebar-nav" aria-label="Section navigation"><div class="sidebar-section"><h3 class="sidebar-section-title">Plugins</h3><ul class="sidebar-list"><li class="sidebar-item "><a href="/plugins/index.html" class="sidebar-link ">Overview</a></li><li class="sidebar-group"><span class="sidebar-group-title">Official Plugins</span><ul class="sidebar-list sidebar-list-nested"><li class="sidebar-item "><a href="/plugins/react.html" class="sidebar-link ">React</a></li><li class="sidebar-item "><a href="/plugins/echarts.html" class="sidebar-link ">ECharts</a></li><li class="sidebar-item "><a href="/plugins/excalidraw.html" class="sidebar-link ">Excalidraw</a></li><li class="sidebar-item "><a href="/plugins/jscad.html" class="sidebar-link ">JSCAD</a></li><li class="sidebar-item "><a href="/plugins/test.html" class="sidebar-link ">Test</a></li></ul></li><li class="sidebar-item "><a href="/plugins/creating-plugins.html" class="sidebar-link ">Creating Plugins</a></li></ul></div></nav></div></aside><main class="docs-content"><article class="docs-article"><div class="docs-body"><div><h1 id="excalidraw-plugin">Excalidraw Plugin</h1><p>This is a literate plugin implementation for Excalidraw integration with org-press. Create beautiful, sketch-style diagrams with an intuitive interface, perfect for technical documentation, architecture diagrams, flowcharts, and illustrations.
+</p><h2 id="features">Features</h2><ul><li><strong>Hand-Drawn Style</strong> - Beautiful sketch aesthetics for diagrams
+</li><li><strong>Interactive Editor</strong> - Full Excalidraw editing capabilities in dev mode
+</li><li><strong>Auto-Save</strong> - Changes automatically saved back to org file
+</li><li><strong>View/Edit Modes</strong> - Static rendering for production, editable in development
+</li><li><strong>JSON Format</strong> - Human-readable diagram storage in org files
+</li><li><strong>Block Imports</strong> - Compose diagrams from reusable components
+</li></ul><h2 id="installation">Installation</h2><p>Install the plugin and peer dependencies:
+</p><div class="example">npm install @org-press/block-excalidraw @excalidraw/excalidraw react react-dom
+</div><p>Add to your org-press config:
+</p><pre><code class="hljs language-typescript"><span class="hljs-comment">// .org-press/config.ts</span>
+<span class="hljs-keyword">import</span> { excalidrawPlugin } <span class="hljs-keyword">from</span> <span class="hljs-string">"@org-press/block-excalidraw"</span>;
+
+<span class="hljs-keyword">export</span> <span class="hljs-keyword">default</span> {
+  <span class="hljs-attr">plugins</span>: [excalidrawPlugin],
+};
+</code></pre>
+<h2 id="usage">Usage</h2><h3 id="json-mode-simple">JSON Mode (Simple)</h3><p>For static diagrams, use JSON directly:
+</p><pre><code class="hljs language-org">#+begin_src json :use excalidraw :height 400px
+{
+  "type": "excalidraw",
+  "version": 2,
+  "elements": [
+    {
+      "type": "rectangle",
+      "x": 100,
+      "y": 100,
+      "width": 200,
+      "height": 100,
+      "strokeColor": "#1e1e1e",
+      "backgroundColor": "#a5d8ff"
+    }
+  ]
+}
+#+end_src
+</code></pre>
+<h3 id="javascript-mode-composable">JavaScript Mode (Composable)</h3><p>For composable diagrams with imports:
+</p><pre><code class="hljs language-org">#+begin_src javascript :use excalidraw
+import header from './diagrams.org?name=header-component&#x26;data';
+
+export default {
+  type: "excalidraw",
+  version: 2,
+  elements: [
+    ...header.elements,
+    { type: "rectangle", x: 100, y: 200, width: 200, height: 100 }
+  ]
+};
+#+end_src
+</code></pre>
+<h3 id="parameters">Parameters</h3><ul><li><code class="inline-verbatim">:height</code> - Canvas height (default: "500px")
+</li><li><code class="inline-verbatim">:name</code> - Block name for imports and auto-save
+</li></ul><h1 id="plugin-implementation">Plugin Implementation</h1><p>The plugin transforms Excalidraw blocks into executable JavaScript that renders interactive diagrams.
+</p><details>
+<summary>View plugin source code</summary>
+<pre class="src-block"><code class="hljs language-typescript"><span class="hljs-comment">/**
+ * Org-Press Excalidraw Block Plugin
+ *
+ * Provides interactive diagram support for org-mode using Excalidraw
+ */</span>
+
+<span class="hljs-keyword">import</span> <span class="hljs-keyword">type</span> {
+  <span class="hljs-title class_">BlockPlugin</span>,
+  <span class="hljs-title class_">CodeBlock</span>,
+  <span class="hljs-title class_">TransformContext</span>,
+  <span class="hljs-title class_">TransformResult</span>,
+  <span class="hljs-title class_">ApiRequest</span>,
+  <span class="hljs-title class_">ApiResponse</span>,
+} <span class="hljs-keyword">from</span> <span class="hljs-string">"org-press"</span>;
+<span class="hljs-keyword">import</span> {
+  createBlockId,
+  parseBlockParameters,
+  registerApiRoute,
+  isEndpointRegistered,
+  dangerousWriteContentBlock,
+} <span class="hljs-keyword">from</span> <span class="hljs-string">"org-press"</span>;
+<span class="hljs-keyword">import</span> path <span class="hljs-keyword">from</span> <span class="hljs-string">"node:path"</span>;
+
+<span class="hljs-comment">// Track if save API is registered (to avoid duplicates during HMR)</span>
+<span class="hljs-keyword">let</span> saveApiRegistered = <span class="hljs-literal">false</span>;
+
+<span class="hljs-comment">/**
+ * Register the save API endpoint for Excalidraw
+ */</span>
+<span class="hljs-keyword">function</span> <span class="hljs-title function_">registerSaveApi</span>(<span class="hljs-params"></span>): <span class="hljs-built_in">void</span> {
+  <span class="hljs-keyword">if</span> (saveApiRegistered) <span class="hljs-keyword">return</span>;
+
+  <span class="hljs-keyword">if</span> (<span class="hljs-title function_">isEndpointRegistered</span>(<span class="hljs-string">"/api/save-excalidraw"</span>, <span class="hljs-string">"POST"</span>)) {
+    saveApiRegistered = <span class="hljs-literal">true</span>;
+    <span class="hljs-keyword">return</span>;
+  }
+
+  <span class="hljs-keyword">try</span> {
+    <span class="hljs-title function_">registerApiRoute</span>({
+      <span class="hljs-attr">endpoint</span>: <span class="hljs-string">"/api/save-excalidraw"</span>,
+      <span class="hljs-attr">method</span>: <span class="hljs-string">"POST"</span>,
+      <span class="hljs-attr">handler</span>: handleSaveExcalidraw,
+      <span class="hljs-attr">previewOnly</span>: <span class="hljs-literal">true</span>,
+      <span class="hljs-attr">sourcePath</span>: <span class="hljs-string">"@org-press/block-excalidraw"</span>,
+      <span class="hljs-attr">blockName</span>: <span class="hljs-string">"save-api"</span>,
+    });
+    saveApiRegistered = <span class="hljs-literal">true</span>;
+  } <span class="hljs-keyword">catch</span> (error) {
+    saveApiRegistered = <span class="hljs-literal">true</span>;
+  }
+}
+
+<span class="hljs-comment">/**
+ * Handle save requests from the Excalidraw wrapper
+ */</span>
+<span class="hljs-keyword">async</span> <span class="hljs-keyword">function</span> <span class="hljs-title function_">handleSaveExcalidraw</span>(<span class="hljs-params"><span class="hljs-attr">req</span>: <span class="hljs-title class_">ApiRequest</span>, <span class="hljs-attr">res</span>: <span class="hljs-title class_">ApiResponse</span></span>): <span class="hljs-title class_">Promise</span>&#x3C;<span class="hljs-built_in">void</span>> {
+  <span class="hljs-keyword">try</span> {
+    <span class="hljs-keyword">const</span> { filePath, blockId, data } = req.<span class="hljs-property">body</span> <span class="hljs-keyword">as</span> {
+      <span class="hljs-attr">filePath</span>?: <span class="hljs-built_in">string</span>;
+      <span class="hljs-attr">blockId</span>?: <span class="hljs-built_in">string</span>;
+      <span class="hljs-attr">data</span>?: <span class="hljs-built_in">unknown</span>;
+    };
+
+    <span class="hljs-keyword">if</span> (!filePath) {
+      res.<span class="hljs-title function_">status</span>(<span class="hljs-number">400</span>).<span class="hljs-title function_">json</span>({ <span class="hljs-attr">error</span>: <span class="hljs-string">"filePath is required"</span> });
+      <span class="hljs-keyword">return</span>;
+    }
+
+    <span class="hljs-keyword">if</span> (!blockId) {
+      res.<span class="hljs-title function_">status</span>(<span class="hljs-number">400</span>).<span class="hljs-title function_">json</span>({ <span class="hljs-attr">error</span>: <span class="hljs-string">"blockId is required"</span> });
+      <span class="hljs-keyword">return</span>;
+    }
+
+    <span class="hljs-keyword">if</span> (!data) {
+      res.<span class="hljs-title function_">status</span>(<span class="hljs-number">400</span>).<span class="hljs-title function_">json</span>({ <span class="hljs-attr">error</span>: <span class="hljs-string">"data is required"</span> });
+      <span class="hljs-keyword">return</span>;
+    }
+
+    <span class="hljs-keyword">const</span> content = <span class="hljs-title class_">JSON</span>.<span class="hljs-title function_">stringify</span>(data, <span class="hljs-literal">null</span>, <span class="hljs-number">2</span>);
+
+    <span class="hljs-keyword">const</span> result = <span class="hljs-keyword">await</span> <span class="hljs-title function_">dangerousWriteContentBlock</span>({
+      <span class="hljs-attr">file</span>: filePath,
+      <span class="hljs-attr">block</span>: blockId,
+      content,
+    });
+
+    <span class="hljs-keyword">if</span> (result.<span class="hljs-property">success</span>) {
+      res.<span class="hljs-title function_">json</span>({ <span class="hljs-attr">success</span>: <span class="hljs-literal">true</span>, <span class="hljs-attr">message</span>: <span class="hljs-string">"Diagram saved successfully"</span> });
+    } <span class="hljs-keyword">else</span> {
+      res.<span class="hljs-title function_">status</span>(<span class="hljs-number">500</span>).<span class="hljs-title function_">json</span>({ <span class="hljs-attr">error</span>: result.<span class="hljs-property">error</span> || <span class="hljs-string">"Failed to save diagram"</span> });
+    }
+  } <span class="hljs-keyword">catch</span> (<span class="hljs-attr">error</span>: <span class="hljs-built_in">unknown</span>) {
+    <span class="hljs-keyword">const</span> message = error <span class="hljs-keyword">instanceof</span> <span class="hljs-title class_">Error</span> ? error.<span class="hljs-property">message</span> : <span class="hljs-title class_">String</span>(error);
+    <span class="hljs-variable language_">console</span>.<span class="hljs-title function_">error</span>(<span class="hljs-string">"[excalidraw-save] Error:"</span>, message);
+    res.<span class="hljs-title function_">status</span>(<span class="hljs-number">500</span>).<span class="hljs-title function_">json</span>({ <span class="hljs-attr">error</span>: message });
+  }
+}
+
+<span class="hljs-comment">/**
+ * Check if the block content is JavaScript (has imports or exports)
+ */</span>
+<span class="hljs-keyword">function</span> <span class="hljs-title function_">isJavaScriptBlock</span>(<span class="hljs-params"><span class="hljs-attr">content</span>: <span class="hljs-built_in">string</span>, <span class="hljs-attr">language</span>: <span class="hljs-built_in">string</span></span>): <span class="hljs-built_in">boolean</span> {
+  <span class="hljs-keyword">if</span> ([<span class="hljs-string">'javascript'</span>, <span class="hljs-string">'js'</span>, <span class="hljs-string">'typescript'</span>, <span class="hljs-string">'ts'</span>].<span class="hljs-title function_">includes</span>(language.<span class="hljs-title function_">toLowerCase</span>())) {
+    <span class="hljs-keyword">return</span> <span class="hljs-literal">true</span>;
+  }
+  <span class="hljs-keyword">if</span> (content.<span class="hljs-title function_">includes</span>(<span class="hljs-string">'import '</span>) || content.<span class="hljs-title function_">includes</span>(<span class="hljs-string">'export '</span>)) {
+    <span class="hljs-keyword">return</span> <span class="hljs-literal">true</span>;
+  }
+  <span class="hljs-keyword">return</span> <span class="hljs-literal">false</span>;
+}
+
+<span class="hljs-comment">/**
+ * Excalidraw block plugin for org-press
+ *
+ * Supports both JSON (inline data) and JavaScript (imports) modes
+ *
+ * Preview API compatible:
+ * - :use excalidraw -> renders interactive diagram
+ * - :use excalidraw | sourceOnly -> shows source code only
+ * - :use excalidraw | withSourceCode -> shows both code and diagram
+ */</span>
+<span class="hljs-keyword">export</span> <span class="hljs-keyword">const</span> <span class="hljs-attr">excalidrawPlugin</span>: <span class="hljs-title class_">BlockPlugin</span> = {
+  <span class="hljs-attr">name</span>: <span class="hljs-string">'excalidraw'</span>,
+  <span class="hljs-attr">defaultExtension</span>: <span class="hljs-string">'js'</span>,
+
+  <span class="hljs-keyword">async</span> <span class="hljs-title function_">transform</span>(<span class="hljs-attr">block</span>: <span class="hljs-title class_">CodeBlock</span>, <span class="hljs-attr">context</span>: <span class="hljs-title class_">TransformContext</span>): <span class="hljs-title class_">Promise</span>&#x3C;<span class="hljs-title class_">TransformResult</span>> {
+    <span class="hljs-title function_">registerSaveApi</span>();
+
+    <span class="hljs-keyword">const</span> stableId = <span class="hljs-title function_">createBlockId</span>(context.<span class="hljs-property">orgFilePath</span>, context.<span class="hljs-property">blockIndex</span>);
+    <span class="hljs-keyword">const</span> params = <span class="hljs-title function_">parseBlockParameters</span>(block.<span class="hljs-property">meta</span> || <span class="hljs-string">""</span>);
+
+    <span class="hljs-keyword">const</span> useValue = params.<span class="hljs-property">use</span> || <span class="hljs-string">'excalidraw'</span>;
+    <span class="hljs-keyword">const</span> useParts = useValue.<span class="hljs-title function_">split</span>(<span class="hljs-string">'|'</span>).<span class="hljs-title function_">map</span>(<span class="hljs-function">(<span class="hljs-params"><span class="hljs-attr">s</span>: <span class="hljs-built_in">string</span></span>) =></span> s.<span class="hljs-title function_">trim</span>());
+    <span class="hljs-keyword">const</span> mode = useParts.<span class="hljs-property">length</span> > <span class="hljs-number">1</span> ? useParts[<span class="hljs-number">1</span>] : <span class="hljs-string">'preview'</span>;
+
+    <span class="hljs-keyword">if</span> (mode === <span class="hljs-string">'sourceOnly'</span>) {
+      <span class="hljs-keyword">return</span> {
+        <span class="hljs-attr">code</span>: <span class="hljs-string">`// Excalidraw diagram source (display only)\nexport default <span class="hljs-subst">${<span class="hljs-built_in">JSON</span>.stringify(block.value)}</span>;`</span>,
+      };
+    }
+
+    <span class="hljs-keyword">const</span> height = params.<span class="hljs-property">height</span> || <span class="hljs-string">'500px'</span>;
+    <span class="hljs-keyword">const</span> blockId = params.<span class="hljs-property">name</span> || stableId;
+
+    <span class="hljs-keyword">const</span> relativeFilePath = path.<span class="hljs-title function_">isAbsolute</span>(context.<span class="hljs-property">orgFilePath</span>)
+      ? path.<span class="hljs-title function_">relative</span>(process.<span class="hljs-title function_">cwd</span>(), context.<span class="hljs-property">orgFilePath</span>)
+      : context.<span class="hljs-property">orgFilePath</span>;
+
+    <span class="hljs-keyword">const</span> isJsMode = <span class="hljs-title function_">isJavaScriptBlock</span>(block.<span class="hljs-property">value</span>, block.<span class="hljs-property">language</span>);
+
+    <span class="hljs-keyword">if</span> (isJsMode) {
+      <span class="hljs-keyword">const</span> dataModuleId = params.<span class="hljs-property">name</span>
+        ? <span class="hljs-string">`virtual:org-press:block:excalidraw-data:<span class="hljs-subst">${context.orgFilePath}</span>:NAME:<span class="hljs-subst">${params.name}</span>`</span>
+        : <span class="hljs-string">`virtual:org-press:block:excalidraw-data:<span class="hljs-subst">${context.orgFilePath}</span>:<span class="hljs-subst">${context.blockIndex}</span>`</span>;
+
+      <span class="hljs-keyword">return</span> {
+        <span class="hljs-attr">code</span>: <span class="hljs-string">`
+import renderExcalidraw from '@org-press/block-excalidraw/wrapper';
+
+export default function render(containerId) {
+  const container = document.getElementById(containerId);
+  if (!container) {
+    console.error('[Excalidraw] Container not found:', containerId);
+    return;
+  }
+
+  container.className = 'excalidraw-wrapper';
+  container.style.cssText = 'position: relative; height: <span class="hljs-subst">${height}</span>;';
+
+  import('<span class="hljs-subst">${dataModuleId}</span>').then((module) => {
+    try {
+      const data = module.default;
+      const mode = 'view';
+      const filePath = undefined;
+      const blockId = '<span class="hljs-subst">${blockId}</span>';
+
+      renderExcalidraw(container, data, mode, filePath, blockId);
+    } catch (err) {
+      console.error('[Excalidraw] Failed to render diagram:', err);
+      container.innerHTML = '&#x3C;div style="color: red; padding: 1rem; border: 1px solid red;">Error rendering Excalidraw diagram: ' + err.message + '&#x3C;/div>';
+    }
+  }).catch(err => {
+    console.error('[Excalidraw] Failed to load data module:', err);
+    container.innerHTML = '&#x3C;div style="color: red; padding: 1rem; border: 1px solid red;">Error loading Excalidraw data: ' + err.message + '&#x3C;/div>';
+  });
+}
+        `</span>,
+      };
+    } <span class="hljs-keyword">else</span> {
+      <span class="hljs-keyword">const</span> excalidrawData = block.<span class="hljs-property">value</span>;
+
+      <span class="hljs-keyword">return</span> {
+        <span class="hljs-attr">code</span>: <span class="hljs-string">`
+import renderExcalidraw from '@org-press/block-excalidraw/wrapper';
+
+export default function render(containerId) {
+  const container = document.getElementById(containerId);
+  if (!container) {
+    console.error('[Excalidraw] Container not found:', containerId);
+    return;
+  }
+
+  container.className = 'excalidraw-wrapper';
+  container.style.cssText = 'position: relative; height: <span class="hljs-subst">${height}</span>;';
+
+  try {
+    const data = <span class="hljs-subst">${excalidrawData}</span>;
+    const mode = 'view';
+    const filePath = undefined;
+    const blockId = '<span class="hljs-subst">${blockId}</span>';
+
+    renderExcalidraw(container, data, mode, filePath, blockId);
+  } catch (err) {
+    console.error('[Excalidraw] Failed to render diagram:', err);
+    container.innerHTML = '&#x3C;div style="color: red; padding: 1rem; border: 1px solid red;">Error rendering Excalidraw diagram: ' + err.message + '&#x3C;/div>';
+  }
+}
+        `</span>,
+      };
+    }
+  },
+};
+
+<span class="hljs-comment">// Default export for convenience</span>
+<span class="hljs-keyword">export</span> <span class="hljs-keyword">default</span> excalidrawPlugin;
+</code></pre></details>
+<h1 id="wrapper-implementation">Wrapper Implementation</h1><p>The wrapper renders the Excalidraw React component with fullscreen and save functionality.
+</p><details>
+<summary>View wrapper source code</summary>
+<pre class="src-block"><code class="hljs language-tsx"><span class="hljs-comment">/**
+ * Excalidraw wrapper for rendering interactive diagrams
+ */</span>
+<span class="hljs-keyword">import</span> { <span class="hljs-title class_">Excalidraw</span> } <span class="hljs-keyword">from</span> <span class="hljs-string">"@excalidraw/excalidraw"</span>;
+<span class="hljs-keyword">import</span> { <span class="hljs-title class_">ExcalidrawImperativeAPI</span> } <span class="hljs-keyword">from</span> <span class="hljs-string">"@excalidraw/excalidraw/types"</span>;
+<span class="hljs-keyword">import</span> <span class="hljs-string">"@excalidraw/excalidraw/index.css"</span>;
+<span class="hljs-keyword">import</span> { createElement, useState, useRef } <span class="hljs-keyword">from</span> <span class="hljs-string">"react"</span>;
+<span class="hljs-keyword">import</span> { createRoot } <span class="hljs-keyword">from</span> <span class="hljs-string">"react-dom/client"</span>;
+
+<span class="hljs-keyword">export</span> <span class="hljs-keyword">interface</span> <span class="hljs-title class_">ExcalidrawData</span> {
+  <span class="hljs-attr">type</span>?: <span class="hljs-built_in">string</span>;
+  <span class="hljs-attr">version</span>?: <span class="hljs-built_in">number</span>;
+  <span class="hljs-attr">source</span>?: <span class="hljs-built_in">string</span>;
+  <span class="hljs-attr">elements</span>: <span class="hljs-title class_">Array</span>&#x3C;{
+    <span class="hljs-attr">type</span>: <span class="hljs-built_in">string</span>;
+    <span class="hljs-attr">id</span>?: <span class="hljs-built_in">string</span>;
+    <span class="hljs-attr">x</span>?: <span class="hljs-built_in">number</span>;
+    <span class="hljs-attr">y</span>?: <span class="hljs-built_in">number</span>;
+    <span class="hljs-attr">width</span>?: <span class="hljs-built_in">number</span>;
+    <span class="hljs-attr">height</span>?: <span class="hljs-built_in">number</span>;
+    [<span class="hljs-attr">key</span>: <span class="hljs-built_in">string</span>]: <span class="hljs-built_in">any</span>;
+  }>;
+  <span class="hljs-attr">appState</span>?: {
+    <span class="hljs-attr">viewBackgroundColor</span>?: <span class="hljs-built_in">string</span>;
+    [<span class="hljs-attr">key</span>: <span class="hljs-built_in">string</span>]: <span class="hljs-built_in">any</span>;
+  };
+  <span class="hljs-attr">files</span>?: <span class="hljs-title class_">Record</span>&#x3C;<span class="hljs-built_in">string</span>, <span class="hljs-built_in">any</span>>;
+}
+
+<span class="hljs-keyword">export</span> <span class="hljs-keyword">interface</span> <span class="hljs-title class_">ExcalidrawWrapperProps</span> {
+  <span class="hljs-attr">initialData</span>: <span class="hljs-title class_">ExcalidrawData</span>;
+  <span class="hljs-attr">mode</span>: <span class="hljs-string">"view"</span> | <span class="hljs-string">"edit"</span>;
+  <span class="hljs-attr">filePath</span>?: <span class="hljs-built_in">string</span>;
+  <span class="hljs-attr">blockId</span>?: <span class="hljs-built_in">string</span>;
+}
+
+<span class="hljs-comment">/**
+ * Excalidraw wrapper component with fullscreen, view/edit toggle, and save
+ */</span>
+<span class="hljs-keyword">export</span> <span class="hljs-keyword">function</span> <span class="hljs-title function_">ExcalidrawWrapper</span>(<span class="hljs-params">{
+  initialData,
+  mode,
+  filePath,
+  blockId,
+}: <span class="hljs-title class_">ExcalidrawWrapperProps</span></span>) {
+  <span class="hljs-keyword">const</span> [isFullscreen, setIsFullscreen] = <span class="hljs-title function_">useState</span>(<span class="hljs-literal">false</span>);
+  <span class="hljs-keyword">const</span> [isViewMode, setIsViewMode] = <span class="hljs-title function_">useState</span>(mode === <span class="hljs-string">"view"</span>);
+  <span class="hljs-keyword">const</span> [isSaving, setIsSaving] = <span class="hljs-title function_">useState</span>(<span class="hljs-literal">false</span>);
+  <span class="hljs-keyword">const</span> excalidrawRef = useRef&#x3C;<span class="hljs-title class_">ExcalidrawImperativeAPI</span>>(<span class="hljs-literal">null</span>);
+  <span class="hljs-keyword">const</span> containerRef = useRef&#x3C;<span class="hljs-title class_">HTMLDivElement</span>>(<span class="hljs-literal">null</span>);
+
+  <span class="hljs-keyword">const</span> <span class="hljs-title function_">toggleFullscreen</span> = <span class="hljs-keyword">async</span> (<span class="hljs-params"></span>) => {
+    <span class="hljs-keyword">if</span> (!containerRef.<span class="hljs-property">current</span>) <span class="hljs-keyword">return</span>;
+
+    <span class="hljs-keyword">try</span> {
+      <span class="hljs-keyword">if</span> (!<span class="hljs-variable language_">document</span>.<span class="hljs-property">fullscreenElement</span>) {
+        <span class="hljs-keyword">await</span> containerRef.<span class="hljs-property">current</span>.<span class="hljs-title function_">requestFullscreen</span>();
+        <span class="hljs-title function_">setIsFullscreen</span>(<span class="hljs-literal">true</span>);
+      } <span class="hljs-keyword">else</span> {
+        <span class="hljs-keyword">await</span> <span class="hljs-variable language_">document</span>.<span class="hljs-title function_">exitFullscreen</span>();
+        <span class="hljs-title function_">setIsFullscreen</span>(<span class="hljs-literal">false</span>);
+      }
+    } <span class="hljs-keyword">catch</span> (error) {
+      <span class="hljs-variable language_">console</span>.<span class="hljs-title function_">error</span>(<span class="hljs-string">"Fullscreen toggle failed:"</span>, error);
+    }
+  };
+
+  <span class="hljs-keyword">const</span> <span class="hljs-title function_">handleSave</span> = <span class="hljs-keyword">async</span> (<span class="hljs-params"></span>) => {
+    <span class="hljs-keyword">if</span> (!excalidrawRef.<span class="hljs-property">current</span> || !filePath || isViewMode) {
+      <span class="hljs-keyword">return</span>;
+    }
+
+    <span class="hljs-title function_">setIsSaving</span>(<span class="hljs-literal">true</span>);
+    <span class="hljs-keyword">try</span> {
+      <span class="hljs-keyword">const</span> elements = excalidrawRef.<span class="hljs-property">current</span>.<span class="hljs-title function_">getSceneElements</span>();
+      <span class="hljs-keyword">const</span> appState = excalidrawRef.<span class="hljs-property">current</span>.<span class="hljs-title function_">getAppState</span>();
+      <span class="hljs-keyword">const</span> files = excalidrawRef.<span class="hljs-property">current</span>.<span class="hljs-title function_">getFiles</span>();
+
+      <span class="hljs-keyword">const</span> <span class="hljs-attr">data</span>: <span class="hljs-title class_">ExcalidrawData</span> = {
+        <span class="hljs-attr">type</span>: <span class="hljs-string">"excalidraw"</span>,
+        <span class="hljs-attr">version</span>: <span class="hljs-number">2</span>,
+        <span class="hljs-attr">source</span>: <span class="hljs-string">"https://excalidraw.com"</span>,
+        <span class="hljs-attr">elements</span>: elements <span class="hljs-keyword">as</span> <span class="hljs-built_in">any</span>[],
+        <span class="hljs-attr">appState</span>: {
+          <span class="hljs-attr">viewBackgroundColor</span>: appState.<span class="hljs-property">viewBackgroundColor</span>,
+        },
+        <span class="hljs-attr">files</span>: files || {},
+      };
+
+      <span class="hljs-keyword">const</span> response = <span class="hljs-keyword">await</span> <span class="hljs-title function_">fetch</span>(<span class="hljs-string">"/api/save-excalidraw"</span>, {
+        <span class="hljs-attr">method</span>: <span class="hljs-string">"POST"</span>,
+        <span class="hljs-attr">headers</span>: {
+          <span class="hljs-string">"Content-Type"</span>: <span class="hljs-string">"application/json"</span>,
+        },
+        <span class="hljs-attr">body</span>: <span class="hljs-title class_">JSON</span>.<span class="hljs-title function_">stringify</span>({
+          filePath,
+          blockId,
+          data,
+        }),
+      });
+
+      <span class="hljs-keyword">if</span> (!response.<span class="hljs-property">ok</span>) {
+        <span class="hljs-keyword">throw</span> <span class="hljs-keyword">new</span> <span class="hljs-title class_">Error</span>(<span class="hljs-string">`Save failed: <span class="hljs-subst">${response.statusText}</span>`</span>);
+      }
+
+      <span class="hljs-keyword">const</span> result = <span class="hljs-keyword">await</span> response.<span class="hljs-title function_">json</span>();
+      <span class="hljs-variable language_">console</span>.<span class="hljs-title function_">log</span>(<span class="hljs-string">"Saved successfully:"</span>, result);
+      <span class="hljs-title function_">alert</span>(<span class="hljs-string">"Diagram saved successfully!"</span>);
+    } <span class="hljs-keyword">catch</span> (error) {
+      <span class="hljs-variable language_">console</span>.<span class="hljs-title function_">error</span>(<span class="hljs-string">"Save failed:"</span>, error);
+      <span class="hljs-title function_">alert</span>(<span class="hljs-string">`Failed to save: <span class="hljs-subst">${error.message}</span>`</span>);
+    } <span class="hljs-keyword">finally</span> {
+      <span class="hljs-title function_">setIsSaving</span>(<span class="hljs-literal">false</span>);
+    }
+  };
+
+  <span class="hljs-keyword">const</span> <span class="hljs-title function_">toggleEditMode</span> = (<span class="hljs-params"></span>) => {
+    <span class="hljs-title function_">setIsViewMode</span>(!isViewMode);
+  };
+
+  <span class="hljs-keyword">const</span> <span class="hljs-title function_">handleFullscreenChange</span> = (<span class="hljs-params"></span>) => {
+    <span class="hljs-title function_">setIsFullscreen</span>(!!<span class="hljs-variable language_">document</span>.<span class="hljs-property">fullscreenElement</span>);
+  };
+
+  <span class="hljs-keyword">if</span> (<span class="hljs-keyword">typeof</span> <span class="hljs-variable language_">document</span> !== <span class="hljs-string">"undefined"</span>) {
+    <span class="hljs-variable language_">document</span>.<span class="hljs-title function_">addEventListener</span>(<span class="hljs-string">"fullscreenchange"</span>, handleFullscreenChange);
+  }
+
+  <span class="hljs-keyword">return</span> <span class="hljs-title function_">createElement</span>(
+    <span class="hljs-string">"div"</span>,
+    {
+      <span class="hljs-attr">ref</span>: containerRef,
+      <span class="hljs-attr">className</span>: <span class="hljs-string">`excalidraw-container <span class="hljs-subst">${isFullscreen ? <span class="hljs-string">"fullscreen"</span> : <span class="hljs-string">""</span>}</span>`</span>,
+      <span class="hljs-attr">style</span>: {
+        <span class="hljs-attr">width</span>: <span class="hljs-string">"100%"</span>,
+        <span class="hljs-attr">height</span>: isFullscreen ? <span class="hljs-string">"100vh"</span> : <span class="hljs-string">"500px"</span>,
+        <span class="hljs-attr">position</span>: <span class="hljs-string">"relative"</span>,
+        <span class="hljs-attr">border</span>: <span class="hljs-string">"1px solid #e0e0e0"</span>,
+        <span class="hljs-attr">borderRadius</span>: <span class="hljs-string">"8px"</span>,
+        <span class="hljs-attr">overflow</span>: <span class="hljs-string">"hidden"</span>,
+      },
+    },
+    [
+      <span class="hljs-comment">// Toolbar</span>
+      <span class="hljs-title function_">createElement</span>(
+        <span class="hljs-string">"div"</span>,
+        {
+          <span class="hljs-attr">key</span>: <span class="hljs-string">"toolbar"</span>,
+          <span class="hljs-attr">className</span>: <span class="hljs-string">"excalidraw-toolbar"</span>,
+          <span class="hljs-attr">style</span>: {
+            <span class="hljs-attr">position</span>: <span class="hljs-string">"absolute"</span>,
+            <span class="hljs-attr">top</span>: <span class="hljs-string">"10px"</span>,
+            <span class="hljs-attr">right</span>: <span class="hljs-string">"10px"</span>,
+            <span class="hljs-attr">zIndex</span>: <span class="hljs-number">1000</span>,
+            <span class="hljs-attr">display</span>: <span class="hljs-string">"flex"</span>,
+            <span class="hljs-attr">gap</span>: <span class="hljs-string">"8px"</span>,
+            <span class="hljs-attr">padding</span>: <span class="hljs-string">"8px"</span>,
+            <span class="hljs-attr">background</span>: <span class="hljs-string">"rgba(255, 255, 255, 0.95)"</span>,
+            <span class="hljs-attr">borderRadius</span>: <span class="hljs-string">"8px"</span>,
+            <span class="hljs-attr">boxShadow</span>: <span class="hljs-string">"0 2px 8px rgba(0,0,0,0.15)"</span>,
+          },
+        },
+        [
+          mode === <span class="hljs-string">"view"</span> &#x26;&#x26;
+            <span class="hljs-title function_">createElement</span>(
+              <span class="hljs-string">"button"</span>,
+              {
+                <span class="hljs-attr">key</span>: <span class="hljs-string">"toggle-edit"</span>,
+                <span class="hljs-attr">onClick</span>: toggleEditMode,
+                <span class="hljs-attr">style</span>: {
+                  <span class="hljs-attr">padding</span>: <span class="hljs-string">"6px 12px"</span>,
+                  <span class="hljs-attr">border</span>: <span class="hljs-string">"1px solid #ccc"</span>,
+                  <span class="hljs-attr">borderRadius</span>: <span class="hljs-string">"4px"</span>,
+                  <span class="hljs-attr">background</span>: isViewMode ? <span class="hljs-string">"#fff"</span> : <span class="hljs-string">"#4CAF50"</span>,
+                  <span class="hljs-attr">color</span>: isViewMode ? <span class="hljs-string">"#333"</span> : <span class="hljs-string">"#fff"</span>,
+                  <span class="hljs-attr">cursor</span>: <span class="hljs-string">"pointer"</span>,
+                  <span class="hljs-attr">fontSize</span>: <span class="hljs-string">"14px"</span>,
+                  <span class="hljs-attr">fontWeight</span>: <span class="hljs-string">"500"</span>,
+                },
+              },
+              isViewMode ? <span class="hljs-string">"Edit"</span> : <span class="hljs-string">"View"</span>
+            ),
+
+          mode === <span class="hljs-string">"edit"</span> &#x26;&#x26;
+            filePath &#x26;&#x26;
+            <span class="hljs-title function_">createElement</span>(
+              <span class="hljs-string">"button"</span>,
+              {
+                <span class="hljs-attr">key</span>: <span class="hljs-string">"save"</span>,
+                <span class="hljs-attr">onClick</span>: handleSave,
+                <span class="hljs-attr">disabled</span>: isSaving,
+                <span class="hljs-attr">style</span>: {
+                  <span class="hljs-attr">padding</span>: <span class="hljs-string">"6px 12px"</span>,
+                  <span class="hljs-attr">border</span>: <span class="hljs-string">"1px solid #4CAF50"</span>,
+                  <span class="hljs-attr">borderRadius</span>: <span class="hljs-string">"4px"</span>,
+                  <span class="hljs-attr">background</span>: <span class="hljs-string">"#4CAF50"</span>,
+                  <span class="hljs-attr">color</span>: <span class="hljs-string">"#fff"</span>,
+                  <span class="hljs-attr">cursor</span>: isSaving ? <span class="hljs-string">"not-allowed"</span> : <span class="hljs-string">"pointer"</span>,
+                  <span class="hljs-attr">fontSize</span>: <span class="hljs-string">"14px"</span>,
+                  <span class="hljs-attr">fontWeight</span>: <span class="hljs-string">"500"</span>,
+                  <span class="hljs-attr">opacity</span>: isSaving ? <span class="hljs-number">0.6</span> : <span class="hljs-number">1</span>,
+                },
+              },
+              isSaving ? <span class="hljs-string">"Saving..."</span> : <span class="hljs-string">"Save"</span>
+            ),
+
+          <span class="hljs-title function_">createElement</span>(
+            <span class="hljs-string">"button"</span>,
+            {
+              <span class="hljs-attr">key</span>: <span class="hljs-string">"fullscreen"</span>,
+              <span class="hljs-attr">onClick</span>: toggleFullscreen,
+              <span class="hljs-attr">style</span>: {
+                <span class="hljs-attr">padding</span>: <span class="hljs-string">"6px 12px"</span>,
+                <span class="hljs-attr">border</span>: <span class="hljs-string">"1px solid #ccc"</span>,
+                <span class="hljs-attr">borderRadius</span>: <span class="hljs-string">"4px"</span>,
+                <span class="hljs-attr">background</span>: <span class="hljs-string">"#fff"</span>,
+                <span class="hljs-attr">color</span>: <span class="hljs-string">"#333"</span>,
+                <span class="hljs-attr">cursor</span>: <span class="hljs-string">"pointer"</span>,
+                <span class="hljs-attr">fontSize</span>: <span class="hljs-string">"14px"</span>,
+                <span class="hljs-attr">fontWeight</span>: <span class="hljs-string">"500"</span>,
+              },
+            },
+            isFullscreen ? <span class="hljs-string">"Exit Fullscreen"</span> : <span class="hljs-string">"Fullscreen"</span>
+          ),
+        ]
+      ),
+
+      <span class="hljs-comment">// Excalidraw component</span>
+      <span class="hljs-title function_">createElement</span>(
+        <span class="hljs-string">"div"</span>,
+        {
+          <span class="hljs-attr">key</span>: <span class="hljs-string">"excalidraw"</span>,
+          <span class="hljs-attr">style</span>: {
+            <span class="hljs-attr">width</span>: <span class="hljs-string">"100%"</span>,
+            <span class="hljs-attr">height</span>: <span class="hljs-string">"100%"</span>,
+          },
+        },
+        <span class="hljs-title function_">createElement</span>(<span class="hljs-title class_">Excalidraw</span>, {
+          initialData,
+          <span class="hljs-attr">viewModeEnabled</span>: isViewMode,
+          <span class="hljs-attr">zenModeEnabled</span>: isViewMode,
+          <span class="hljs-attr">gridModeEnabled</span>: <span class="hljs-literal">false</span>,
+          <span class="hljs-attr">excalidrawAPI</span>: <span class="hljs-function">(<span class="hljs-params"><span class="hljs-attr">api</span>: <span class="hljs-title class_">ExcalidrawImperativeAPI</span></span>) =></span> {
+            (excalidrawRef <span class="hljs-keyword">as</span> <span class="hljs-built_in">any</span>).<span class="hljs-property">current</span> = api;
+          },
+        })
+      ),
+    ]
+  );
+}
+
+<span class="hljs-comment">/**
+ * Render Excalidraw diagram in a container element
+ */</span>
+<span class="hljs-keyword">export</span> <span class="hljs-keyword">default</span> <span class="hljs-keyword">function</span> <span class="hljs-title function_">renderExcalidraw</span>(<span class="hljs-params">
+  <span class="hljs-attr">container</span>: <span class="hljs-title class_">HTMLElement</span>,
+  <span class="hljs-attr">data</span>: <span class="hljs-title class_">ExcalidrawData</span>,
+  <span class="hljs-attr">mode</span>: <span class="hljs-string">"view"</span> | <span class="hljs-string">"edit"</span> = <span class="hljs-string">"view"</span>,
+  <span class="hljs-attr">filePath</span>?: <span class="hljs-built_in">string</span>,
+  <span class="hljs-attr">blockId</span>?: <span class="hljs-built_in">string</span>
+</span>): <span class="hljs-built_in">void</span> {
+  <span class="hljs-keyword">if</span> (!container) {
+    <span class="hljs-variable language_">console</span>.<span class="hljs-title function_">error</span>(<span class="hljs-string">"Excalidraw: Container element not found"</span>);
+    <span class="hljs-keyword">return</span>;
+  }
+
+  <span class="hljs-keyword">if</span> (!data || !data.<span class="hljs-property">elements</span>) {
+    <span class="hljs-variable language_">console</span>.<span class="hljs-title function_">error</span>(<span class="hljs-string">"Excalidraw: Invalid data format"</span>, data);
+    container.<span class="hljs-property">innerHTML</span> = <span class="hljs-string">`
+      &#x3C;div style="padding: 20px; border: 2px solid #ff6b6b; border-radius: 4px; background: #ffe0e0;">
+        &#x3C;strong>Error:&#x3C;/strong> Invalid Excalidraw data format
+      &#x3C;/div>
+    `</span>;
+    <span class="hljs-keyword">return</span>;
+  }
+
+  <span class="hljs-keyword">const</span> root = <span class="hljs-title function_">createRoot</span>(container);
+  root.<span class="hljs-title function_">render</span>(
+    <span class="hljs-title function_">createElement</span>(<span class="hljs-title class_">ExcalidrawWrapper</span>, {
+      <span class="hljs-attr">initialData</span>: data,
+      mode,
+      filePath,
+      blockId,
+    })
+  );
+}
+</code></pre></details>
+<h1 id="examples">Examples</h1><h2 id="simple-diagram">Simple Diagram</h2><p>A basic rectangle with text:
+</p><div class="org-tabs" data-tabs-id="tabs-rpn3feb">
+  <div class="org-tabs-header">
+    <button class="org-tab active" data-tab="result" type="button">Result</button>
+    <button class="org-tab" data-tab="source" type="button">Source</button>
+  </div>
+  <div class="org-tabs-content">
+    <div class="org-tab-panel active" data-panel="result">
+      <div id="org-block-2-result" data-org-block="block-content-plugins-excalidraw-org-2" class="org-block-result"></div>
+    </div>
+    <div class="org-tab-panel" data-panel="source">
+      <pre class="org-source-pre"><code class="hljs language-json"><span class="hljs-punctuation">{</span>
+  <span class="hljs-attr">"type"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"excalidraw"</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">"version"</span><span class="hljs-punctuation">:</span> <span class="hljs-number">2</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">"source"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"org-press"</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">"elements"</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">[</span>
+    <span class="hljs-punctuation">{</span>
+      <span class="hljs-attr">"id"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"rect1"</span><span class="hljs-punctuation">,</span>
+      <span class="hljs-attr">"type"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"rectangle"</span><span class="hljs-punctuation">,</span>
+      <span class="hljs-attr">"x"</span><span class="hljs-punctuation">:</span> <span class="hljs-number">100</span><span class="hljs-punctuation">,</span>
+      <span class="hljs-attr">"y"</span><span class="hljs-punctuation">:</span> <span class="hljs-number">100</span><span class="hljs-punctuation">,</span>
+      <span class="hljs-attr">"width"</span><span class="hljs-punctuation">:</span> <span class="hljs-number">200</span><span class="hljs-punctuation">,</span>
+      <span class="hljs-attr">"height"</span><span class="hljs-punctuation">:</span> <span class="hljs-number">100</span><span class="hljs-punctuation">,</span>
+      <span class="hljs-attr">"strokeColor"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"#1e1e1e"</span><span class="hljs-punctuation">,</span>
+      <span class="hljs-attr">"backgroundColor"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"#a5d8ff"</span><span class="hljs-punctuation">,</span>
+      <span class="hljs-attr">"fillStyle"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"hachure"</span><span class="hljs-punctuation">,</span>
+      <span class="hljs-attr">"strokeWidth"</span><span class="hljs-punctuation">:</span> <span class="hljs-number">2</span><span class="hljs-punctuation">,</span>
+      <span class="hljs-attr">"roughness"</span><span class="hljs-punctuation">:</span> <span class="hljs-number">1</span>
+    <span class="hljs-punctuation">}</span><span class="hljs-punctuation">,</span>
+    <span class="hljs-punctuation">{</span>
+      <span class="hljs-attr">"id"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"text1"</span><span class="hljs-punctuation">,</span>
+      <span class="hljs-attr">"type"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"text"</span><span class="hljs-punctuation">,</span>
+      <span class="hljs-attr">"x"</span><span class="hljs-punctuation">:</span> <span class="hljs-number">150</span><span class="hljs-punctuation">,</span>
+      <span class="hljs-attr">"y"</span><span class="hljs-punctuation">:</span> <span class="hljs-number">130</span><span class="hljs-punctuation">,</span>
+      <span class="hljs-attr">"text"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"Hello Excalidraw!"</span><span class="hljs-punctuation">,</span>
+      <span class="hljs-attr">"fontSize"</span><span class="hljs-punctuation">:</span> <span class="hljs-number">20</span><span class="hljs-punctuation">,</span>
+      <span class="hljs-attr">"strokeColor"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"#1e1e1e"</span>
+    <span class="hljs-punctuation">}</span>
+  <span class="hljs-punctuation">]</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">"appState"</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">{</span>
+    <span class="hljs-attr">"viewBackgroundColor"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"#ffffff"</span>
+  <span class="hljs-punctuation">}</span>
+<span class="hljs-punctuation">}</span>
+</code></pre>
+    </div>
+  </div>
+</div>
+<script type="module">
+(function() {
+  const container = document.querySelector('[data-tabs-id="tabs-rpn3feb"]');
+  if (!container) return;
+  const tabs = container.querySelectorAll('.org-tab');
+  const panels = container.querySelectorAll('.org-tab-panel');
+  tabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      const target = tab.dataset.tab;
+      tabs.forEach(t => t.classList.toggle('active', t.dataset.tab === target));
+      panels.forEach(p => p.classList.toggle('active', p.dataset.panel === target));
+    });
+  });
+})();
+</script><h2 id="architecture-diagram">Architecture Diagram</h2><p>A simple frontend-backend-database architecture:
+</p><div class="org-tabs" data-tabs-id="tabs-sywgwsr">
+  <div class="org-tabs-header">
+    <button class="org-tab active" data-tab="result" type="button">Result</button>
+    <button class="org-tab" data-tab="source" type="button">Source</button>
+  </div>
+  <div class="org-tabs-content">
+    <div class="org-tab-panel active" data-panel="result">
+      <div id="org-block-3-result" data-org-block="block-content-plugins-excalidraw-org-3" class="org-block-result"></div>
+    </div>
+    <div class="org-tab-panel" data-panel="source">
+      <pre class="org-source-pre"><code class="hljs language-json"><span class="hljs-punctuation">{</span>
+  <span class="hljs-attr">"type"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"excalidraw"</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">"version"</span><span class="hljs-punctuation">:</span> <span class="hljs-number">2</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">"elements"</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">[</span>
+    <span class="hljs-punctuation">{</span>
+      <span class="hljs-attr">"type"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"rectangle"</span><span class="hljs-punctuation">,</span>
+      <span class="hljs-attr">"x"</span><span class="hljs-punctuation">:</span> <span class="hljs-number">50</span><span class="hljs-punctuation">,</span>
+      <span class="hljs-attr">"y"</span><span class="hljs-punctuation">:</span> <span class="hljs-number">50</span><span class="hljs-punctuation">,</span>
+      <span class="hljs-attr">"width"</span><span class="hljs-punctuation">:</span> <span class="hljs-number">150</span><span class="hljs-punctuation">,</span>
+      <span class="hljs-attr">"height"</span><span class="hljs-punctuation">:</span> <span class="hljs-number">80</span><span class="hljs-punctuation">,</span>
+      <span class="hljs-attr">"strokeColor"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"#1e1e1e"</span><span class="hljs-punctuation">,</span>
+      <span class="hljs-attr">"backgroundColor"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"#a5d8ff"</span><span class="hljs-punctuation">,</span>
+      <span class="hljs-attr">"fillStyle"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"solid"</span><span class="hljs-punctuation">,</span>
+      <span class="hljs-attr">"strokeWidth"</span><span class="hljs-punctuation">:</span> <span class="hljs-number">2</span><span class="hljs-punctuation">,</span>
+      <span class="hljs-attr">"roughness"</span><span class="hljs-punctuation">:</span> <span class="hljs-number">0</span><span class="hljs-punctuation">,</span>
+      <span class="hljs-attr">"roundness"</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">{</span> <span class="hljs-attr">"type"</span><span class="hljs-punctuation">:</span> <span class="hljs-number">3</span> <span class="hljs-punctuation">}</span>
+    <span class="hljs-punctuation">}</span><span class="hljs-punctuation">,</span>
+    <span class="hljs-punctuation">{</span>
+      <span class="hljs-attr">"type"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"text"</span><span class="hljs-punctuation">,</span>
+      <span class="hljs-attr">"x"</span><span class="hljs-punctuation">:</span> <span class="hljs-number">90</span><span class="hljs-punctuation">,</span>
+      <span class="hljs-attr">"y"</span><span class="hljs-punctuation">:</span> <span class="hljs-number">75</span><span class="hljs-punctuation">,</span>
+      <span class="hljs-attr">"text"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"Frontend"</span><span class="hljs-punctuation">,</span>
+      <span class="hljs-attr">"fontSize"</span><span class="hljs-punctuation">:</span> <span class="hljs-number">20</span><span class="hljs-punctuation">,</span>
+      <span class="hljs-attr">"strokeColor"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"#1e1e1e"</span>
+    <span class="hljs-punctuation">}</span><span class="hljs-punctuation">,</span>
+    <span class="hljs-punctuation">{</span>
+      <span class="hljs-attr">"type"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"arrow"</span><span class="hljs-punctuation">,</span>
+      <span class="hljs-attr">"x"</span><span class="hljs-punctuation">:</span> <span class="hljs-number">200</span><span class="hljs-punctuation">,</span>
+      <span class="hljs-attr">"y"</span><span class="hljs-punctuation">:</span> <span class="hljs-number">90</span><span class="hljs-punctuation">,</span>
+      <span class="hljs-attr">"points"</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">[</span><span class="hljs-punctuation">[</span><span class="hljs-number">0</span><span class="hljs-punctuation">,</span> <span class="hljs-number">0</span><span class="hljs-punctuation">]</span><span class="hljs-punctuation">,</span> <span class="hljs-punctuation">[</span><span class="hljs-number">100</span><span class="hljs-punctuation">,</span> <span class="hljs-number">0</span><span class="hljs-punctuation">]</span><span class="hljs-punctuation">]</span><span class="hljs-punctuation">,</span>
+      <span class="hljs-attr">"strokeColor"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"#1e1e1e"</span><span class="hljs-punctuation">,</span>
+      <span class="hljs-attr">"strokeWidth"</span><span class="hljs-punctuation">:</span> <span class="hljs-number">2</span><span class="hljs-punctuation">,</span>
+      <span class="hljs-attr">"endArrowhead"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"arrow"</span>
+    <span class="hljs-punctuation">}</span><span class="hljs-punctuation">,</span>
+    <span class="hljs-punctuation">{</span>
+      <span class="hljs-attr">"type"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"rectangle"</span><span class="hljs-punctuation">,</span>
+      <span class="hljs-attr">"x"</span><span class="hljs-punctuation">:</span> <span class="hljs-number">300</span><span class="hljs-punctuation">,</span>
+      <span class="hljs-attr">"y"</span><span class="hljs-punctuation">:</span> <span class="hljs-number">50</span><span class="hljs-punctuation">,</span>
+      <span class="hljs-attr">"width"</span><span class="hljs-punctuation">:</span> <span class="hljs-number">150</span><span class="hljs-punctuation">,</span>
+      <span class="hljs-attr">"height"</span><span class="hljs-punctuation">:</span> <span class="hljs-number">80</span><span class="hljs-punctuation">,</span>
+      <span class="hljs-attr">"strokeColor"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"#1e1e1e"</span><span class="hljs-punctuation">,</span>
+      <span class="hljs-attr">"backgroundColor"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"#b2f2bb"</span><span class="hljs-punctuation">,</span>
+      <span class="hljs-attr">"fillStyle"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"solid"</span><span class="hljs-punctuation">,</span>
+      <span class="hljs-attr">"strokeWidth"</span><span class="hljs-punctuation">:</span> <span class="hljs-number">2</span><span class="hljs-punctuation">,</span>
+      <span class="hljs-attr">"roughness"</span><span class="hljs-punctuation">:</span> <span class="hljs-number">0</span><span class="hljs-punctuation">,</span>
+      <span class="hljs-attr">"roundness"</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">{</span> <span class="hljs-attr">"type"</span><span class="hljs-punctuation">:</span> <span class="hljs-number">3</span> <span class="hljs-punctuation">}</span>
+    <span class="hljs-punctuation">}</span><span class="hljs-punctuation">,</span>
+    <span class="hljs-punctuation">{</span>
+      <span class="hljs-attr">"type"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"text"</span><span class="hljs-punctuation">,</span>
+      <span class="hljs-attr">"x"</span><span class="hljs-punctuation">:</span> <span class="hljs-number">345</span><span class="hljs-punctuation">,</span>
+      <span class="hljs-attr">"y"</span><span class="hljs-punctuation">:</span> <span class="hljs-number">75</span><span class="hljs-punctuation">,</span>
+      <span class="hljs-attr">"text"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"Backend"</span><span class="hljs-punctuation">,</span>
+      <span class="hljs-attr">"fontSize"</span><span class="hljs-punctuation">:</span> <span class="hljs-number">20</span><span class="hljs-punctuation">,</span>
+      <span class="hljs-attr">"strokeColor"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"#1e1e1e"</span>
+    <span class="hljs-punctuation">}</span><span class="hljs-punctuation">,</span>
+    <span class="hljs-punctuation">{</span>
+      <span class="hljs-attr">"type"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"arrow"</span><span class="hljs-punctuation">,</span>
+      <span class="hljs-attr">"x"</span><span class="hljs-punctuation">:</span> <span class="hljs-number">375</span><span class="hljs-punctuation">,</span>
+      <span class="hljs-attr">"y"</span><span class="hljs-punctuation">:</span> <span class="hljs-number">130</span><span class="hljs-punctuation">,</span>
+      <span class="hljs-attr">"points"</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">[</span><span class="hljs-punctuation">[</span><span class="hljs-number">0</span><span class="hljs-punctuation">,</span> <span class="hljs-number">0</span><span class="hljs-punctuation">]</span><span class="hljs-punctuation">,</span> <span class="hljs-punctuation">[</span><span class="hljs-number">0</span><span class="hljs-punctuation">,</span> <span class="hljs-number">50</span><span class="hljs-punctuation">]</span><span class="hljs-punctuation">]</span><span class="hljs-punctuation">,</span>
+      <span class="hljs-attr">"strokeColor"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"#1e1e1e"</span><span class="hljs-punctuation">,</span>
+      <span class="hljs-attr">"strokeWidth"</span><span class="hljs-punctuation">:</span> <span class="hljs-number">2</span><span class="hljs-punctuation">,</span>
+      <span class="hljs-attr">"endArrowhead"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"arrow"</span>
+    <span class="hljs-punctuation">}</span><span class="hljs-punctuation">,</span>
+    <span class="hljs-punctuation">{</span>
+      <span class="hljs-attr">"type"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"rectangle"</span><span class="hljs-punctuation">,</span>
+      <span class="hljs-attr">"x"</span><span class="hljs-punctuation">:</span> <span class="hljs-number">300</span><span class="hljs-punctuation">,</span>
+      <span class="hljs-attr">"y"</span><span class="hljs-punctuation">:</span> <span class="hljs-number">180</span><span class="hljs-punctuation">,</span>
+      <span class="hljs-attr">"width"</span><span class="hljs-punctuation">:</span> <span class="hljs-number">150</span><span class="hljs-punctuation">,</span>
+      <span class="hljs-attr">"height"</span><span class="hljs-punctuation">:</span> <span class="hljs-number">80</span><span class="hljs-punctuation">,</span>
+      <span class="hljs-attr">"strokeColor"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"#1e1e1e"</span><span class="hljs-punctuation">,</span>
+      <span class="hljs-attr">"backgroundColor"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"#ffd43b"</span><span class="hljs-punctuation">,</span>
+      <span class="hljs-attr">"fillStyle"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"solid"</span><span class="hljs-punctuation">,</span>
+      <span class="hljs-attr">"strokeWidth"</span><span class="hljs-punctuation">:</span> <span class="hljs-number">2</span><span class="hljs-punctuation">,</span>
+      <span class="hljs-attr">"roughness"</span><span class="hljs-punctuation">:</span> <span class="hljs-number">0</span><span class="hljs-punctuation">,</span>
+      <span class="hljs-attr">"roundness"</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">{</span> <span class="hljs-attr">"type"</span><span class="hljs-punctuation">:</span> <span class="hljs-number">3</span> <span class="hljs-punctuation">}</span>
+    <span class="hljs-punctuation">}</span><span class="hljs-punctuation">,</span>
+    <span class="hljs-punctuation">{</span>
+      <span class="hljs-attr">"type"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"text"</span><span class="hljs-punctuation">,</span>
+      <span class="hljs-attr">"x"</span><span class="hljs-punctuation">:</span> <span class="hljs-number">335</span><span class="hljs-punctuation">,</span>
+      <span class="hljs-attr">"y"</span><span class="hljs-punctuation">:</span> <span class="hljs-number">205</span><span class="hljs-punctuation">,</span>
+      <span class="hljs-attr">"text"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"Database"</span><span class="hljs-punctuation">,</span>
+      <span class="hljs-attr">"fontSize"</span><span class="hljs-punctuation">:</span> <span class="hljs-number">20</span><span class="hljs-punctuation">,</span>
+      <span class="hljs-attr">"strokeColor"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"#1e1e1e"</span>
+    <span class="hljs-punctuation">}</span>
+  <span class="hljs-punctuation">]</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">"appState"</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">{</span>
+    <span class="hljs-attr">"viewBackgroundColor"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"#ffffff"</span>
+  <span class="hljs-punctuation">}</span>
+<span class="hljs-punctuation">}</span>
+</code></pre>
+    </div>
+  </div>
+</div>
+<script type="module">
+(function() {
+  const container = document.querySelector('[data-tabs-id="tabs-sywgwsr"]');
+  if (!container) return;
+  const tabs = container.querySelectorAll('.org-tab');
+  const panels = container.querySelectorAll('.org-tab-panel');
+  tabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      const target = tab.dataset.tab;
+      tabs.forEach(t => t.classList.toggle('active', t.dataset.tab === target));
+      panels.forEach(p => p.classList.toggle('active', p.dataset.panel === target));
+    });
+  });
+})();
+</script><h1 id="element-types-reference">Element Types Reference</h1><h2 id="shapes">Shapes</h2><ul><li><code class="inline-verbatim">rectangle</code> - Rectangular box
+</li><li><code class="inline-verbatim">ellipse</code> - Oval/circle
+</li><li><code class="inline-verbatim">diamond</code> - Diamond shape for decisions
+</li></ul><h2 id="lines">Lines</h2><ul><li><code class="inline-verbatim">line</code> - Free-form line with points
+</li><li><code class="inline-verbatim">arrow</code> - Line with arrowhead
+</li></ul><h2 id="text">Text</h2><ul><li><code class="inline-verbatim">text</code> - Text element with customizable font
+</li></ul><h2 id="common-properties">Common Properties</h2><table><thead><tr><th>Property</th><th>Description</th><th>Values</th></tr></thead><tbody><tr><td><code class="inline-verbatim">strokeColor</code></td><td>Border/line color</td><td>Hex color (e.g., "#1e1e1e")</td></tr><tr><td><code class="inline-verbatim">backgroundColor</code></td><td>Fill color</td><td>Hex color or "transparent"</td></tr><tr><td><code class="inline-verbatim">fillStyle</code></td><td>Fill pattern</td><td>"hachure", "cross-hatch", "solid"</td></tr><tr><td><code class="inline-verbatim">strokeWidth</code></td><td>Line thickness</td><td>1 (thin), 2 (normal), 4 (bold)</td></tr><tr><td><code class="inline-verbatim">roughness</code></td><td>Hand-drawn effect</td><td>0 (smooth), 1 (normal), 2 (rough)</td></tr></tbody></table><h1 id="creating-diagrams">Creating Diagrams</h1><h2 id="method-1-excalidrawcom">Method 1: Excalidraw.com</h2><ol><li>Visit <a href="https://excalidraw.com/">https://excalidraw.com/</a></li><li>Create your diagram
+</li><li>Export as JSON
+</li><li>Paste into your org file
+</li></ol><h2 id="method-2-edit-in-place-dev-mode">Method 2: Edit In-Place (Dev Mode)</h2><ol><li>Add an empty Excalidraw block
+</li><li>Run <code class="inline-verbatim">orgp dev</code></li><li>Draw directly in the browser
+</li><li>Changes auto-save to your org file
+</li></ol><h2 id="method-3-manual-json">Method 3: Manual JSON</h2><p>Write JSON directly for simple diagrams or programmatic generation.
+</p><h1 id="tips">Tips</h1><ul><li>Use consistent colors for element types
+</li><li>Keep diagrams simple - break complex ones into multiple diagrams
+</li><li>Always name blocks for auto-save and imports
+</li><li>Use <code class="inline-verbatim">roughness: 0</code> for clean, professional diagrams
+</li><li>Use <code class="inline-verbatim">roughness: 1-2</code> for sketch-style diagrams
+</li></ul><h1 id="see-also">See Also</h1><ul><li><a href="https://excalidraw.com/">Excalidraw</a> - Official Excalidraw editor
+</li><li><a href="https://docs.excalidraw.com/">Excalidraw Documentation</a> - Full API reference
+</li><li><a href="/plugins/index.html">All Plugins</a> - Available org-press plugins
+</li></ul></div></div></article></main><aside class="toc"><div class="toc-content"><h4 class="toc-title">On this page</h4><nav class="toc-nav" aria-label="Table of contents"><ul class="toc-list"><li class="toc-item "><a href="#features" class="toc-link">Features</a></li><li class="toc-item "><a href="#installation" class="toc-link">Installation</a></li><li class="toc-item "><a href="#usage" class="toc-link">Usage</a></li><li class="toc-item toc-item-nested"><a href="#json-mode-simple" class="toc-link">JSON Mode (Simple)</a></li><li class="toc-item toc-item-nested"><a href="#javascript-mode-composable" class="toc-link">JavaScript Mode (Composable)</a></li><li class="toc-item toc-item-nested"><a href="#parameters" class="toc-link">Parameters</a></li><li class="toc-item "><a href="#simple-diagram" class="toc-link">Simple Diagram</a></li><li class="toc-item "><a href="#architecture-diagram" class="toc-link">Architecture Diagram</a></li><li class="toc-item "><a href="#shapes" class="toc-link">Shapes</a></li><li class="toc-item "><a href="#lines" class="toc-link">Lines</a></li><li class="toc-item "><a href="#text" class="toc-link">Text</a></li><li class="toc-item "><a href="#common-properties" class="toc-link">Common Properties</a></li><li class="toc-item "><a href="#method-1-excalidrawcom" class="toc-link">Method 1: Excalidraw.com</a></li><li class="toc-item "><a href="#method-2-edit-in-place-dev-mode" class="toc-link">Method 2: Edit In-Place (Dev Mode)</a></li><li class="toc-item "><a href="#method-3-manual-json" class="toc-link">Method 3: Manual JSON</a></li></ul></nav></div></aside></div><footer class="site-footer"><div class="footer-content"><div class="footer-grid"><div class="footer-column"><h4>Guide</h4><ul><li><a href="/guide/index.html">What is Org-Press?</a></li><li><a href="/guide/getting-started.html">Getting Started</a></li><li><a href="/guide/features.html">Features</a></li><li><a href="/guide/cli.html">CLI Reference</a></li><li><a href="/guide/building.html">Building</a></li></ul></div><div class="footer-column"><h4>Config</h4><ul><li><a href="/config/index.html">Overview</a></li><li><a href="/config/shared-options.html">Shared Options</a></li><li><a href="/config/build-options.html">Build Options</a></li><li><a href="/config/server-options.html">Server Options</a></li></ul></div><div class="footer-column"><h4>Plugins</h4><ul><li><a href="/plugins/index.html">Overview</a></li><li><a href="/plugins/excalidraw.html">Excalidraw</a></li><li><a href="/plugins/jscad.html">JSCAD</a></li><li><a href="/plugins/creating-plugins.html">Creating Plugins</a></li></ul></div><div class="footer-column"><h4>API</h4><ul><li><a href="/api/index.html">Overview</a></li><li><a href="/api/plugin-api.html">Plugin API</a></li><li><a href="/api/javascript-api.html">JavaScript API</a></li></ul></div><div class="footer-column"><h4>Resources</h4><ul><li><a href="/examples/index.html">Examples</a></li><li><a href="https://github.com/org-press/org-press" target="_blank" rel="noopener">GitHub</a></li><li><a href="https://github.com/org-press/org-press/releases" target="_blank" rel="noopener">Releases</a></li></ul></div></div><div class="footer-bottom"><p class="footer-copyright">Released under the GPL-2.0 License.</p><p class="footer-credit">Built with <a href="https://github.com/org-press/org-press">org-press</a></p></div></div></footer></div><script src="https://analytics.ideable.dev/api/script.js" data-site-id="5dc60eeeac5d" defer=""></script><script type="module" src="/assets/hydrate-content-plugins-excalidraw-xioXzV81.js"></script></body></html>

@@ -1,0 +1,1 @@
+function s(t){return 1-Math.pow(1-t,3)}function r(t){return-(Math.cos(Math.PI*t)-1)/2}function o(t){return new Promise(n=>setTimeout(n,t))}async function u(t,n,e=50){t.textContent="";for(const a of n)t.textContent+=a,await o(e+Math.random()*20)}export{s as a,r as e,o as s,u as t};

@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charSet="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/><title>Block Imports - Complete Guide | org-press</title><script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script><script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/highlight.min.js"></script><link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/styles/github.min.css" media="(prefers-color-scheme: light)"/><link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/styles/github-dark.min.css" media="(prefers-color-scheme: dark)"/><script>
+          // Register org-mode language for highlight.js
+          if (typeof hljs !== 'undefined') {
+            hljs.registerLanguage('org', function(hljs) {
+              return {
+                name: 'Org',
+                aliases: ['org', 'org-mode', 'orgmode'],
+                case_insensitive: true,
+                contains: [
+                  // Headlines
+                  {
+                    className: 'section',
+                    begin: /^\*+\s/,
+                    end: /$/,
+                    contains: [
+                      { className: 'keyword', begin: /\b(TODO|DONE|WAITING|CANCELLED|NEXT|HOLD)\b/ }
+                    ]
+                  },
+                  // Keywords (#+KEYWORD:)
+                  {
+                    className: 'meta',
+                    begin: /^#\+[A-Za-z_]+:/,
+                    end: /$/,
+                    contains: [{ className: 'string', begin: /\s/, end: /$/ }]
+                  },
+                  // Begin/end blocks
+                  { className: 'keyword', begin: /^#\+(begin|end)_[a-z]+/i, relevance: 10 },
+                  // Property drawers
+                  { className: 'attribute', begin: /^:\w+:/, end: /$/ },
+                  // Links [[url][description]]
+                  {
+                    className: 'link',
+                    begin: /\[\[/,
+                    end: /\]\]/,
+                    contains: [{ className: 'string', begin: /\]\[/, end: /(?=\]\])/ }]
+                  },
+                  // Comments (lines starting with #, but not #+)
+                  { className: 'comment', begin: /^#[^+]/, end: /$/ },
+                  // Timestamps
+                  { className: 'number', begin: /<\d{4}-\d{2}-\d{2}/, end: />/ },
+                  // Tags :tag1:tag2:
+                  { className: 'tag', begin: /\s:[a-zA-Z0-9_@#%:]+:\s*$/ }
+                ]
+              };
+            });
+            // Run highlighting after DOM is ready
+            document.addEventListener('DOMContentLoaded', function() {
+              hljs.highlightAll();
+            });
+          }
+        </script><script>
+          (function() {
+            // Set current path as data attribute for CSS styling
+            document.documentElement.dataset.path = window.location.pathname;
+
+            // Mobile menu toggle using event delegation
+            document.addEventListener('click', function(e) {
+              var button = e.target.closest('.mobile-menu-button');
+              if (button) {
+                e.stopPropagation();
+                document.body.classList.toggle('mobile-menu-open');
+                return;
+              }
+              // Close menu when clicking a link inside the menu
+              var menuLink = e.target.closest('.mobile-menu a');
+              if (menuLink) {
+                document.body.classList.remove('mobile-menu-open');
+                return;
+              }
+              // Close menu when clicking outside
+              if (document.body.classList.contains('mobile-menu-open')) {
+                var menu = document.querySelector('.mobile-menu');
+                if (menu && !menu.contains(e.target)) {
+                  document.body.classList.remove('mobile-menu-open');
+                }
+              }
+            });
+
+            // Highlight current page in navigation
+            document.addEventListener('DOMContentLoaded', function() {
+              var path = window.location.pathname;
+              // Highlight sidebar links
+              document.querySelectorAll('.sidebar-link').forEach(function(link) {
+                if (link.getAttribute('href') === path) {
+                  link.classList.add('active');
+                  link.closest('.sidebar-item')?.classList.add('active');
+                }
+              });
+              // Highlight top nav links
+              document.querySelectorAll('.top-nav-link').forEach(function(link) {
+                var href = link.getAttribute('href');
+                var match = link.dataset.match;
+                if (path === href || (match && path.startsWith(match))) {
+                  link.classList.add('active');
+                }
+              });
+            });
+          })();
+        </script><link rel="stylesheet" href="/assets/theme-DsForQV0.css"/><script type="module" src="/assets/entry-client-l0sNRNKZ.js"></script></head><body><div class="docs-layout"><header class="top-nav"><div class="top-nav-container"><a href="/index.html" class="top-nav-logo"><span class="logo-text">Org-Press</span></a><nav class="top-nav-links"><a href="/guide/index.html" class="top-nav-link " data-match="^\/(guide(\/|$)|getting-started|index\.html$)">Guide</a><a href="/config/index.html" class="top-nav-link " data-match="^\/config(\/|$)">Config</a><a href="/plugins/index.html" class="top-nav-link " data-match="^\/plugins(\/|$)">Plugins</a><a href="/api/index.html" class="top-nav-link " data-match="^\/api(\/|$)">API</a></nav><div class="top-nav-social"><a href="https://github.com/org-press/org-press/blob/main/docs/content/examples/block-imports.org?plain=1" class="top-nav-source-link" target="_blank" rel="noopener noreferrer" title="View page source on GitHub">:view-source</a><a href="https://github.com/org-press/org-press" class="top-nav-social-link" target="_blank" rel="noopener noreferrer" aria-label="GitHub"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"></path></svg></a></div><button class="mobile-menu-button" aria-label="Toggle navigation menu" aria-expanded="false"><span class="hamburger-line"></span><span class="hamburger-line"></span><span class="hamburger-line"></span></button></div></header><div class="mobile-menu"><nav class="mobile-menu-nav"><div class="mobile-menu-section"><a href="/guide/index.html" class="mobile-menu-section-title ">Guide</a><ul class="mobile-menu-list"><li><a href="/guide/index.html" class="mobile-menu-link ">What is Org-Press?</a></li><li><a href="/guide/getting-started.html" class="mobile-menu-link ">Getting Started</a></li><li><a href="/guide/why-org-press.html" class="mobile-menu-link ">Why Org-Press?</a></li><li><a href="/guide/features.html" class="mobile-menu-link ">Features</a></li><li><a href="/guide/rendering-modes.html" class="mobile-menu-link ">Rendering Modes</a></li><li><a href="/guide/cli.html" class="mobile-menu-link ">CLI Reference</a></li><li><a href="/guide/using-plugins.html" class="mobile-menu-link ">Using Plugins</a></li><li><a href="/guide/block-imports.html" class="mobile-menu-link ">Block Imports</a></li><li><a href="/guide/static-assets.html" class="mobile-menu-link ">Static Assets</a></li><li><a href="/guide/building.html" class="mobile-menu-link ">Building for Production</a></li><li><a href="/guide/deploying.html" class="mobile-menu-link ">Deploying</a></li><li><a href="/guide/troubleshooting.html" class="mobile-menu-link ">Troubleshooting</a></li></ul></div><div class="mobile-menu-section"><a href="/config/index.html" class="mobile-menu-section-title ">Config</a><ul class="mobile-menu-list"><li><a href="/config/index.html" class="mobile-menu-link ">Overview</a></li><li><a href="/config/shared-options.html" class="mobile-menu-link ">Shared Options</a></li><li><a href="/config/build-options.html" class="mobile-menu-link ">Build Options</a></li><li><a href="/config/server-options.html" class="mobile-menu-link ">Server Options</a></li><li><a href="/config/plugin-options.html" class="mobile-menu-link ">Plugin Options</a></li></ul></div><div class="mobile-menu-section"><a href="/plugins/index.html" class="mobile-menu-section-title ">Plugins</a><ul class="mobile-menu-list"><li><a href="/plugins/index.html" class="mobile-menu-link ">Overview</a></li><li class="mobile-menu-group"><span class="mobile-menu-group-title">Official Plugins</span><ul class="mobile-menu-sublist"><li><a href="/plugins/react.html" class="mobile-menu-link ">React</a></li><li><a href="/plugins/echarts.html" class="mobile-menu-link ">ECharts</a></li><li><a href="/plugins/excalidraw.html" class="mobile-menu-link ">Excalidraw</a></li><li><a href="/plugins/jscad.html" class="mobile-menu-link ">JSCAD</a></li><li><a href="/plugins/test.html" class="mobile-menu-link ">Test</a></li></ul></li><li><a href="/plugins/creating-plugins.html" class="mobile-menu-link ">Creating Plugins</a></li></ul></div><div class="mobile-menu-section"><a href="/api/index.html" class="mobile-menu-section-title ">API</a><ul class="mobile-menu-list"><li><a href="/api/index.html" class="mobile-menu-link ">Overview</a></li><li><a href="/api/plugin-api.html" class="mobile-menu-link ">Plugin API</a></li><li><a href="/api/javascript-api.html" class="mobile-menu-link ">JavaScript API</a></li><li><a href="/api/hmr-api.html" class="mobile-menu-link ">HMR API</a></li><li><a href="/api/cli-plugins.html" class="mobile-menu-link ">CLI Plugins</a></li></ul></div></nav><div class="mobile-menu-footer"><a href="https://github.com/org-press/org-press" class="mobile-menu-link" target="_blank" rel="noopener noreferrer">GitHub</a></div></div><div class="alpha-banner"><span class="alpha-banner-icon">⚠️</span><span class="alpha-banner-text"><strong>Early Alpha</strong> — Org-press is experimental. Perfect for hackers and tinkerers, not ready for production. Documentation may be incomplete or inaccurate.</span></div><div class="docs-container"><aside class="sidebar"><div class="sidebar-content"><nav class="sidebar-nav" aria-label="Section navigation"><div class="sidebar-section"><h3 class="sidebar-section-title">Guide</h3><ul class="sidebar-list"><li class="sidebar-item "><a href="/guide/index.html" class="sidebar-link ">What is Org-Press?</a></li><li class="sidebar-item "><a href="/guide/getting-started.html" class="sidebar-link ">Getting Started</a></li><li class="sidebar-item "><a href="/guide/why-org-press.html" class="sidebar-link ">Why Org-Press?</a></li><li class="sidebar-item "><a href="/guide/features.html" class="sidebar-link ">Features</a></li><li class="sidebar-item "><a href="/guide/rendering-modes.html" class="sidebar-link ">Rendering Modes</a></li><li class="sidebar-item "><a href="/guide/cli.html" class="sidebar-link ">CLI Reference</a></li><li class="sidebar-item "><a href="/guide/using-plugins.html" class="sidebar-link ">Using Plugins</a></li><li class="sidebar-item "><a href="/guide/block-imports.html" class="sidebar-link ">Block Imports</a></li><li class="sidebar-item "><a href="/guide/static-assets.html" class="sidebar-link ">Static Assets</a></li><li class="sidebar-item "><a href="/guide/building.html" class="sidebar-link ">Building for Production</a></li><li class="sidebar-item "><a href="/guide/deploying.html" class="sidebar-link ">Deploying</a></li><li class="sidebar-item "><a href="/guide/troubleshooting.html" class="sidebar-link ">Troubleshooting</a></li></ul></div></nav></div></aside><main class="docs-content"><article class="docs-article"><div class="docs-body"><div><h1 id="introduction">Introduction</h1><p>Org-Press supports a powerful <strong>block import</strong> system that allows you to import and reuse code blocks across org files, enabling true literate programming and code composition.
+</p><h2 id="what-youll-learn">What You'll Learn</h2><p>This comprehensive guide demonstrates:
+</p><ul><li>Importing blocks from other files by name
+</li><li>Importing blocks by index position
+</li><li>Self-importing within the same file
+</li><li>Composing complex functionality from simple blocks
+</li><li>Cross-file code sharing and reusability
+</li><li>Server-side and client-side imports
+</li><li>3D modeling with imported geometry
+</li></ul><h2 id="import-syntax">Import Syntax</h2><p>The import syntax uses special query parameters:
+</p><pre><code>// Import by name
+import { function } from './file.org?name=block-name';
+
+// Import by index (0-based)
+import { function } from './file.org?index=0';
+
+// Import default export
+import value from './file.org?name=block-name';
+</code></pre>
+<h2 id="the-library-file">The Library File</h2><p>This guide uses <a href="/examples/block-import-library.html">block-import-library.org</a> as a shared library of reusable utilities, demonstrating cross-file imports. The library contains:
+</p><ul><li>JavaScript utilities (math, string manipulation)
+</li><li>CSS utilities (flexbox, animations)
+</li><li>JSCad geometry primitives and composite shapes
+</li><li>Server-side data processing
+</li><li>TypeScript type-safe utilities
+</li></ul><h1 id="part-1-self-import-same-file">Part 1: Self-Import (Same File)</h1><p>Before exploring cross-file imports, let's see how blocks can import from the same file.
+</p><h2 id="define-a-local-helper">Define a Local Helper</h2><p>First, let's define a helper block in this file:
+</p><div id="org-block-0-result" data-org-block="block-content-examples-block-imports-org-0" class="org-block-result"></div><h2 id="use-the-local-helper">Use the Local Helper</h2><p>Now we import and use it from another block in this same file:
+</p><pre class="src-block"><code class="hljs language-javascript"><span class="hljs-comment">// Import from this same file using self-reference</span>
+<span class="hljs-keyword">import</span> { formatMessage, getTimestamp } <span class="hljs-keyword">from</span> <span class="hljs-string">'./block-imports.org?name=local-helper'</span>;
+
+<span class="hljs-keyword">const</span> greeting = <span class="hljs-title function_">formatMessage</span>(<span class="hljs-string">'Developer'</span>);
+<span class="hljs-keyword">const</span> timestamp = <span class="hljs-title function_">getTimestamp</span>();
+
+<span class="hljs-keyword">const</span> container = <span class="hljs-variable language_">document</span>.<span class="hljs-title function_">createElement</span>(<span class="hljs-string">'div'</span>);
+container.<span class="hljs-property">style</span>.<span class="hljs-property">cssText</span> = <span class="hljs-string">'padding: 1rem; background: #e3f2fd; border-radius: 8px; margin: 1rem 0;'</span>;
+container.<span class="hljs-property">innerHTML</span> = <span class="hljs-string">`
+  &#x3C;h4 style="margin-top: 0; color: #1976d2;">Self-Import Demo&#x3C;/h4>
+  &#x3C;p><span class="hljs-subst">${greeting}</span>&#x3C;/p>
+  &#x3C;p>&#x3C;small>Generated at: <span class="hljs-subst">${timestamp}</span>&#x3C;/small>&#x3C;/p>
+`</span>;
+
+<span class="hljs-keyword">export</span> <span class="hljs-keyword">default</span> container;
+</code></pre><div id="org-block-1-result" data-org-block="block-content-examples-block-imports-org-1" class="org-block-result"></div>
+<div class="org-source-code">
+        <div class="org-source-label">Source</div>
+        <pre><code class="hljs language-javascript"><span class="hljs-comment">// Import from this same file using self-reference</span>
+<span class="hljs-keyword">import</span> { formatMessage, getTimestamp } <span class="hljs-keyword">from</span> <span class="hljs-string">'./block-imports.org?name=local-helper'</span>;
+
+<span class="hljs-keyword">const</span> greeting = <span class="hljs-title function_">formatMessage</span>(<span class="hljs-string">'Developer'</span>);
+<span class="hljs-keyword">const</span> timestamp = <span class="hljs-title function_">getTimestamp</span>();
+
+<span class="hljs-keyword">const</span> container = <span class="hljs-variable language_">document</span>.<span class="hljs-title function_">createElement</span>(<span class="hljs-string">'div'</span>);
+container.<span class="hljs-property">style</span>.<span class="hljs-property">cssText</span> = <span class="hljs-string">'padding: 1rem; background: #e3f2fd; border-radius: 8px; margin: 1rem 0;'</span>;
+container.<span class="hljs-property">innerHTML</span> = <span class="hljs-string">`
+  &#x3C;h4 style="margin-top: 0; color: #1976d2;">Self-Import Demo&#x3C;/h4>
+  &#x3C;p><span class="hljs-subst">${greeting}</span>&#x3C;/p>
+  &#x3C;p>&#x3C;small>Generated at: <span class="hljs-subst">${timestamp}</span>&#x3C;/small>&#x3C;/p>
+`</span>;
+
+<span class="hljs-keyword">export</span> <span class="hljs-keyword">default</span> container;
+</code></pre>
+      </div><h2 id="why-self-import">Why Self-Import?</h2><p>Self-importing is useful for:
+</p><ul><li>Breaking down complex code into manageable pieces
+</li><li>Reusing helper functions within the same document
+</li><li>Creating a library section at the top of your file
+</li><li>Maintaining literate programming principles
+</li></ul><h1 id="part-2-cross-file-javascript-imports">Part 2: Cross-File JavaScript Imports</h1><p>Now let's import from our external library file.
+</p><h2 id="math-utilities">Math Utilities</h2><p>Import and use mathematical functions:
+</p><pre class="src-block"><code class="hljs language-javascript"><span class="hljs-keyword">import</span> { add, multiply, fibonacci } <span class="hljs-keyword">from</span> <span class="hljs-string">'./block-import-library.org?name=math-utils'</span>;
+
+<span class="hljs-keyword">const</span> results = <span class="hljs-variable language_">document</span>.<span class="hljs-title function_">createElement</span>(<span class="hljs-string">'div'</span>);
+results.<span class="hljs-property">style</span>.<span class="hljs-property">cssText</span> = <span class="hljs-string">'padding: 1rem; background: #f3e5f5; border-radius: 8px; margin: 1rem 0;'</span>;
+results.<span class="hljs-property">innerHTML</span> = <span class="hljs-string">`
+  &#x3C;h4 style="margin-top: 0; color: #7b1fa2;">Math Utils from Library&#x3C;/h4>
+  &#x3C;ul style="margin: 0;">
+    &#x3C;li>add(5, 3) = <span class="hljs-subst">${add(<span class="hljs-number">5</span>, <span class="hljs-number">3</span>)}</span>&#x3C;/li>
+    &#x3C;li>multiply(4, 7) = <span class="hljs-subst">${multiply(<span class="hljs-number">4</span>, <span class="hljs-number">7</span>)}</span>&#x3C;/li>
+    &#x3C;li>fibonacci(10) = <span class="hljs-subst">${fibonacci(<span class="hljs-number">10</span>)}</span>&#x3C;/li>
+  &#x3C;/ul>
+`</span>;
+
+<span class="hljs-keyword">export</span> <span class="hljs-keyword">default</span> results;
+</code></pre><div id="org-block-2-result" data-org-block="block-content-examples-block-imports-org-2" class="org-block-result"></div>
+<div class="org-source-code">
+        <div class="org-source-label">Source</div>
+        <pre><code class="hljs language-javascript"><span class="hljs-keyword">import</span> { add, multiply, fibonacci } <span class="hljs-keyword">from</span> <span class="hljs-string">'./block-import-library.org?name=math-utils'</span>;
+
+<span class="hljs-keyword">const</span> results = <span class="hljs-variable language_">document</span>.<span class="hljs-title function_">createElement</span>(<span class="hljs-string">'div'</span>);
+results.<span class="hljs-property">style</span>.<span class="hljs-property">cssText</span> = <span class="hljs-string">'padding: 1rem; background: #f3e5f5; border-radius: 8px; margin: 1rem 0;'</span>;
+results.<span class="hljs-property">innerHTML</span> = <span class="hljs-string">`
+  &#x3C;h4 style="margin-top: 0; color: #7b1fa2;">Math Utils from Library&#x3C;/h4>
+  &#x3C;ul style="margin: 0;">
+    &#x3C;li>add(5, 3) = <span class="hljs-subst">${add(<span class="hljs-number">5</span>, <span class="hljs-number">3</span>)}</span>&#x3C;/li>
+    &#x3C;li>multiply(4, 7) = <span class="hljs-subst">${multiply(<span class="hljs-number">4</span>, <span class="hljs-number">7</span>)}</span>&#x3C;/li>
+    &#x3C;li>fibonacci(10) = <span class="hljs-subst">${fibonacci(<span class="hljs-number">10</span>)}</span>&#x3C;/li>
+  &#x3C;/ul>
+`</span>;
+
+<span class="hljs-keyword">export</span> <span class="hljs-keyword">default</span> results;
+</code></pre>
+      </div><h2 id="string-utilities">String Utilities</h2><p>Import string manipulation functions:
+</p><pre class="src-block"><code class="hljs language-javascript"><span class="hljs-keyword">import</span> { capitalize, slugify, truncate } <span class="hljs-keyword">from</span> <span class="hljs-string">'./block-import-library.org?name=string-utils'</span>;
+
+<span class="hljs-keyword">const</span> results = <span class="hljs-variable language_">document</span>.<span class="hljs-title function_">createElement</span>(<span class="hljs-string">'div'</span>);
+results.<span class="hljs-property">style</span>.<span class="hljs-property">cssText</span> = <span class="hljs-string">'padding: 1rem; background: #e8f5e9; border-radius: 8px; margin: 1rem 0;'</span>;
+
+<span class="hljs-keyword">const</span> examples = [
+  { <span class="hljs-attr">input</span>: <span class="hljs-string">'hello world'</span>, <span class="hljs-attr">fn</span>: <span class="hljs-string">'capitalize'</span>, <span class="hljs-attr">output</span>: <span class="hljs-title function_">capitalize</span>(<span class="hljs-string">'hello world'</span>) },
+  { <span class="hljs-attr">input</span>: <span class="hljs-string">'Hello World 2024!'</span>, <span class="hljs-attr">fn</span>: <span class="hljs-string">'slugify'</span>, <span class="hljs-attr">output</span>: <span class="hljs-title function_">slugify</span>(<span class="hljs-string">'Hello World 2024!'</span>) },
+  { <span class="hljs-attr">input</span>: <span class="hljs-string">'This is a very long string...'</span>, <span class="hljs-attr">fn</span>: <span class="hljs-string">'truncate(20)'</span>, <span class="hljs-attr">output</span>: <span class="hljs-title function_">truncate</span>(<span class="hljs-string">'This is a very long string that needs truncation'</span>, <span class="hljs-number">20</span>) }
+];
+
+results.<span class="hljs-property">innerHTML</span> = <span class="hljs-string">`
+  &#x3C;h4 style="margin-top: 0; color: #388e3c;">String Utils from Library&#x3C;/h4>
+  &#x3C;table style="width: 100%; border-collapse: collapse;">
+    &#x3C;tr>&#x3C;th>Function&#x3C;/th>&#x3C;th>Input&#x3C;/th>&#x3C;th>Output&#x3C;/th>&#x3C;/tr>
+    <span class="hljs-subst">${examples.map(ex => <span class="hljs-string">`
+      &#x3C;tr>
+        &#x3C;td>&#x3C;code><span class="hljs-subst">${ex.fn}</span>&#x3C;/code>&#x3C;/td>
+        &#x3C;td><span class="hljs-subst">${ex.input}</span>&#x3C;/td>
+        &#x3C;td>&#x3C;strong><span class="hljs-subst">${ex.output}</span>&#x3C;/strong>&#x3C;/td>
+      &#x3C;/tr>
+    `</span>).join(<span class="hljs-string">''</span>)}</span>
+  &#x3C;/table>
+`</span>;
+
+<span class="hljs-keyword">export</span> <span class="hljs-keyword">default</span> results;
+</code></pre><div id="org-block-3-result" data-org-block="block-content-examples-block-imports-org-3" class="org-block-result"></div>
+<div class="org-source-code">
+        <div class="org-source-label">Source</div>
+        <pre><code class="hljs language-javascript"><span class="hljs-keyword">import</span> { capitalize, slugify, truncate } <span class="hljs-keyword">from</span> <span class="hljs-string">'./block-import-library.org?name=string-utils'</span>;
+
+<span class="hljs-keyword">const</span> results = <span class="hljs-variable language_">document</span>.<span class="hljs-title function_">createElement</span>(<span class="hljs-string">'div'</span>);
+results.<span class="hljs-property">style</span>.<span class="hljs-property">cssText</span> = <span class="hljs-string">'padding: 1rem; background: #e8f5e9; border-radius: 8px; margin: 1rem 0;'</span>;
+
+<span class="hljs-keyword">const</span> examples = [
+  { <span class="hljs-attr">input</span>: <span class="hljs-string">'hello world'</span>, <span class="hljs-attr">fn</span>: <span class="hljs-string">'capitalize'</span>, <span class="hljs-attr">output</span>: <span class="hljs-title function_">capitalize</span>(<span class="hljs-string">'hello world'</span>) },
+  { <span class="hljs-attr">input</span>: <span class="hljs-string">'Hello World 2024!'</span>, <span class="hljs-attr">fn</span>: <span class="hljs-string">'slugify'</span>, <span class="hljs-attr">output</span>: <span class="hljs-title function_">slugify</span>(<span class="hljs-string">'Hello World 2024!'</span>) },
+  { <span class="hljs-attr">input</span>: <span class="hljs-string">'This is a very long string...'</span>, <span class="hljs-attr">fn</span>: <span class="hljs-string">'truncate(20)'</span>, <span class="hljs-attr">output</span>: <span class="hljs-title function_">truncate</span>(<span class="hljs-string">'This is a very long string that needs truncation'</span>, <span class="hljs-number">20</span>) }
+];
+
+results.<span class="hljs-property">innerHTML</span> = <span class="hljs-string">`
+  &#x3C;h4 style="margin-top: 0; color: #388e3c;">String Utils from Library&#x3C;/h4>
+  &#x3C;table style="width: 100%; border-collapse: collapse;">
+    &#x3C;tr>&#x3C;th>Function&#x3C;/th>&#x3C;th>Input&#x3C;/th>&#x3C;th>Output&#x3C;/th>&#x3C;/tr>
+    <span class="hljs-subst">${examples.map(ex => <span class="hljs-string">`
+      &#x3C;tr>
+        &#x3C;td>&#x3C;code><span class="hljs-subst">${ex.fn}</span>&#x3C;/code>&#x3C;/td>
+        &#x3C;td><span class="hljs-subst">${ex.input}</span>&#x3C;/td>
+        &#x3C;td>&#x3C;strong><span class="hljs-subst">${ex.output}</span>&#x3C;/strong>&#x3C;/td>
+      &#x3C;/tr>
+    `</span>).join(<span class="hljs-string">''</span>)}</span>
+  &#x3C;/table>
+`</span>;
+
+<span class="hljs-keyword">export</span> <span class="hljs-keyword">default</span> results;
+</code></pre>
+      </div><h1 id="part-3-css-imports">Part 3: CSS Imports</h1><p>CSS blocks can be imported as strings and dynamically injected.
+</p><h2 id="flexbox-utilities">Flexbox Utilities</h2><pre class="src-block"><code class="hljs language-html"><span class="hljs-tag">&#x3C;<span class="hljs-name">style</span>></span><span class="css">
+  <span class="hljs-comment">/* We'll inject CSS utilities from the library */</span>
+</span><span class="hljs-tag">&#x3C;/<span class="hljs-name">style</span>></span>
+<span class="hljs-tag">&#x3C;<span class="hljs-name">script</span> <span class="hljs-attr">type</span>=<span class="hljs-string">"module"</span>></span><span class="javascript">
+  <span class="hljs-keyword">import</span> flexUtils <span class="hljs-keyword">from</span> <span class="hljs-string">'./block-import-library.org?name=flex-utils'</span>;
+
+  <span class="hljs-comment">// Inject the imported CSS</span>
+  <span class="hljs-keyword">const</span> style = <span class="hljs-variable language_">document</span>.<span class="hljs-title function_">createElement</span>(<span class="hljs-string">'style'</span>);
+  style.<span class="hljs-property">textContent</span> = flexUtils;
+  <span class="hljs-variable language_">document</span>.<span class="hljs-property">head</span>.<span class="hljs-title function_">appendChild</span>(style);
+</span><span class="hljs-tag">&#x3C;/<span class="hljs-name">script</span>></span>
+
+<span class="hljs-tag">&#x3C;<span class="hljs-name">div</span> <span class="hljs-attr">class</span>=<span class="hljs-string">"flex-between"</span> <span class="hljs-attr">style</span>=<span class="hljs-string">"background: #e8f5e9; padding: 1rem; border-radius: 8px; margin: 1rem 0;"</span>></span>
+  <span class="hljs-tag">&#x3C;<span class="hljs-name">div</span>></span>
+    <span class="hljs-tag">&#x3C;<span class="hljs-name">h4</span> <span class="hljs-attr">style</span>=<span class="hljs-string">"margin: 0; color: #388e3c;"</span>></span>CSS Flexbox Utils from Library<span class="hljs-tag">&#x3C;/<span class="hljs-name">h4</span>></span>
+    <span class="hljs-tag">&#x3C;<span class="hljs-name">p</span> <span class="hljs-attr">style</span>=<span class="hljs-string">"margin: 0.5rem 0 0 0;"</span>></span>Using imported .flex-between and .flex-column classes<span class="hljs-tag">&#x3C;/<span class="hljs-name">p</span>></span>
+  <span class="hljs-tag">&#x3C;/<span class="hljs-name">div</span>></span>
+  <span class="hljs-tag">&#x3C;<span class="hljs-name">div</span> <span class="hljs-attr">class</span>=<span class="hljs-string">"flex-column flex-gap-2"</span>></span>
+    <span class="hljs-tag">&#x3C;<span class="hljs-name">button</span> <span class="hljs-attr">style</span>=<span class="hljs-string">"padding: 0.5rem 1rem; border-radius: 4px; border: 1px solid #4caf50; background: white; cursor: pointer;"</span>></span>Button 1<span class="hljs-tag">&#x3C;/<span class="hljs-name">button</span>></span>
+    <span class="hljs-tag">&#x3C;<span class="hljs-name">button</span> <span class="hljs-attr">style</span>=<span class="hljs-string">"padding: 0.5rem 1rem; border-radius: 4px; border: 1px solid #4caf50; background: white; cursor: pointer;"</span>></span>Button 2<span class="hljs-tag">&#x3C;/<span class="hljs-name">button</span>></span>
+  <span class="hljs-tag">&#x3C;/<span class="hljs-name">div</span>></span>
+<span class="hljs-tag">&#x3C;/<span class="hljs-name">div</span>></span>
+</code></pre><div id="org-block-4-result" data-org-block="block-content-examples-block-imports-org-4" class="org-block-result"></div>
+<div class="org-source-code">
+        <div class="org-source-label">Source</div>
+        <pre><code class="hljs language-html"><span class="hljs-tag">&#x3C;<span class="hljs-name">style</span>></span><span class="css">
+  <span class="hljs-comment">/* We'll inject CSS utilities from the library */</span>
+</span><span class="hljs-tag">&#x3C;/<span class="hljs-name">style</span>></span>
+<span class="hljs-tag">&#x3C;<span class="hljs-name">script</span> <span class="hljs-attr">type</span>=<span class="hljs-string">"module"</span>></span><span class="javascript">
+  <span class="hljs-keyword">import</span> flexUtils <span class="hljs-keyword">from</span> <span class="hljs-string">'./block-import-library.org?name=flex-utils'</span>;
+
+  <span class="hljs-comment">// Inject the imported CSS</span>
+  <span class="hljs-keyword">const</span> style = <span class="hljs-variable language_">document</span>.<span class="hljs-title function_">createElement</span>(<span class="hljs-string">'style'</span>);
+  style.<span class="hljs-property">textContent</span> = flexUtils;
+  <span class="hljs-variable language_">document</span>.<span class="hljs-property">head</span>.<span class="hljs-title function_">appendChild</span>(style);
+</span><span class="hljs-tag">&#x3C;/<span class="hljs-name">script</span>></span>
+
+<span class="hljs-tag">&#x3C;<span class="hljs-name">div</span> <span class="hljs-attr">class</span>=<span class="hljs-string">"flex-between"</span> <span class="hljs-attr">style</span>=<span class="hljs-string">"background: #e8f5e9; padding: 1rem; border-radius: 8px; margin: 1rem 0;"</span>></span>
+  <span class="hljs-tag">&#x3C;<span class="hljs-name">div</span>></span>
+    <span class="hljs-tag">&#x3C;<span class="hljs-name">h4</span> <span class="hljs-attr">style</span>=<span class="hljs-string">"margin: 0; color: #388e3c;"</span>></span>CSS Flexbox Utils from Library<span class="hljs-tag">&#x3C;/<span class="hljs-name">h4</span>></span>
+    <span class="hljs-tag">&#x3C;<span class="hljs-name">p</span> <span class="hljs-attr">style</span>=<span class="hljs-string">"margin: 0.5rem 0 0 0;"</span>></span>Using imported .flex-between and .flex-column classes<span class="hljs-tag">&#x3C;/<span class="hljs-name">p</span>></span>
+  <span class="hljs-tag">&#x3C;/<span class="hljs-name">div</span>></span>
+  <span class="hljs-tag">&#x3C;<span class="hljs-name">div</span> <span class="hljs-attr">class</span>=<span class="hljs-string">"flex-column flex-gap-2"</span>></span>
+    <span class="hljs-tag">&#x3C;<span class="hljs-name">button</span> <span class="hljs-attr">style</span>=<span class="hljs-string">"padding: 0.5rem 1rem; border-radius: 4px; border: 1px solid #4caf50; background: white; cursor: pointer;"</span>></span>Button 1<span class="hljs-tag">&#x3C;/<span class="hljs-name">button</span>></span>
+    <span class="hljs-tag">&#x3C;<span class="hljs-name">button</span> <span class="hljs-attr">style</span>=<span class="hljs-string">"padding: 0.5rem 1rem; border-radius: 4px; border: 1px solid #4caf50; background: white; cursor: pointer;"</span>></span>Button 2<span class="hljs-tag">&#x3C;/<span class="hljs-name">button</span>></span>
+  <span class="hljs-tag">&#x3C;/<span class="hljs-name">div</span>></span>
+<span class="hljs-tag">&#x3C;/<span class="hljs-name">div</span>></span>
+</code></pre>
+      </div><h2 id="animation-utilities">Animation Utilities</h2><pre class="src-block"><code class="hljs language-html"><span class="hljs-tag">&#x3C;<span class="hljs-name">script</span> <span class="hljs-attr">type</span>=<span class="hljs-string">"module"</span>></span><span class="javascript">
+  <span class="hljs-keyword">import</span> animations <span class="hljs-keyword">from</span> <span class="hljs-string">'./block-import-library.org?name=animation-utils'</span>;
+
+  <span class="hljs-keyword">const</span> style = <span class="hljs-variable language_">document</span>.<span class="hljs-title function_">createElement</span>(<span class="hljs-string">'style'</span>);
+  style.<span class="hljs-property">textContent</span> = animations;
+  <span class="hljs-variable language_">document</span>.<span class="hljs-property">head</span>.<span class="hljs-title function_">appendChild</span>(style);
+</span><span class="hljs-tag">&#x3C;/<span class="hljs-name">script</span>></span>
+
+<span class="hljs-tag">&#x3C;<span class="hljs-name">div</span> <span class="hljs-attr">class</span>=<span class="hljs-string">"fade-in"</span> <span class="hljs-attr">style</span>=<span class="hljs-string">"background: #fff3e0; padding: 1rem; border-radius: 8px; margin: 1rem 0;"</span>></span>
+  <span class="hljs-tag">&#x3C;<span class="hljs-name">h4</span> <span class="hljs-attr">style</span>=<span class="hljs-string">"margin-top: 0; color: #f57c00;"</span>></span>Animated Content<span class="hljs-tag">&#x3C;/<span class="hljs-name">h4</span>></span>
+  <span class="hljs-tag">&#x3C;<span class="hljs-name">p</span>></span>This box uses the <span class="hljs-tag">&#x3C;<span class="hljs-name">code</span>></span>.fade-in<span class="hljs-tag">&#x3C;/<span class="hljs-name">code</span>></span> animation imported from the library.<span class="hljs-tag">&#x3C;/<span class="hljs-name">p</span>></span>
+  <span class="hljs-tag">&#x3C;<span class="hljs-name">div</span> <span class="hljs-attr">class</span>=<span class="hljs-string">"spin"</span> <span class="hljs-attr">style</span>=<span class="hljs-string">"display: inline-block; font-size: 2rem;"</span>></span>⚙️<span class="hljs-tag">&#x3C;/<span class="hljs-name">div</span>></span>
+<span class="hljs-tag">&#x3C;/<span class="hljs-name">div</span>></span>
+</code></pre><div id="org-block-5-result" data-org-block="block-content-examples-block-imports-org-5" class="org-block-result"></div>
+<div class="org-source-code">
+        <div class="org-source-label">Source</div>
+        <pre><code class="hljs language-html"><span class="hljs-tag">&#x3C;<span class="hljs-name">script</span> <span class="hljs-attr">type</span>=<span class="hljs-string">"module"</span>></span><span class="javascript">
+  <span class="hljs-keyword">import</span> animations <span class="hljs-keyword">from</span> <span class="hljs-string">'./block-import-library.org?name=animation-utils'</span>;
+
+  <span class="hljs-keyword">const</span> style = <span class="hljs-variable language_">document</span>.<span class="hljs-title function_">createElement</span>(<span class="hljs-string">'style'</span>);
+  style.<span class="hljs-property">textContent</span> = animations;
+  <span class="hljs-variable language_">document</span>.<span class="hljs-property">head</span>.<span class="hljs-title function_">appendChild</span>(style);
+</span><span class="hljs-tag">&#x3C;/<span class="hljs-name">script</span>></span>
+
+<span class="hljs-tag">&#x3C;<span class="hljs-name">div</span> <span class="hljs-attr">class</span>=<span class="hljs-string">"fade-in"</span> <span class="hljs-attr">style</span>=<span class="hljs-string">"background: #fff3e0; padding: 1rem; border-radius: 8px; margin: 1rem 0;"</span>></span>
+  <span class="hljs-tag">&#x3C;<span class="hljs-name">h4</span> <span class="hljs-attr">style</span>=<span class="hljs-string">"margin-top: 0; color: #f57c00;"</span>></span>Animated Content<span class="hljs-tag">&#x3C;/<span class="hljs-name">h4</span>></span>
+  <span class="hljs-tag">&#x3C;<span class="hljs-name">p</span>></span>This box uses the <span class="hljs-tag">&#x3C;<span class="hljs-name">code</span>></span>.fade-in<span class="hljs-tag">&#x3C;/<span class="hljs-name">code</span>></span> animation imported from the library.<span class="hljs-tag">&#x3C;/<span class="hljs-name">p</span>></span>
+  <span class="hljs-tag">&#x3C;<span class="hljs-name">div</span> <span class="hljs-attr">class</span>=<span class="hljs-string">"spin"</span> <span class="hljs-attr">style</span>=<span class="hljs-string">"display: inline-block; font-size: 2rem;"</span>></span>⚙️<span class="hljs-tag">&#x3C;/<span class="hljs-name">div</span>></span>
+<span class="hljs-tag">&#x3C;/<span class="hljs-name">div</span>></span>
+</code></pre>
+      </div><h1 id="part-4-typescript-imports">Part 4: TypeScript Imports</h1><p>Import type-safe utilities with full TypeScript support:
+</p><pre class="src-block"><code class="hljs language-javascript"><span class="hljs-keyword">import</span> { distance2D, midpoint } <span class="hljs-keyword">from</span> <span class="hljs-string">'./block-import-library.org?name=type-safe-utils'</span>;
+
+<span class="hljs-keyword">const</span> p1 = { <span class="hljs-attr">x</span>: <span class="hljs-number">0</span>, <span class="hljs-attr">y</span>: <span class="hljs-number">0</span> };
+<span class="hljs-keyword">const</span> p2 = { <span class="hljs-attr">x</span>: <span class="hljs-number">3</span>, <span class="hljs-attr">y</span>: <span class="hljs-number">4</span> };
+
+<span class="hljs-keyword">const</span> dist = <span class="hljs-title function_">distance2D</span>(p1, p2);
+<span class="hljs-keyword">const</span> mid = <span class="hljs-title function_">midpoint</span>(p1, p2);
+
+<span class="hljs-keyword">const</span> container = <span class="hljs-variable language_">document</span>.<span class="hljs-title function_">createElement</span>(<span class="hljs-string">'div'</span>);
+container.<span class="hljs-property">style</span>.<span class="hljs-property">cssText</span> = <span class="hljs-string">'padding: 1rem; background: #fff3e0; border-radius: 8px; margin: 1rem 0;'</span>;
+container.<span class="hljs-property">innerHTML</span> = <span class="hljs-string">`
+  &#x3C;h4 style="margin-top: 0; color: #f57c00;">TypeScript Utils from Library&#x3C;/h4>
+  &#x3C;p>Point 1: (<span class="hljs-subst">${p1.x}</span>, <span class="hljs-subst">${p1.y}</span>)&#x3C;/p>
+  &#x3C;p>Point 2: (<span class="hljs-subst">${p2.x}</span>, <span class="hljs-subst">${p2.y}</span>)&#x3C;/p>
+  &#x3C;p>Distance: <span class="hljs-subst">${dist.toFixed(<span class="hljs-number">2</span>)}</span>&#x3C;/p>
+  &#x3C;p>Midpoint: (<span class="hljs-subst">${mid.x}</span>, <span class="hljs-subst">${mid.y}</span>)&#x3C;/p>
+`</span>;
+
+<span class="hljs-keyword">export</span> <span class="hljs-keyword">default</span> container;
+</code></pre><div id="org-block-6-result" data-org-block="block-content-examples-block-imports-org-6" class="org-block-result"></div>
+<div class="org-source-code">
+        <div class="org-source-label">Source</div>
+        <pre><code class="hljs language-javascript"><span class="hljs-keyword">import</span> { distance2D, midpoint } <span class="hljs-keyword">from</span> <span class="hljs-string">'./block-import-library.org?name=type-safe-utils'</span>;
+
+<span class="hljs-keyword">const</span> p1 = { <span class="hljs-attr">x</span>: <span class="hljs-number">0</span>, <span class="hljs-attr">y</span>: <span class="hljs-number">0</span> };
+<span class="hljs-keyword">const</span> p2 = { <span class="hljs-attr">x</span>: <span class="hljs-number">3</span>, <span class="hljs-attr">y</span>: <span class="hljs-number">4</span> };
+
+<span class="hljs-keyword">const</span> dist = <span class="hljs-title function_">distance2D</span>(p1, p2);
+<span class="hljs-keyword">const</span> mid = <span class="hljs-title function_">midpoint</span>(p1, p2);
+
+<span class="hljs-keyword">const</span> container = <span class="hljs-variable language_">document</span>.<span class="hljs-title function_">createElement</span>(<span class="hljs-string">'div'</span>);
+container.<span class="hljs-property">style</span>.<span class="hljs-property">cssText</span> = <span class="hljs-string">'padding: 1rem; background: #fff3e0; border-radius: 8px; margin: 1rem 0;'</span>;
+container.<span class="hljs-property">innerHTML</span> = <span class="hljs-string">`
+  &#x3C;h4 style="margin-top: 0; color: #f57c00;">TypeScript Utils from Library&#x3C;/h4>
+  &#x3C;p>Point 1: (<span class="hljs-subst">${p1.x}</span>, <span class="hljs-subst">${p1.y}</span>)&#x3C;/p>
+  &#x3C;p>Point 2: (<span class="hljs-subst">${p2.x}</span>, <span class="hljs-subst">${p2.y}</span>)&#x3C;/p>
+  &#x3C;p>Distance: <span class="hljs-subst">${dist.toFixed(<span class="hljs-number">2</span>)}</span>&#x3C;/p>
+  &#x3C;p>Midpoint: (<span class="hljs-subst">${mid.x}</span>, <span class="hljs-subst">${mid.y}</span>)&#x3C;/p>
+`</span>;
+
+<span class="hljs-keyword">export</span> <span class="hljs-keyword">default</span> container;
+</code></pre>
+      </div><h1 id="part-5-import-by-index">Part 5: Import by Index</h1><p>You can import blocks by their position (0-based index) instead of by name:
+</p><pre class="src-block"><code class="hljs language-javascript"><span class="hljs-comment">// Import the first block from the library (math-utils at index 0)</span>
+<span class="hljs-keyword">import</span> { add } <span class="hljs-keyword">from</span> <span class="hljs-string">'./block-import-library.org?index=0'</span>;
+
+<span class="hljs-keyword">const</span> result = <span class="hljs-variable language_">document</span>.<span class="hljs-title function_">createElement</span>(<span class="hljs-string">'div'</span>);
+result.<span class="hljs-property">style</span>.<span class="hljs-property">cssText</span> = <span class="hljs-string">'padding: 1rem; background: #fce4ec; border-radius: 8px; margin: 1rem 0;'</span>;
+result.<span class="hljs-property">innerHTML</span> = <span class="hljs-string">`
+  &#x3C;h4 style="margin-top: 0; color: #c2185b;">Import by Index Demo&#x3C;/h4>
+  &#x3C;p>Imported first block from library (index=0): &#x3C;code>math-utils&#x3C;/code>&#x3C;/p>
+  &#x3C;p>Result: add(10, 20) = <span class="hljs-subst">${add(<span class="hljs-number">10</span>, <span class="hljs-number">20</span>)}</span>&#x3C;/p>
+`</span>;
+
+<span class="hljs-keyword">export</span> <span class="hljs-keyword">default</span> result;
+</code></pre><div id="org-block-7-result" data-org-block="block-content-examples-block-imports-org-7" class="org-block-result"></div>
+<div class="org-source-code">
+        <div class="org-source-label">Source</div>
+        <pre><code class="hljs language-javascript"><span class="hljs-comment">// Import the first block from the library (math-utils at index 0)</span>
+<span class="hljs-keyword">import</span> { add } <span class="hljs-keyword">from</span> <span class="hljs-string">'./block-import-library.org?index=0'</span>;
+
+<span class="hljs-keyword">const</span> result = <span class="hljs-variable language_">document</span>.<span class="hljs-title function_">createElement</span>(<span class="hljs-string">'div'</span>);
+result.<span class="hljs-property">style</span>.<span class="hljs-property">cssText</span> = <span class="hljs-string">'padding: 1rem; background: #fce4ec; border-radius: 8px; margin: 1rem 0;'</span>;
+result.<span class="hljs-property">innerHTML</span> = <span class="hljs-string">`
+  &#x3C;h4 style="margin-top: 0; color: #c2185b;">Import by Index Demo&#x3C;/h4>
+  &#x3C;p>Imported first block from library (index=0): &#x3C;code>math-utils&#x3C;/code>&#x3C;/p>
+  &#x3C;p>Result: add(10, 20) = <span class="hljs-subst">${add(<span class="hljs-number">10</span>, <span class="hljs-number">20</span>)}</span>&#x3C;/p>
+`</span>;
+
+<span class="hljs-keyword">export</span> <span class="hljs-keyword">default</span> result;
+</code></pre>
+      </div><h2 id="when-to-use-index-vs-name">When to Use Index vs Name</h2><ul><li><strong><strong>Use names</strong></strong> for stable, semantic imports (recommended)
+</li><li><strong><strong>Use indexes</strong></strong> for quick prototyping or when names aren't available
+</li><li>Names are more maintainable as file structure changes
+</li></ul><h1 id="part-6-server-side-data-import">Part 6: Server-Side Data Import</h1><p>Import pre-computed server-side data that runs during the build process:
+</p><pre class="src-block"><code class="hljs language-javascript"><span class="hljs-comment">// Import server-computed file statistics and date</span>
+<span class="hljs-keyword">import</span> fileStats <span class="hljs-keyword">from</span> <span class="hljs-string">'./block-import-library.org?name=file-stats'</span>;
+<span class="hljs-keyword">import</span> currentDate <span class="hljs-keyword">from</span> <span class="hljs-string">'./block-import-library.org?name=current-date'</span>;
+
+<span class="hljs-keyword">const</span> container = <span class="hljs-variable language_">document</span>.<span class="hljs-title function_">createElement</span>(<span class="hljs-string">'div'</span>);
+container.<span class="hljs-property">style</span>.<span class="hljs-property">cssText</span> = <span class="hljs-string">'padding: 1rem; background: #e0f2f1; border-radius: 8px; margin: 1rem 0;'</span>;
+
+<span class="hljs-keyword">const</span> stats = <span class="hljs-title class_">JSON</span>.<span class="hljs-title function_">parse</span>(fileStats);
+
+container.<span class="hljs-property">innerHTML</span> = <span class="hljs-string">`
+  &#x3C;h4 style="margin-top: 0; color: #00796b;">Server-Side Data from Library&#x3C;/h4>
+  &#x3C;p>&#x3C;strong>Build Date:&#x3C;/strong> <span class="hljs-subst">${currentDate}</span>&#x3C;/p>
+  &#x3C;p>&#x3C;strong>Total org files:&#x3C;/strong> <span class="hljs-subst">${stats.totalFiles}</span>&#x3C;/p>
+  &#x3C;details>
+    &#x3C;summary style="cursor: pointer; color: #00796b; font-weight: bold;">File Details&#x3C;/summary>
+    &#x3C;ul>
+      <span class="hljs-subst">${stats.files.map(f => <span class="hljs-string">`&#x3C;li><span class="hljs-subst">${f.name}</span> - <span class="hljs-subst">${(f.size / <span class="hljs-number">1024</span>).toFixed(<span class="hljs-number">2</span>)}</span> KB&#x3C;/li>`</span>).join(<span class="hljs-string">''</span>)}</span>
+    &#x3C;/ul>
+  &#x3C;/details>
+`</span>;
+
+<span class="hljs-keyword">export</span> <span class="hljs-keyword">default</span> container;
+</code></pre><div id="org-block-8-result" data-org-block="block-content-examples-block-imports-org-8" class="org-block-result"></div>
+<div class="org-source-code">
+        <div class="org-source-label">Source</div>
+        <pre><code class="hljs language-javascript"><span class="hljs-comment">// Import server-computed file statistics and date</span>
+<span class="hljs-keyword">import</span> fileStats <span class="hljs-keyword">from</span> <span class="hljs-string">'./block-import-library.org?name=file-stats'</span>;
+<span class="hljs-keyword">import</span> currentDate <span class="hljs-keyword">from</span> <span class="hljs-string">'./block-import-library.org?name=current-date'</span>;
+
+<span class="hljs-keyword">const</span> container = <span class="hljs-variable language_">document</span>.<span class="hljs-title function_">createElement</span>(<span class="hljs-string">'div'</span>);
+container.<span class="hljs-property">style</span>.<span class="hljs-property">cssText</span> = <span class="hljs-string">'padding: 1rem; background: #e0f2f1; border-radius: 8px; margin: 1rem 0;'</span>;
+
+<span class="hljs-keyword">const</span> stats = <span class="hljs-title class_">JSON</span>.<span class="hljs-title function_">parse</span>(fileStats);
+
+container.<span class="hljs-property">innerHTML</span> = <span class="hljs-string">`
+  &#x3C;h4 style="margin-top: 0; color: #00796b;">Server-Side Data from Library&#x3C;/h4>
+  &#x3C;p>&#x3C;strong>Build Date:&#x3C;/strong> <span class="hljs-subst">${currentDate}</span>&#x3C;/p>
+  &#x3C;p>&#x3C;strong>Total org files:&#x3C;/strong> <span class="hljs-subst">${stats.totalFiles}</span>&#x3C;/p>
+  &#x3C;details>
+    &#x3C;summary style="cursor: pointer; color: #00796b; font-weight: bold;">File Details&#x3C;/summary>
+    &#x3C;ul>
+      <span class="hljs-subst">${stats.files.map(f => <span class="hljs-string">`&#x3C;li><span class="hljs-subst">${f.name}</span> - <span class="hljs-subst">${(f.size / <span class="hljs-number">1024</span>).toFixed(<span class="hljs-number">2</span>)}</span> KB&#x3C;/li>`</span>).join(<span class="hljs-string">''</span>)}</span>
+    &#x3C;/ul>
+  &#x3C;/details>
+`</span>;
+
+<span class="hljs-keyword">export</span> <span class="hljs-keyword">default</span> container;
+</code></pre>
+      </div><h2 id="server-side-benefits">Server-Side Benefits</h2><ul><li>Execute expensive operations once at build time
+</li><li>Access Node.js APIs (fs, path, etc.)
+</li><li>Generate dynamic content from file system
+</li><li>No client-side overhead
+</li></ul><h1 id="part-7-jscad-3d-modeling">Part 7: JSCad 3D Modeling</h1><p>The most powerful demonstration: importing 3D geometry functions and composing complex scenes.
+</p><style>
+  .jscad-wrapper {
+    position: relative;
+    width: 100%;
+    height: 400px;
+    margin: 1rem 0;
+    border-radius: 8px;
+    overflow: hidden;
+  }
+</style>
+<h2 id="composite-3d-scene">Composite 3D Scene</h2><p>Import geometry primitives and composite shapes from the library:
+</p><div id="org-block-9-result" data-org-block="block-content-examples-block-imports-org-9" class="org-block-result"></div><h2 id="3d-import-benefits">3D Import Benefits</h2><ul><li>Build libraries of reusable 3D primitives
+</li><li>Compose complex assemblies from simple parts
+</li><li>Share geometry across multiple designs
+</li><li>Parametric design with imported functions
+</li><li>Version control your 3D primitives
+</li></ul><h1 id="part-8-complex-composition">Part 8: Complex Composition</h1><p>Let's combine multiple imports to create something more sophisticated.
+</p><h2 id="define-a-data-processor">Define a Data Processor</h2><p>First, define a local processing function:
+</p><div id="org-block-10-result" data-org-block="block-content-examples-block-imports-org-10" class="org-block-result"></div><h2 id="combine-local-and-external-imports">Combine Local and External Imports</h2><pre class="src-block"><code class="hljs language-javascript"><span class="hljs-comment">// Import from THIS file (self-import)</span>
+<span class="hljs-keyword">import</span> { processData } <span class="hljs-keyword">from</span> <span class="hljs-string">'./block-imports.org?name=data-processor'</span>;
+
+<span class="hljs-comment">// Import from EXTERNAL library file</span>
+<span class="hljs-keyword">import</span> { fibonacci } <span class="hljs-keyword">from</span> <span class="hljs-string">'./block-import-library.org?name=math-utils'</span>;
+<span class="hljs-keyword">import</span> { truncate } <span class="hljs-keyword">from</span> <span class="hljs-string">'./block-import-library.org?name=string-utils'</span>;
+
+<span class="hljs-comment">// Generate fibonacci sequence using imported function</span>
+<span class="hljs-keyword">const</span> fibSequence = <span class="hljs-title class_">Array</span>.<span class="hljs-title function_">from</span>({ <span class="hljs-attr">length</span>: <span class="hljs-number">10</span> }, <span class="hljs-function">(<span class="hljs-params">_, i</span>) =></span> <span class="hljs-title function_">fibonacci</span>(i));
+
+<span class="hljs-comment">// Process the data using local function</span>
+<span class="hljs-keyword">const</span> stats = <span class="hljs-title function_">processData</span>(fibSequence);
+
+<span class="hljs-comment">// Format output using imported utility</span>
+<span class="hljs-keyword">const</span> title = <span class="hljs-title function_">truncate</span>(<span class="hljs-string">"Fibonacci Sequence Analysis with Mixed Imports"</span>, <span class="hljs-number">40</span>);
+
+<span class="hljs-keyword">const</span> container = <span class="hljs-variable language_">document</span>.<span class="hljs-title function_">createElement</span>(<span class="hljs-string">'div'</span>);
+container.<span class="hljs-property">style</span>.<span class="hljs-property">cssText</span> = <span class="hljs-string">'padding: 1rem; background: #f3e5f5; border-radius: 8px; margin: 1rem 0;'</span>;
+container.<span class="hljs-property">innerHTML</span> = <span class="hljs-string">`
+  &#x3C;h4 style="margin-top: 0; color: #7b1fa2;"><span class="hljs-subst">${title}</span>&#x3C;/h4>
+  &#x3C;p>&#x3C;strong>Sequence:&#x3C;/strong> [<span class="hljs-subst">${fibSequence.join(<span class="hljs-string">', '</span>)}</span>]&#x3C;/p>
+  &#x3C;p>&#x3C;strong>Sum:&#x3C;/strong> <span class="hljs-subst">${stats.sum}</span>&#x3C;/p>
+  &#x3C;p>&#x3C;strong>Average:&#x3C;/strong> <span class="hljs-subst">${stats.average.toFixed(<span class="hljs-number">2</span>)}</span>&#x3C;/p>
+  &#x3C;p>&#x3C;strong>Max:&#x3C;/strong> <span class="hljs-subst">${stats.max}</span>&#x3C;/p>
+  &#x3C;p>&#x3C;strong>Min:&#x3C;/strong> <span class="hljs-subst">${stats.min}</span>&#x3C;/p>
+  &#x3C;hr style="border: none; border-top: 1px solid #ddd; margin: 1rem 0;">
+  &#x3C;p>&#x3C;small>
+    🔹 fibonacci() from &#x3C;code>block-import-library.org&#x3C;/code>&#x3C;br>
+    🔹 truncate() from &#x3C;code>block-import-library.org&#x3C;/code>&#x3C;br>
+    🔹 processData() from &#x3C;code>block-imports.org&#x3C;/code> (this file)
+  &#x3C;/small>&#x3C;/p>
+`</span>;
+
+<span class="hljs-keyword">export</span> <span class="hljs-keyword">default</span> container;
+</code></pre><div id="org-block-11-result" data-org-block="block-content-examples-block-imports-org-11" class="org-block-result"></div>
+<div class="org-source-code">
+        <div class="org-source-label">Source</div>
+        <pre><code class="hljs language-javascript"><span class="hljs-comment">// Import from THIS file (self-import)</span>
+<span class="hljs-keyword">import</span> { processData } <span class="hljs-keyword">from</span> <span class="hljs-string">'./block-imports.org?name=data-processor'</span>;
+
+<span class="hljs-comment">// Import from EXTERNAL library file</span>
+<span class="hljs-keyword">import</span> { fibonacci } <span class="hljs-keyword">from</span> <span class="hljs-string">'./block-import-library.org?name=math-utils'</span>;
+<span class="hljs-keyword">import</span> { truncate } <span class="hljs-keyword">from</span> <span class="hljs-string">'./block-import-library.org?name=string-utils'</span>;
+
+<span class="hljs-comment">// Generate fibonacci sequence using imported function</span>
+<span class="hljs-keyword">const</span> fibSequence = <span class="hljs-title class_">Array</span>.<span class="hljs-title function_">from</span>({ <span class="hljs-attr">length</span>: <span class="hljs-number">10</span> }, <span class="hljs-function">(<span class="hljs-params">_, i</span>) =></span> <span class="hljs-title function_">fibonacci</span>(i));
+
+<span class="hljs-comment">// Process the data using local function</span>
+<span class="hljs-keyword">const</span> stats = <span class="hljs-title function_">processData</span>(fibSequence);
+
+<span class="hljs-comment">// Format output using imported utility</span>
+<span class="hljs-keyword">const</span> title = <span class="hljs-title function_">truncate</span>(<span class="hljs-string">"Fibonacci Sequence Analysis with Mixed Imports"</span>, <span class="hljs-number">40</span>);
+
+<span class="hljs-keyword">const</span> container = <span class="hljs-variable language_">document</span>.<span class="hljs-title function_">createElement</span>(<span class="hljs-string">'div'</span>);
+container.<span class="hljs-property">style</span>.<span class="hljs-property">cssText</span> = <span class="hljs-string">'padding: 1rem; background: #f3e5f5; border-radius: 8px; margin: 1rem 0;'</span>;
+container.<span class="hljs-property">innerHTML</span> = <span class="hljs-string">`
+  &#x3C;h4 style="margin-top: 0; color: #7b1fa2;"><span class="hljs-subst">${title}</span>&#x3C;/h4>
+  &#x3C;p>&#x3C;strong>Sequence:&#x3C;/strong> [<span class="hljs-subst">${fibSequence.join(<span class="hljs-string">', '</span>)}</span>]&#x3C;/p>
+  &#x3C;p>&#x3C;strong>Sum:&#x3C;/strong> <span class="hljs-subst">${stats.sum}</span>&#x3C;/p>
+  &#x3C;p>&#x3C;strong>Average:&#x3C;/strong> <span class="hljs-subst">${stats.average.toFixed(<span class="hljs-number">2</span>)}</span>&#x3C;/p>
+  &#x3C;p>&#x3C;strong>Max:&#x3C;/strong> <span class="hljs-subst">${stats.max}</span>&#x3C;/p>
+  &#x3C;p>&#x3C;strong>Min:&#x3C;/strong> <span class="hljs-subst">${stats.min}</span>&#x3C;/p>
+  &#x3C;hr style="border: none; border-top: 1px solid #ddd; margin: 1rem 0;">
+  &#x3C;p>&#x3C;small>
+    🔹 fibonacci() from &#x3C;code>block-import-library.org&#x3C;/code>&#x3C;br>
+    🔹 truncate() from &#x3C;code>block-import-library.org&#x3C;/code>&#x3C;br>
+    🔹 processData() from &#x3C;code>block-imports.org&#x3C;/code> (this file)
+  &#x3C;/small>&#x3C;/p>
+`</span>;
+
+<span class="hljs-keyword">export</span> <span class="hljs-keyword">default</span> container;
+</code></pre>
+      </div><h1 id="key-concepts-summary">Key Concepts Summary</h1><h2 id="code-reusability">Code Reusability</h2><p>Define once, use everywhere:
+</p><ul><li>Create shared libraries of utilities
+</li><li>Import across multiple documents
+</li><li>Maintain single source of truth
+</li><li>Update once, propagate everywhere
+</li></ul><h2 id="modularity">Modularity</h2><p>Break complex logic into manageable pieces:
+</p><ul><li>Small, focused, testable blocks
+</li><li>Clear dependencies and interfaces
+</li><li>Easy to understand and maintain
+</li><li>Promotes separation of concerns
+</li></ul><h2 id="composition">Composition</h2><p>Combine simple blocks to create complexity:
+</p><ul><li>Layer functionality progressively
+</li><li>Mix and match utilities as needed
+</li><li>Build complex features from simple parts
+</li><li>Enable true literate programming
+</li></ul><h2 id="type-safety">Type Safety</h2><p>Use TypeScript for robust imports:
+</p><ul><li>Full type checking across files
+</li><li>IDE autocomplete and hints
+</li><li>Catch errors at build time
+</li><li>Document interfaces naturally
+</li></ul><h2 id="performance-optimization">Performance Optimization</h2><p>Choose the right runtime:
+</p><ul><li><strong><strong>Browser runtime</strong></strong>: Interactive features, DOM manipulation
+</li><li><strong><strong>Server runtime</strong></strong>: Expensive computations, file system access
+</li><li><strong><strong>Import time</strong></strong>: No overhead, just code linking
+</li></ul><h2 id="cross-file-architecture">Cross-File Architecture</h2><p>Organize code logically:
+</p><ul><li>Shared libraries in dedicated files
+</li><li>Document-specific utilities locally
+</li><li>Clear naming conventions
+</li><li>Discoverable and maintainable
+</li></ul><h1 id="best-practices">Best Practices</h1><h2 id="naming-conventions">Naming Conventions</h2><pre><code>#+name: descriptive-kebab-case
+#+begin_src javascript
+// Use clear, descriptive names
+#+end_src
+</code></pre>
+<h2 id="library-organization">Library Organization</h2><p>Group related utilities:
+</p><ul><li><code class="inline-verbatim">math-utils</code>, <code class="inline-verbatim">string-utils</code> for JavaScript
+</li><li><code class="inline-verbatim">flex-utils</code>, <code class="inline-verbatim">animation-utils</code> for CSS
+</li><li><code class="inline-verbatim">jscad-base-shapes</code>, <code class="inline-verbatim">jscad-composite-shapes</code> for 3D
+</li></ul><h2 id="documentation">Documentation</h2><p>Document your blocks:
+</p><ul><li>Add comments explaining purpose
+</li><li>Show usage examples
+</li><li>List exported functions
+</li><li>Note any dependencies
+</li></ul><h2 id="version-control">Version Control</h2><p>Track library files separately:
+</p><ul><li>Commit libraries as stable units
+</li><li>Semantic versioning for breaking changes
+</li><li>Changelog for library updates
+</li></ul><h1 id="advanced-patterns">Advanced Patterns</h1><h2 id="dependency-chains">Dependency Chains</h2><p>Import blocks that themselves import others:
+</p><pre><code>file-a.org imports from file-b.org
+file-b.org imports from file-c.org
+Result: Transitive dependency resolution
+</code></pre>
+<h2 id="conditional-imports">Conditional Imports</h2><p>Use different blocks based on context:
+</p><pre><code>#+begin_src javascript
+const utils = DEV
+  ? import('./debug-utils.org?name=tools')
+  : import('./prod-utils.org?name=tools');
+#+end_src
+</code></pre>
+<h2 id="circular-imports">Circular Imports</h2><p>Avoid circular dependencies:
+</p><ul><li>Keep dependency graph acyclic
+</li><li>Extract shared code to separate file
+</li><li>Use dependency injection when needed
+</li></ul><h1 id="conclusion">Conclusion</h1><p>The block import system enables powerful literate programming workflows:
+</p><p>✅ <strong><strong>Code Reusability</strong></strong> - Define once, use everywhere across files<br>✅ <strong><strong>Modularity</strong></strong> - Break complex logic into focused, manageable blocks<br>✅ <strong><strong>Composition</strong></strong> - Combine simple utilities to build sophisticated features<br>✅ <strong><strong>Type Safety</strong></strong> - Full TypeScript support with cross-file type checking<br>✅ <strong><strong>Server-Side Pre-computation</strong></strong> - Execute expensive operations at build time<br>✅ <strong><strong>3D Modeling</strong></strong> - Compose complex geometries from primitive shapes<br>✅ <strong><strong>Cross-File Architecture</strong></strong> - Organize code logically across multiple documents<br></p><p>This creates a powerful environment where documentation and executable code coexist seamlessly, enabling true literate programming.
+</p><h2 id="see-also">See Also</h2><ul><li><a href="/examples/block-import-library.html">Block Import Library</a> - The reusable utilities used in this guide
+</li><li><a href="/examples/index.html">Rendering Examples</a> - Learn about org-mode rendering features
+</li><li><a href="/examples/org-down.html">Syntax Reference</a> - Complete org-mode syntax guide
+</li><li><a href="/plugins/creating-plugins.html">Creating Plugins</a> - Create custom block types
+</li><li><a href="/config/index.html">Configuration</a> - Configure your Org-Press site
+</li></ul></div></div></article></main><aside class="toc"><div class="toc-content"><h4 class="toc-title">On this page</h4><nav class="toc-nav" aria-label="Table of contents"><ul class="toc-list"><li class="toc-item "><a href="#what-youll-learn" class="toc-link">What You&#x27;ll Learn</a></li><li class="toc-item "><a href="#import-syntax" class="toc-link">Import Syntax</a></li><li class="toc-item "><a href="#the-library-file" class="toc-link">The Library File</a></li><li class="toc-item "><a href="#define-a-local-helper" class="toc-link">Define a Local Helper</a></li><li class="toc-item "><a href="#use-the-local-helper" class="toc-link">Use the Local Helper</a></li><li class="toc-item "><a href="#why-self-import" class="toc-link">Why Self-Import?</a></li><li class="toc-item "><a href="#math-utilities" class="toc-link">Math Utilities</a></li><li class="toc-item "><a href="#string-utilities" class="toc-link">String Utilities</a></li><li class="toc-item "><a href="#flexbox-utilities" class="toc-link">Flexbox Utilities</a></li><li class="toc-item "><a href="#animation-utilities" class="toc-link">Animation Utilities</a></li><li class="toc-item "><a href="#when-to-use-index-vs-name" class="toc-link">When to Use Index vs Name</a></li><li class="toc-item "><a href="#server-side-benefits" class="toc-link">Server-Side Benefits</a></li><li class="toc-item "><a href="#composite-3d-scene" class="toc-link">Composite 3D Scene</a></li><li class="toc-item "><a href="#3d-import-benefits" class="toc-link">3D Import Benefits</a></li><li class="toc-item "><a href="#define-a-data-processor" class="toc-link">Define a Data Processor</a></li><li class="toc-item "><a href="#combine-local-and-external-imports" class="toc-link">Combine Local and External Imports</a></li><li class="toc-item "><a href="#code-reusability" class="toc-link">Code Reusability</a></li><li class="toc-item "><a href="#modularity" class="toc-link">Modularity</a></li><li class="toc-item "><a href="#composition" class="toc-link">Composition</a></li><li class="toc-item "><a href="#type-safety" class="toc-link">Type Safety</a></li><li class="toc-item "><a href="#performance-optimization" class="toc-link">Performance Optimization</a></li><li class="toc-item "><a href="#cross-file-architecture" class="toc-link">Cross-File Architecture</a></li><li class="toc-item "><a href="#naming-conventions" class="toc-link">Naming Conventions</a></li><li class="toc-item "><a href="#library-organization" class="toc-link">Library Organization</a></li><li class="toc-item "><a href="#documentation" class="toc-link">Documentation</a></li><li class="toc-item "><a href="#version-control" class="toc-link">Version Control</a></li><li class="toc-item "><a href="#dependency-chains" class="toc-link">Dependency Chains</a></li><li class="toc-item "><a href="#conditional-imports" class="toc-link">Conditional Imports</a></li><li class="toc-item "><a href="#circular-imports" class="toc-link">Circular Imports</a></li><li class="toc-item "><a href="#see-also" class="toc-link">See Also</a></li></ul></nav></div></aside></div><footer class="site-footer"><div class="footer-content"><div class="footer-grid"><div class="footer-column"><h4>Guide</h4><ul><li><a href="/guide/index.html">What is Org-Press?</a></li><li><a href="/guide/getting-started.html">Getting Started</a></li><li><a href="/guide/features.html">Features</a></li><li><a href="/guide/cli.html">CLI Reference</a></li><li><a href="/guide/building.html">Building</a></li></ul></div><div class="footer-column"><h4>Config</h4><ul><li><a href="/config/index.html">Overview</a></li><li><a href="/config/shared-options.html">Shared Options</a></li><li><a href="/config/build-options.html">Build Options</a></li><li><a href="/config/server-options.html">Server Options</a></li></ul></div><div class="footer-column"><h4>Plugins</h4><ul><li><a href="/plugins/index.html">Overview</a></li><li><a href="/plugins/excalidraw.html">Excalidraw</a></li><li><a href="/plugins/jscad.html">JSCAD</a></li><li><a href="/plugins/creating-plugins.html">Creating Plugins</a></li></ul></div><div class="footer-column"><h4>API</h4><ul><li><a href="/api/index.html">Overview</a></li><li><a href="/api/plugin-api.html">Plugin API</a></li><li><a href="/api/javascript-api.html">JavaScript API</a></li></ul></div><div class="footer-column"><h4>Resources</h4><ul><li><a href="/examples/index.html">Examples</a></li><li><a href="https://github.com/org-press/org-press" target="_blank" rel="noopener">GitHub</a></li><li><a href="https://github.com/org-press/org-press/releases" target="_blank" rel="noopener">Releases</a></li></ul></div></div><div class="footer-bottom"><p class="footer-copyright">Released under the GPL-2.0 License.</p><p class="footer-credit">Built with <a href="https://github.com/org-press/org-press">org-press</a></p></div></div></footer></div><script src="https://analytics.ideable.dev/api/script.js" data-site-id="5dc60eeeac5d" defer=""></script></body></html>

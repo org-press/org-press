@@ -1,0 +1,1 @@
+import{s as r}from"./index-CErLYBU5.js";import"./_commonjsHelpers-Cpj98o6Y.js";const{cube:t,sphere:e,cylinder:i,cuboid:o}=r.primitives,{translate:s}=r.transforms,p=[s([-25,0,0],t({size:8})),s([0,0,0],e({radius:5})),s([25,0,0],i({radius:4,height:10})),s([0,-25,0],o({size:[12,6,4]}))];export{p as default};

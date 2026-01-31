@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charSet="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/><title>Deploying | org-press</title><meta name="description" content="Deploy your org-press site to production"/><script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script><script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/highlight.min.js"></script><link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/styles/github.min.css" media="(prefers-color-scheme: light)"/><link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/styles/github-dark.min.css" media="(prefers-color-scheme: dark)"/><script>
+          // Register org-mode language for highlight.js
+          if (typeof hljs !== 'undefined') {
+            hljs.registerLanguage('org', function(hljs) {
+              return {
+                name: 'Org',
+                aliases: ['org', 'org-mode', 'orgmode'],
+                case_insensitive: true,
+                contains: [
+                  // Headlines
+                  {
+                    className: 'section',
+                    begin: /^\*+\s/,
+                    end: /$/,
+                    contains: [
+                      { className: 'keyword', begin: /\b(TODO|DONE|WAITING|CANCELLED|NEXT|HOLD)\b/ }
+                    ]
+                  },
+                  // Keywords (#+KEYWORD:)
+                  {
+                    className: 'meta',
+                    begin: /^#\+[A-Za-z_]+:/,
+                    end: /$/,
+                    contains: [{ className: 'string', begin: /\s/, end: /$/ }]
+                  },
+                  // Begin/end blocks
+                  { className: 'keyword', begin: /^#\+(begin|end)_[a-z]+/i, relevance: 10 },
+                  // Property drawers
+                  { className: 'attribute', begin: /^:\w+:/, end: /$/ },
+                  // Links [[url][description]]
+                  {
+                    className: 'link',
+                    begin: /\[\[/,
+                    end: /\]\]/,
+                    contains: [{ className: 'string', begin: /\]\[/, end: /(?=\]\])/ }]
+                  },
+                  // Comments (lines starting with #, but not #+)
+                  { className: 'comment', begin: /^#[^+]/, end: /$/ },
+                  // Timestamps
+                  { className: 'number', begin: /<\d{4}-\d{2}-\d{2}/, end: />/ },
+                  // Tags :tag1:tag2:
+                  { className: 'tag', begin: /\s:[a-zA-Z0-9_@#%:]+:\s*$/ }
+                ]
+              };
+            });
+            // Run highlighting after DOM is ready
+            document.addEventListener('DOMContentLoaded', function() {
+              hljs.highlightAll();
+            });
+          }
+        </script><script>
+          (function() {
+            // Set current path as data attribute for CSS styling
+            document.documentElement.dataset.path = window.location.pathname;
+
+            // Mobile menu toggle using event delegation
+            document.addEventListener('click', function(e) {
+              var button = e.target.closest('.mobile-menu-button');
+              if (button) {
+                e.stopPropagation();
+                document.body.classList.toggle('mobile-menu-open');
+                return;
+              }
+              // Close menu when clicking a link inside the menu
+              var menuLink = e.target.closest('.mobile-menu a');
+              if (menuLink) {
+                document.body.classList.remove('mobile-menu-open');
+                return;
+              }
+              // Close menu when clicking outside
+              if (document.body.classList.contains('mobile-menu-open')) {
+                var menu = document.querySelector('.mobile-menu');
+                if (menu && !menu.contains(e.target)) {
+                  document.body.classList.remove('mobile-menu-open');
+                }
+              }
+            });
+
+            // Highlight current page in navigation
+            document.addEventListener('DOMContentLoaded', function() {
+              var path = window.location.pathname;
+              // Highlight sidebar links
+              document.querySelectorAll('.sidebar-link').forEach(function(link) {
+                if (link.getAttribute('href') === path) {
+                  link.classList.add('active');
+                  link.closest('.sidebar-item')?.classList.add('active');
+                }
+              });
+              // Highlight top nav links
+              document.querySelectorAll('.top-nav-link').forEach(function(link) {
+                var href = link.getAttribute('href');
+                var match = link.dataset.match;
+                if (path === href || (match && path.startsWith(match))) {
+                  link.classList.add('active');
+                }
+              });
+            });
+          })();
+        </script><link rel="stylesheet" href="/assets/theme-DsForQV0.css"/><script type="module" src="/assets/entry-client-l0sNRNKZ.js"></script></head><body><div class="docs-layout"><header class="top-nav"><div class="top-nav-container"><a href="/index.html" class="top-nav-logo"><span class="logo-text">Org-Press</span></a><nav class="top-nav-links"><a href="/guide/index.html" class="top-nav-link active" data-match="^\/(guide(\/|$)|getting-started|index\.html$)">Guide</a><a href="/config/index.html" class="top-nav-link " data-match="^\/config(\/|$)">Config</a><a href="/plugins/index.html" class="top-nav-link " data-match="^\/plugins(\/|$)">Plugins</a><a href="/api/index.html" class="top-nav-link " data-match="^\/api(\/|$)">API</a></nav><div class="top-nav-social"><a href="https://github.com/org-press/org-press/blob/main/docs/content/guide/deploying.org?plain=1" class="top-nav-source-link" target="_blank" rel="noopener noreferrer" title="View page source on GitHub">:view-source</a><a href="https://github.com/org-press/org-press" class="top-nav-social-link" target="_blank" rel="noopener noreferrer" aria-label="GitHub"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"></path></svg></a></div><button class="mobile-menu-button" aria-label="Toggle navigation menu" aria-expanded="false"><span class="hamburger-line"></span><span class="hamburger-line"></span><span class="hamburger-line"></span></button></div></header><div class="mobile-menu"><nav class="mobile-menu-nav"><div class="mobile-menu-section"><a href="/guide/index.html" class="mobile-menu-section-title active">Guide</a><ul class="mobile-menu-list"><li><a href="/guide/index.html" class="mobile-menu-link ">What is Org-Press?</a></li><li><a href="/guide/getting-started.html" class="mobile-menu-link ">Getting Started</a></li><li><a href="/guide/why-org-press.html" class="mobile-menu-link ">Why Org-Press?</a></li><li><a href="/guide/features.html" class="mobile-menu-link ">Features</a></li><li><a href="/guide/rendering-modes.html" class="mobile-menu-link ">Rendering Modes</a></li><li><a href="/guide/cli.html" class="mobile-menu-link ">CLI Reference</a></li><li><a href="/guide/using-plugins.html" class="mobile-menu-link ">Using Plugins</a></li><li><a href="/guide/block-imports.html" class="mobile-menu-link ">Block Imports</a></li><li><a href="/guide/static-assets.html" class="mobile-menu-link ">Static Assets</a></li><li><a href="/guide/building.html" class="mobile-menu-link ">Building for Production</a></li><li><a href="/guide/deploying.html" class="mobile-menu-link ">Deploying</a></li><li><a href="/guide/troubleshooting.html" class="mobile-menu-link ">Troubleshooting</a></li></ul></div><div class="mobile-menu-section"><a href="/config/index.html" class="mobile-menu-section-title ">Config</a><ul class="mobile-menu-list"><li><a href="/config/index.html" class="mobile-menu-link ">Overview</a></li><li><a href="/config/shared-options.html" class="mobile-menu-link ">Shared Options</a></li><li><a href="/config/build-options.html" class="mobile-menu-link ">Build Options</a></li><li><a href="/config/server-options.html" class="mobile-menu-link ">Server Options</a></li><li><a href="/config/plugin-options.html" class="mobile-menu-link ">Plugin Options</a></li></ul></div><div class="mobile-menu-section"><a href="/plugins/index.html" class="mobile-menu-section-title ">Plugins</a><ul class="mobile-menu-list"><li><a href="/plugins/index.html" class="mobile-menu-link ">Overview</a></li><li class="mobile-menu-group"><span class="mobile-menu-group-title">Official Plugins</span><ul class="mobile-menu-sublist"><li><a href="/plugins/react.html" class="mobile-menu-link ">React</a></li><li><a href="/plugins/echarts.html" class="mobile-menu-link ">ECharts</a></li><li><a href="/plugins/excalidraw.html" class="mobile-menu-link ">Excalidraw</a></li><li><a href="/plugins/jscad.html" class="mobile-menu-link ">JSCAD</a></li><li><a href="/plugins/test.html" class="mobile-menu-link ">Test</a></li></ul></li><li><a href="/plugins/creating-plugins.html" class="mobile-menu-link ">Creating Plugins</a></li></ul></div><div class="mobile-menu-section"><a href="/api/index.html" class="mobile-menu-section-title ">API</a><ul class="mobile-menu-list"><li><a href="/api/index.html" class="mobile-menu-link ">Overview</a></li><li><a href="/api/plugin-api.html" class="mobile-menu-link ">Plugin API</a></li><li><a href="/api/javascript-api.html" class="mobile-menu-link ">JavaScript API</a></li><li><a href="/api/hmr-api.html" class="mobile-menu-link ">HMR API</a></li><li><a href="/api/cli-plugins.html" class="mobile-menu-link ">CLI Plugins</a></li></ul></div></nav><div class="mobile-menu-footer"><a href="https://github.com/org-press/org-press" class="mobile-menu-link" target="_blank" rel="noopener noreferrer">GitHub</a></div></div><div class="alpha-banner"><span class="alpha-banner-icon">⚠️</span><span class="alpha-banner-text"><strong>Early Alpha</strong> — Org-press is experimental. Perfect for hackers and tinkerers, not ready for production. Documentation may be incomplete or inaccurate.</span></div><div class="docs-container"><aside class="sidebar"><div class="sidebar-content"><nav class="sidebar-nav" aria-label="Section navigation"><div class="sidebar-section"><h3 class="sidebar-section-title">Guide</h3><ul class="sidebar-list"><li class="sidebar-item "><a href="/guide/index.html" class="sidebar-link ">What is Org-Press?</a></li><li class="sidebar-item "><a href="/guide/getting-started.html" class="sidebar-link ">Getting Started</a></li><li class="sidebar-item "><a href="/guide/why-org-press.html" class="sidebar-link ">Why Org-Press?</a></li><li class="sidebar-item "><a href="/guide/features.html" class="sidebar-link ">Features</a></li><li class="sidebar-item "><a href="/guide/rendering-modes.html" class="sidebar-link ">Rendering Modes</a></li><li class="sidebar-item "><a href="/guide/cli.html" class="sidebar-link ">CLI Reference</a></li><li class="sidebar-item "><a href="/guide/using-plugins.html" class="sidebar-link ">Using Plugins</a></li><li class="sidebar-item "><a href="/guide/block-imports.html" class="sidebar-link ">Block Imports</a></li><li class="sidebar-item "><a href="/guide/static-assets.html" class="sidebar-link ">Static Assets</a></li><li class="sidebar-item "><a href="/guide/building.html" class="sidebar-link ">Building for Production</a></li><li class="sidebar-item "><a href="/guide/deploying.html" class="sidebar-link ">Deploying</a></li><li class="sidebar-item "><a href="/guide/troubleshooting.html" class="sidebar-link ">Troubleshooting</a></li></ul></div></nav></div></aside><main class="docs-content"><article class="docs-article"><div class="docs-body"><div><div class="info-block warning">
+  <div class="info-block-title">⚠️ Untested Documentation</div>
+  <div class="info-block-content">
+    These deployment instructions are <strong>conceptual</strong> and have not been fully tested.
+    The general approach should work since org-press outputs standard static files,
+    but specific configurations may need adjustment. Contributions and corrections are welcome!
+  </div>
+</div>
+<h1 id="deploying">Deploying</h1><p>Org-press builds to static HTML that can be hosted anywhere.
+</p><h2 id="build-first">Build First</h2><pre class="src-block"><code class="hljs language-bash">orgp build
+</code></pre><p>Your site is in <code class="inline-verbatim">dist/</code> (or your configured output directory).
+</p><h2 id="netlify">Netlify</h2><h3 id="via-web-ui">Via Web UI</h3><ol><li>Push your code to GitHub/GitLab
+</li><li>Connect repository in Netlify
+</li><li>Set build settings:
+<ul><li>Build command: <code class="inline-verbatim">npm run build</code></li><li>Publish directory: <code class="inline-verbatim">dist</code></li></ul></li></ol><h3 id="via-netlifytoml">Via netlify.toml</h3><pre class="src-block"><code class="hljs language-toml"><span class="hljs-comment"># netlify.toml</span>
+<span class="hljs-section">[build]</span>
+  <span class="hljs-attr">command</span> = <span class="hljs-string">"npm run build"</span>
+  <span class="hljs-attr">publish</span> = <span class="hljs-string">"dist"</span>
+
+<span class="hljs-section">[build.environment]</span>
+  <span class="hljs-attr">NODE_VERSION</span> = <span class="hljs-string">"20"</span>
+</code></pre><h3 id="redirects-for-spa">Redirects for SPA</h3><p>If using client-side routing:
+</p><pre class="src-block"><code class="hljs language-toml"><span class="hljs-section">[[redirects]]</span>
+  <span class="hljs-attr">from</span> = <span class="hljs-string">"/*"</span>
+  <span class="hljs-attr">to</span> = <span class="hljs-string">"/index.html"</span>
+  <span class="hljs-attr">status</span> = <span class="hljs-number">200</span>
+</code></pre><h2 id="vercel">Vercel</h2><h3 id="via-web-ui-1">Via Web UI</h3><ol><li>Import your repository
+</li><li>Framework: Other
+</li><li>Build command: <code class="inline-verbatim">npm run build</code></li><li>Output directory: <code class="inline-verbatim">dist</code></li></ol><h3 id="via-verceljson">Via vercel.json</h3><pre class="src-block"><code class="hljs language-json"><span class="hljs-punctuation">{</span>
+  <span class="hljs-attr">"buildCommand"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"npm run build"</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">"outputDirectory"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"dist"</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">"framework"</span><span class="hljs-punctuation">:</span> <span class="hljs-literal"><span class="hljs-keyword">null</span></span>
+<span class="hljs-punctuation">}</span>
+</code></pre><h2 id="github-pages">GitHub Pages</h2><h3 id="using-github-actions">Using GitHub Actions</h3><p>Create <code class="inline-verbatim">.github/workflows/deploy.yml</code>:
+</p><pre class="src-block"><code class="hljs language-yaml"><span class="hljs-attr">name:</span> <span class="hljs-string">Deploy</span> <span class="hljs-string">to</span> <span class="hljs-string">GitHub</span> <span class="hljs-string">Pages</span>
+
+<span class="hljs-attr">on:</span>
+  <span class="hljs-attr">push:</span>
+    <span class="hljs-attr">branches:</span> [<span class="hljs-string">main</span>]
+
+<span class="hljs-attr">permissions:</span>
+  <span class="hljs-attr">contents:</span> <span class="hljs-string">read</span>
+  <span class="hljs-attr">pages:</span> <span class="hljs-string">write</span>
+  <span class="hljs-attr">id-token:</span> <span class="hljs-string">write</span>
+
+<span class="hljs-attr">jobs:</span>
+  <span class="hljs-attr">build:</span>
+    <span class="hljs-attr">runs-on:</span> <span class="hljs-string">ubuntu-latest</span>
+    <span class="hljs-attr">steps:</span>
+      <span class="hljs-bullet">-</span> <span class="hljs-attr">uses:</span> <span class="hljs-string">actions/checkout@v4</span>
+
+      <span class="hljs-bullet">-</span> <span class="hljs-attr">uses:</span> <span class="hljs-string">actions/setup-node@v4</span>
+        <span class="hljs-attr">with:</span>
+          <span class="hljs-attr">node-version:</span> <span class="hljs-number">20</span>
+          <span class="hljs-attr">cache:</span> <span class="hljs-string">npm</span>
+
+      <span class="hljs-bullet">-</span> <span class="hljs-attr">run:</span> <span class="hljs-string">npm</span> <span class="hljs-string">ci</span>
+      <span class="hljs-bullet">-</span> <span class="hljs-attr">run:</span> <span class="hljs-string">npm</span> <span class="hljs-string">run</span> <span class="hljs-string">build</span>
+
+      <span class="hljs-bullet">-</span> <span class="hljs-attr">uses:</span> <span class="hljs-string">actions/upload-pages-artifact@v3</span>
+        <span class="hljs-attr">with:</span>
+          <span class="hljs-attr">path:</span> <span class="hljs-string">./dist</span>
+
+  <span class="hljs-attr">deploy:</span>
+    <span class="hljs-attr">needs:</span> <span class="hljs-string">build</span>
+    <span class="hljs-attr">runs-on:</span> <span class="hljs-string">ubuntu-latest</span>
+    <span class="hljs-attr">environment:</span>
+      <span class="hljs-attr">name:</span> <span class="hljs-string">github-pages</span>
+      <span class="hljs-attr">url:</span> <span class="hljs-string">${{</span> <span class="hljs-string">steps.deployment.outputs.page_url</span> <span class="hljs-string">}}</span>
+    <span class="hljs-attr">steps:</span>
+      <span class="hljs-bullet">-</span> <span class="hljs-attr">uses:</span> <span class="hljs-string">actions/deploy-pages@v4</span>
+        <span class="hljs-attr">id:</span> <span class="hljs-string">deployment</span>
+</code></pre><h3 id="base-path-for-project-pages">Base Path for Project Pages</h3><p>If deploying to <code class="inline-verbatim">https://username.github.io/repo-name/</code>:
+</p><pre><code>// .org-press/config.ts
+export default {
+  base: "/repo-name/",
+};
+</code></pre>
+<h2 id="cloudflare-pages">Cloudflare Pages</h2><h3 id="via-web-ui-2">Via Web UI</h3><ol><li>Connect your Git repository
+</li><li>Build settings:
+<ul><li>Framework: None
+</li><li>Build command: <code class="inline-verbatim">npm run build</code></li><li>Build output directory: <code class="inline-verbatim">dist</code></li></ul></li></ol><h3 id="via-wranglertoml">Via wrangler.toml</h3><pre class="src-block"><code class="hljs language-toml"><span class="hljs-attr">name</span> = <span class="hljs-string">"my-docs"</span>
+<span class="hljs-attr">compatibility_date</span> = <span class="hljs-string">"2024-01-01"</span>
+
+<span class="hljs-section">[site]</span>
+<span class="hljs-attr">bucket</span> = <span class="hljs-string">"./dist"</span>
+</code></pre><h2 id="aws-s3-cloudfront">AWS S3 + CloudFront</h2><h3 id="upload-to-s3">Upload to S3</h3><pre class="src-block"><code class="hljs language-bash"><span class="hljs-comment"># Build</span>
+npm run build
+
+<span class="hljs-comment"># Sync to S3</span>
+aws s3 <span class="hljs-built_in">sync</span> dist/ s3://my-bucket-name --delete
+</code></pre><h3 id="cloudfront-configuration">CloudFront Configuration</h3><ol><li>Create a CloudFront distribution
+</li><li>Set origin to your S3 bucket
+</li><li>Configure error pages (404 → /index.html for SPA)
+</li></ol><h2 id="docker-self-hosted">Docker / Self-Hosted</h2><h3 id="nginx">Nginx</h3><pre class="src-block"><code class="hljs language-dockerfile">FROM nginx:alpine
+COPY dist/ /usr/share/nginx/html/
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+</code></pre><pre class="src-block"><code class="hljs language-nginx"># nginx.conf
+server {
+    listen 80;
+    root /usr/share/nginx/html;
+    index index.html;
+
+    location / {
+        try_files $uri $uri/ $uri.html /index.html;
+    }
+
+    # Cache static assets
+    location /assets/ {
+        expires 1y;
+        add_header Cache-Control "public, immutable";
+    }
+}
+</code></pre><h3 id="nodejs-server">Node.js Server</h3><pre><code>// server.js
+import express from 'express';
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const app = express();
+
+app.use(express.static(join(__dirname, 'dist')));
+
+app.get('*', (req, res) => {
+  res.sendFile(join(__dirname, 'dist', 'index.html'));
+});
+
+app.listen(3000);
+</code></pre>
+<h2 id="any-static-host">Any Static Host</h2><p>Just upload the <code class="inline-verbatim">dist/</code> folder:
+</p><pre class="src-block"><code class="hljs language-bash"><span class="hljs-comment"># Using rsync</span>
+rsync -avz dist/ user@server:/var/www/html/
+
+<span class="hljs-comment"># Using scp</span>
+scp -r dist/* user@server:/var/www/html/
+
+<span class="hljs-comment"># Using FTP</span>
+lftp -c <span class="hljs-string">"mirror -R dist/ /public_html/"</span>
+</code></pre><h2 id="environment-variables">Environment Variables</h2><p>For different environments, use separate config files or environment variables:
+</p><pre><code>// .org-press/config.ts
+export default {
+  base: process.env.BASE_URL || "/",
+  // Other environment-specific settings
+};
+</code></pre>
+<h2 id="deployment-checklist">Deployment Checklist</h2><p>Before deploying:
+</p><ul><li>Run <code class="inline-verbatim">orgp build</code> locally and test
+</li><li>Check all links work
+</li><li>Verify base path is correct
+</li><li>Test on <code class="inline-verbatim">orgp preview</code></li><li>Check mobile responsiveness
+</li><li>Verify SEO metadata (titles, descriptions)
+</li></ul><h2 id="see-also">See Also</h2><ul><li><a href="/guide/building.html">Building for Production</a> - Build configuration
+</li><li><a href="/config/build-options.html">Build Options</a> - All build settings
+</li></ul></div></div></article></main><aside class="toc"><div class="toc-content"><h4 class="toc-title">On this page</h4><nav class="toc-nav" aria-label="Table of contents"><ul class="toc-list"><li class="toc-item "><a href="#build-first" class="toc-link">Build First</a></li><li class="toc-item "><a href="#netlify" class="toc-link">Netlify</a></li><li class="toc-item toc-item-nested"><a href="#via-web-ui" class="toc-link">Via Web UI</a></li><li class="toc-item toc-item-nested"><a href="#via-netlifytoml" class="toc-link">Via netlify.toml</a></li><li class="toc-item toc-item-nested"><a href="#redirects-for-spa" class="toc-link">Redirects for SPA</a></li><li class="toc-item "><a href="#vercel" class="toc-link">Vercel</a></li><li class="toc-item toc-item-nested"><a href="#via-web-ui-1" class="toc-link">Via Web UI</a></li><li class="toc-item toc-item-nested"><a href="#via-verceljson" class="toc-link">Via vercel.json</a></li><li class="toc-item "><a href="#github-pages" class="toc-link">GitHub Pages</a></li><li class="toc-item toc-item-nested"><a href="#using-github-actions" class="toc-link">Using GitHub Actions</a></li><li class="toc-item toc-item-nested"><a href="#base-path-for-project-pages" class="toc-link">Base Path for Project Pages</a></li><li class="toc-item "><a href="#cloudflare-pages" class="toc-link">Cloudflare Pages</a></li><li class="toc-item toc-item-nested"><a href="#via-web-ui-2" class="toc-link">Via Web UI</a></li><li class="toc-item toc-item-nested"><a href="#via-wranglertoml" class="toc-link">Via wrangler.toml</a></li><li class="toc-item "><a href="#aws-s3-cloudfront" class="toc-link">AWS S3 + CloudFront</a></li><li class="toc-item toc-item-nested"><a href="#upload-to-s3" class="toc-link">Upload to S3</a></li><li class="toc-item toc-item-nested"><a href="#cloudfront-configuration" class="toc-link">CloudFront Configuration</a></li><li class="toc-item "><a href="#docker-self-hosted" class="toc-link">Docker / Self-Hosted</a></li><li class="toc-item toc-item-nested"><a href="#nginx" class="toc-link">Nginx</a></li><li class="toc-item toc-item-nested"><a href="#nodejs-server" class="toc-link">Node.js Server</a></li><li class="toc-item "><a href="#any-static-host" class="toc-link">Any Static Host</a></li><li class="toc-item "><a href="#environment-variables" class="toc-link">Environment Variables</a></li><li class="toc-item "><a href="#deployment-checklist" class="toc-link">Deployment Checklist</a></li><li class="toc-item "><a href="#see-also" class="toc-link">See Also</a></li></ul></nav></div></aside></div><footer class="site-footer"><div class="footer-content"><div class="footer-grid"><div class="footer-column"><h4>Guide</h4><ul><li><a href="/guide/index.html">What is Org-Press?</a></li><li><a href="/guide/getting-started.html">Getting Started</a></li><li><a href="/guide/features.html">Features</a></li><li><a href="/guide/cli.html">CLI Reference</a></li><li><a href="/guide/building.html">Building</a></li></ul></div><div class="footer-column"><h4>Config</h4><ul><li><a href="/config/index.html">Overview</a></li><li><a href="/config/shared-options.html">Shared Options</a></li><li><a href="/config/build-options.html">Build Options</a></li><li><a href="/config/server-options.html">Server Options</a></li></ul></div><div class="footer-column"><h4>Plugins</h4><ul><li><a href="/plugins/index.html">Overview</a></li><li><a href="/plugins/excalidraw.html">Excalidraw</a></li><li><a href="/plugins/jscad.html">JSCAD</a></li><li><a href="/plugins/creating-plugins.html">Creating Plugins</a></li></ul></div><div class="footer-column"><h4>API</h4><ul><li><a href="/api/index.html">Overview</a></li><li><a href="/api/plugin-api.html">Plugin API</a></li><li><a href="/api/javascript-api.html">JavaScript API</a></li></ul></div><div class="footer-column"><h4>Resources</h4><ul><li><a href="/examples/index.html">Examples</a></li><li><a href="https://github.com/org-press/org-press" target="_blank" rel="noopener">GitHub</a></li><li><a href="https://github.com/org-press/org-press/releases" target="_blank" rel="noopener">Releases</a></li></ul></div></div><div class="footer-bottom"><p class="footer-copyright">Released under the GPL-2.0 License.</p><p class="footer-credit">Built with <a href="https://github.com/org-press/org-press">org-press</a></p></div></div></footer></div><script src="https://analytics.ideable.dev/api/script.js" data-site-id="5dc60eeeac5d" defer=""></script></body></html>

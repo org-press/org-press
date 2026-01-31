@@ -1,0 +1,1254 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charSet="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/><title>JSCad Plugin for Org-Press | org-press</title><meta name="description" content="3D modeling with JavaScript CAD - literate plugin implementation"/><script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script><script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/highlight.min.js"></script><link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/styles/github.min.css" media="(prefers-color-scheme: light)"/><link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/styles/github-dark.min.css" media="(prefers-color-scheme: dark)"/><script>
+          // Register org-mode language for highlight.js
+          if (typeof hljs !== 'undefined') {
+            hljs.registerLanguage('org', function(hljs) {
+              return {
+                name: 'Org',
+                aliases: ['org', 'org-mode', 'orgmode'],
+                case_insensitive: true,
+                contains: [
+                  // Headlines
+                  {
+                    className: 'section',
+                    begin: /^\*+\s/,
+                    end: /$/,
+                    contains: [
+                      { className: 'keyword', begin: /\b(TODO|DONE|WAITING|CANCELLED|NEXT|HOLD)\b/ }
+                    ]
+                  },
+                  // Keywords (#+KEYWORD:)
+                  {
+                    className: 'meta',
+                    begin: /^#\+[A-Za-z_]+:/,
+                    end: /$/,
+                    contains: [{ className: 'string', begin: /\s/, end: /$/ }]
+                  },
+                  // Begin/end blocks
+                  { className: 'keyword', begin: /^#\+(begin|end)_[a-z]+/i, relevance: 10 },
+                  // Property drawers
+                  { className: 'attribute', begin: /^:\w+:/, end: /$/ },
+                  // Links [[url][description]]
+                  {
+                    className: 'link',
+                    begin: /\[\[/,
+                    end: /\]\]/,
+                    contains: [{ className: 'string', begin: /\]\[/, end: /(?=\]\])/ }]
+                  },
+                  // Comments (lines starting with #, but not #+)
+                  { className: 'comment', begin: /^#[^+]/, end: /$/ },
+                  // Timestamps
+                  { className: 'number', begin: /<\d{4}-\d{2}-\d{2}/, end: />/ },
+                  // Tags :tag1:tag2:
+                  { className: 'tag', begin: /\s:[a-zA-Z0-9_@#%:]+:\s*$/ }
+                ]
+              };
+            });
+            // Run highlighting after DOM is ready
+            document.addEventListener('DOMContentLoaded', function() {
+              hljs.highlightAll();
+            });
+          }
+        </script><script>
+          (function() {
+            // Set current path as data attribute for CSS styling
+            document.documentElement.dataset.path = window.location.pathname;
+
+            // Mobile menu toggle using event delegation
+            document.addEventListener('click', function(e) {
+              var button = e.target.closest('.mobile-menu-button');
+              if (button) {
+                e.stopPropagation();
+                document.body.classList.toggle('mobile-menu-open');
+                return;
+              }
+              // Close menu when clicking a link inside the menu
+              var menuLink = e.target.closest('.mobile-menu a');
+              if (menuLink) {
+                document.body.classList.remove('mobile-menu-open');
+                return;
+              }
+              // Close menu when clicking outside
+              if (document.body.classList.contains('mobile-menu-open')) {
+                var menu = document.querySelector('.mobile-menu');
+                if (menu && !menu.contains(e.target)) {
+                  document.body.classList.remove('mobile-menu-open');
+                }
+              }
+            });
+
+            // Highlight current page in navigation
+            document.addEventListener('DOMContentLoaded', function() {
+              var path = window.location.pathname;
+              // Highlight sidebar links
+              document.querySelectorAll('.sidebar-link').forEach(function(link) {
+                if (link.getAttribute('href') === path) {
+                  link.classList.add('active');
+                  link.closest('.sidebar-item')?.classList.add('active');
+                }
+              });
+              // Highlight top nav links
+              document.querySelectorAll('.top-nav-link').forEach(function(link) {
+                var href = link.getAttribute('href');
+                var match = link.dataset.match;
+                if (path === href || (match && path.startsWith(match))) {
+                  link.classList.add('active');
+                }
+              });
+            });
+          })();
+        </script><link rel="stylesheet" href="/assets/theme-DsForQV0.css"/><script type="module" src="/assets/entry-client-l0sNRNKZ.js"></script></head><body><div class="docs-layout"><header class="top-nav"><div class="top-nav-container"><a href="/index.html" class="top-nav-logo"><span class="logo-text">Org-Press</span></a><nav class="top-nav-links"><a href="/guide/index.html" class="top-nav-link " data-match="^\/(guide(\/|$)|getting-started|index\.html$)">Guide</a><a href="/config/index.html" class="top-nav-link " data-match="^\/config(\/|$)">Config</a><a href="/plugins/index.html" class="top-nav-link active" data-match="^\/plugins(\/|$)">Plugins</a><a href="/api/index.html" class="top-nav-link " data-match="^\/api(\/|$)">API</a></nav><div class="top-nav-social"><a href="https://github.com/org-press/org-press/blob/main/docs/content/plugins/jscad.org?plain=1" class="top-nav-source-link" target="_blank" rel="noopener noreferrer" title="View page source on GitHub">:view-source</a><a href="https://github.com/org-press/org-press" class="top-nav-social-link" target="_blank" rel="noopener noreferrer" aria-label="GitHub"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"></path></svg></a></div><button class="mobile-menu-button" aria-label="Toggle navigation menu" aria-expanded="false"><span class="hamburger-line"></span><span class="hamburger-line"></span><span class="hamburger-line"></span></button></div></header><div class="mobile-menu"><nav class="mobile-menu-nav"><div class="mobile-menu-section"><a href="/guide/index.html" class="mobile-menu-section-title ">Guide</a><ul class="mobile-menu-list"><li><a href="/guide/index.html" class="mobile-menu-link ">What is Org-Press?</a></li><li><a href="/guide/getting-started.html" class="mobile-menu-link ">Getting Started</a></li><li><a href="/guide/why-org-press.html" class="mobile-menu-link ">Why Org-Press?</a></li><li><a href="/guide/features.html" class="mobile-menu-link ">Features</a></li><li><a href="/guide/rendering-modes.html" class="mobile-menu-link ">Rendering Modes</a></li><li><a href="/guide/cli.html" class="mobile-menu-link ">CLI Reference</a></li><li><a href="/guide/using-plugins.html" class="mobile-menu-link ">Using Plugins</a></li><li><a href="/guide/block-imports.html" class="mobile-menu-link ">Block Imports</a></li><li><a href="/guide/static-assets.html" class="mobile-menu-link ">Static Assets</a></li><li><a href="/guide/building.html" class="mobile-menu-link ">Building for Production</a></li><li><a href="/guide/deploying.html" class="mobile-menu-link ">Deploying</a></li><li><a href="/guide/troubleshooting.html" class="mobile-menu-link ">Troubleshooting</a></li></ul></div><div class="mobile-menu-section"><a href="/config/index.html" class="mobile-menu-section-title ">Config</a><ul class="mobile-menu-list"><li><a href="/config/index.html" class="mobile-menu-link ">Overview</a></li><li><a href="/config/shared-options.html" class="mobile-menu-link ">Shared Options</a></li><li><a href="/config/build-options.html" class="mobile-menu-link ">Build Options</a></li><li><a href="/config/server-options.html" class="mobile-menu-link ">Server Options</a></li><li><a href="/config/plugin-options.html" class="mobile-menu-link ">Plugin Options</a></li></ul></div><div class="mobile-menu-section"><a href="/plugins/index.html" class="mobile-menu-section-title active">Plugins</a><ul class="mobile-menu-list"><li><a href="/plugins/index.html" class="mobile-menu-link ">Overview</a></li><li class="mobile-menu-group"><span class="mobile-menu-group-title">Official Plugins</span><ul class="mobile-menu-sublist"><li><a href="/plugins/react.html" class="mobile-menu-link ">React</a></li><li><a href="/plugins/echarts.html" class="mobile-menu-link ">ECharts</a></li><li><a href="/plugins/excalidraw.html" class="mobile-menu-link ">Excalidraw</a></li><li><a href="/plugins/jscad.html" class="mobile-menu-link ">JSCAD</a></li><li><a href="/plugins/test.html" class="mobile-menu-link ">Test</a></li></ul></li><li><a href="/plugins/creating-plugins.html" class="mobile-menu-link ">Creating Plugins</a></li></ul></div><div class="mobile-menu-section"><a href="/api/index.html" class="mobile-menu-section-title ">API</a><ul class="mobile-menu-list"><li><a href="/api/index.html" class="mobile-menu-link ">Overview</a></li><li><a href="/api/plugin-api.html" class="mobile-menu-link ">Plugin API</a></li><li><a href="/api/javascript-api.html" class="mobile-menu-link ">JavaScript API</a></li><li><a href="/api/hmr-api.html" class="mobile-menu-link ">HMR API</a></li><li><a href="/api/cli-plugins.html" class="mobile-menu-link ">CLI Plugins</a></li></ul></div></nav><div class="mobile-menu-footer"><a href="https://github.com/org-press/org-press" class="mobile-menu-link" target="_blank" rel="noopener noreferrer">GitHub</a></div></div><div class="alpha-banner"><span class="alpha-banner-icon">⚠️</span><span class="alpha-banner-text"><strong>Early Alpha</strong> — Org-press is experimental. Perfect for hackers and tinkerers, not ready for production. Documentation may be incomplete or inaccurate.</span></div><div class="docs-container"><aside class="sidebar"><div class="sidebar-content"><nav class="sidebar-nav" aria-label="Section navigation"><div class="sidebar-section"><h3 class="sidebar-section-title">Plugins</h3><ul class="sidebar-list"><li class="sidebar-item "><a href="/plugins/index.html" class="sidebar-link ">Overview</a></li><li class="sidebar-group"><span class="sidebar-group-title">Official Plugins</span><ul class="sidebar-list sidebar-list-nested"><li class="sidebar-item "><a href="/plugins/react.html" class="sidebar-link ">React</a></li><li class="sidebar-item "><a href="/plugins/echarts.html" class="sidebar-link ">ECharts</a></li><li class="sidebar-item "><a href="/plugins/excalidraw.html" class="sidebar-link ">Excalidraw</a></li><li class="sidebar-item "><a href="/plugins/jscad.html" class="sidebar-link ">JSCAD</a></li><li class="sidebar-item "><a href="/plugins/test.html" class="sidebar-link ">Test</a></li></ul></li><li class="sidebar-item "><a href="/plugins/creating-plugins.html" class="sidebar-link ">Creating Plugins</a></li></ul></div></nav></div></aside><main class="docs-content"><article class="docs-article"><div class="docs-body"><div><h1 id="jscad-plugin">JSCad Plugin</h1><p>This is a literate plugin implementation for JSCad (JavaScript Computer-Aided Design) integration with org-press. Write parametric 3D models with code, render them in real-time, and export to STL for 3D printing.
+</p><h2 id="features">Features</h2><ul><li><strong>Interactive 3D Viewer</strong> - Rotate, zoom, and pan models in the browser
+</li><li><strong>Parametric Design</strong> - Define models with code for easy modification
+</li><li><strong>Live Updates</strong> - Changes reflect immediately during development
+</li><li><strong>Block Imports</strong> - Reuse geometry across files with org block imports
+</li><li><strong>View State Persistence</strong> - Camera position saved in localStorage
+</li><li><strong>Export Support</strong> - Download models as STL for 3D printing
+</li></ul><h2 id="installation">Installation</h2><p>Install the plugin and dependencies:
+</p><div class="example">npm install @org-press/block-jscad @jscad/modeling @jscad/regl-renderer
+</div><p>Add to your org-press config:
+</p><pre><code class="hljs language-typescript"><span class="hljs-comment">// .org-press/config.ts</span>
+<span class="hljs-keyword">import</span> { jscadPlugin } <span class="hljs-keyword">from</span> <span class="hljs-string">"@org-press/block-jscad"</span>;
+
+<span class="hljs-keyword">export</span> <span class="hljs-keyword">default</span> {
+  <span class="hljs-attr">plugins</span>: [jscadPlugin],
+};
+</code></pre>
+<h2 id="usage">Usage</h2><h3 id="basic-syntax">Basic Syntax</h3><pre><code class="hljs language-org">#+begin_src javascript :use jscad
+import * as jscad from '@jscad/modeling';
+
+const { cube, sphere } = jscad.primitives;
+const { union } = jscad.booleans;
+
+export default [
+  cube({ size: 10 }),
+  sphere({ radius: 5 })
+];
+#+end_src
+</code></pre>
+<h3 id="parameters">Parameters</h3><ul><li><code class="inline-verbatim">:height</code> - Canvas height (default: "400px")
+</li><li><code class="inline-verbatim">:name</code> - Block name for imports/references
+</li></ul><p>Example with parameters:
+</p><pre><code class="hljs language-org">#+begin_src javascript :use jscad :height 600px :name my-model
+// ... model code
+#+end_src
+</code></pre>
+<h1 id="plugin-implementation">Plugin Implementation</h1><p>The plugin transforms JSCad blocks into executable JavaScript that renders interactive 3D models.
+</p><details>
+<summary>View plugin source code</summary>
+<pre class="src-block"><code class="hljs language-typescript"><span class="hljs-comment">/**
+ * Org-Press JSCad Block Plugin
+ *
+ * Provides 3D modeling support for org-mode using JSCad
+ */</span>
+
+<span class="hljs-keyword">import</span> <span class="hljs-keyword">type</span> {
+  <span class="hljs-title class_">BlockPlugin</span>,
+  <span class="hljs-title class_">CodeBlock</span>,
+  <span class="hljs-title class_">TransformContext</span>,
+  <span class="hljs-title class_">TransformResult</span>
+} <span class="hljs-keyword">from</span> <span class="hljs-string">"org-press"</span>;
+<span class="hljs-keyword">import</span> { createBlockId, parseBlockParameters } <span class="hljs-keyword">from</span> <span class="hljs-string">"org-press"</span>;
+
+<span class="hljs-comment">/**
+ * JSCad virtual module plugin
+ * Returns a React component that renders the JSCad viewer
+ *
+ * Preview API compatible:
+ * - :use jscad → renders interactive 3D model
+ * - :use jscad | sourceOnly → shows source code only
+ * - :use jscad | withSourceCode → shows both code and model
+ */</span>
+<span class="hljs-keyword">export</span> <span class="hljs-keyword">const</span> <span class="hljs-attr">jscadPlugin</span>: <span class="hljs-title class_">BlockPlugin</span> = {
+  <span class="hljs-attr">name</span>: <span class="hljs-string">'jscad'</span>,
+  <span class="hljs-attr">defaultExtension</span>: <span class="hljs-string">'js'</span>,
+
+  <span class="hljs-comment">/**
+   * Transform returns code that renders the JSCad viewer
+   * - sourceOnly mode: returns code for display without rendering
+   * - preview mode: returns render function for interactive 3D model
+   */</span>
+  <span class="hljs-keyword">async</span> <span class="hljs-title function_">transform</span>(<span class="hljs-attr">block</span>: <span class="hljs-title class_">CodeBlock</span>, <span class="hljs-attr">context</span>: <span class="hljs-title class_">TransformContext</span>): <span class="hljs-title class_">Promise</span>&#x3C;<span class="hljs-title class_">TransformResult</span>> {
+    <span class="hljs-comment">// Create stable ID for this block using utility</span>
+    <span class="hljs-keyword">const</span> stableId = <span class="hljs-title function_">createBlockId</span>(context.<span class="hljs-property">orgFilePath</span>, context.<span class="hljs-property">blockIndex</span>);
+
+    <span class="hljs-comment">// Parse block parameters</span>
+    <span class="hljs-keyword">const</span> params = <span class="hljs-title function_">parseBlockParameters</span>(block.<span class="hljs-property">meta</span> || <span class="hljs-string">""</span>);
+
+    <span class="hljs-comment">// Check for mode from :use parameter (e.g., :use jscad | sourceOnly)</span>
+    <span class="hljs-keyword">const</span> useValue = params.<span class="hljs-property">use</span> || <span class="hljs-string">'jscad'</span>;
+    <span class="hljs-keyword">const</span> useParts = useValue.<span class="hljs-title function_">split</span>(<span class="hljs-string">'|'</span>).<span class="hljs-title function_">map</span>(<span class="hljs-function">(<span class="hljs-params"><span class="hljs-attr">s</span>: <span class="hljs-built_in">string</span></span>) =></span> s.<span class="hljs-title function_">trim</span>());
+    <span class="hljs-keyword">const</span> mode = useParts.<span class="hljs-property">length</span> > <span class="hljs-number">1</span> ? useParts[<span class="hljs-number">1</span>] : <span class="hljs-string">'preview'</span>;
+
+    <span class="hljs-comment">// Handle sourceOnly mode - just return the source code</span>
+    <span class="hljs-keyword">if</span> (mode === <span class="hljs-string">'sourceOnly'</span>) {
+      <span class="hljs-keyword">return</span> {
+        <span class="hljs-attr">code</span>: <span class="hljs-string">`// JSCad model source (display only)\nexport default <span class="hljs-subst">${<span class="hljs-built_in">JSON</span>.stringify(block.value)}</span>;`</span>,
+      };
+    }
+
+    <span class="hljs-comment">// Create virtual module ID for the model code</span>
+    <span class="hljs-comment">// The virtual blocks plugin will handle rewriting imports and returning the model code</span>
+    <span class="hljs-keyword">const</span> modelModuleId = params.<span class="hljs-property">name</span>
+      ? <span class="hljs-string">`virtual:org-press:block:jscad-model:<span class="hljs-subst">${context.orgFilePath}</span>:NAME:<span class="hljs-subst">${params.name}</span>`</span>
+      : <span class="hljs-string">`virtual:org-press:block:jscad-model:<span class="hljs-subst">${context.orgFilePath}</span>:<span class="hljs-subst">${context.blockIndex}</span>`</span>;
+
+    <span class="hljs-comment">// Get height from block parameters or use default</span>
+    <span class="hljs-keyword">const</span> height = params.<span class="hljs-property">height</span> || <span class="hljs-string">"400px"</span>;
+
+    <span class="hljs-comment">// Return render function that receives container ID from exporter</span>
+    <span class="hljs-comment">// The exporter creates a container with ID `org-block-${index}-result`</span>
+    <span class="hljs-keyword">return</span> {
+      <span class="hljs-attr">code</span>: <span class="hljs-string">`
+import renderJSCad from '@org-press/block-jscad/wrapper';
+export * from '<span class="hljs-subst">${modelModuleId}</span>';
+
+// Export render function - exporter will call this with container ID
+export default function render(containerId) {
+  const container = document.getElementById(containerId);
+  if (!container) {
+    console.error('[JSCad] Container not found:', containerId);
+    return;
+  }
+
+  // Style the container for jscad
+  container.className = 'jscad-wrapper';
+  container.style.cssText = 'position: relative; height: <span class="hljs-subst">${height}</span>;';
+  container.setAttribute('data-storage-key', '<span class="hljs-subst">${stableId}</span>');
+
+  // Import the model code from virtual module and render
+  import('<span class="hljs-subst">${modelModuleId}</span>').then((module) => {
+    renderJSCad(container, module.default);
+  }).catch(err => {
+    console.error('[JSCad] Failed to load model:', err);
+    container.innerHTML = '&#x3C;div style="color: red;">Error loading JSCad model: ' + err.message + '&#x3C;/div>';
+  });
+}
+      `</span>,
+    };
+  },
+};
+
+<span class="hljs-comment">// Default export for convenience</span>
+<span class="hljs-keyword">export</span> <span class="hljs-keyword">default</span> jscadPlugin;
+</code></pre></details>
+<h1 id="wrapper-implementation">Wrapper Implementation</h1><p>The wrapper handles WebGL rendering, camera controls, and STL export.
+</p><details>
+<summary>View wrapper source code</summary>
+<pre class="src-block"><code class="hljs language-typescript"><span class="hljs-comment">// CommonJS imports - @jscad packages are CJS</span>
+<span class="hljs-keyword">import</span> reglRenderer <span class="hljs-keyword">from</span> <span class="hljs-string">"@jscad/regl-renderer"</span>;
+<span class="hljs-keyword">const</span> { prepareRender, drawCommands, cameras, controls, entitiesFromSolids } = reglRenderer;
+
+<span class="hljs-keyword">import</span> jscadModeling <span class="hljs-keyword">from</span> <span class="hljs-string">"@jscad/modeling"</span>;
+<span class="hljs-keyword">const</span> { geometries } = jscadModeling;
+
+<span class="hljs-comment">// Inline CSS styles</span>
+<span class="hljs-keyword">const</span> wrapperStyles = <span class="hljs-string">`
+.jscad-wrapper {
+  position: relative;
+  width: 100%;
+  height: 400px;
+  margin: 1rem 0;
+  border-radius: 8px;
+  overflow: hidden;
+}
+`</span>;
+
+<span class="hljs-comment">// Inject styles once</span>
+<span class="hljs-keyword">let</span> stylesInjected = <span class="hljs-literal">false</span>;
+<span class="hljs-keyword">function</span> <span class="hljs-title function_">injectStyles</span>(<span class="hljs-params"></span>) {
+  <span class="hljs-keyword">if</span> (stylesInjected) <span class="hljs-keyword">return</span>;
+  <span class="hljs-keyword">const</span> style = <span class="hljs-variable language_">document</span>.<span class="hljs-title function_">createElement</span>(<span class="hljs-string">'style'</span>);
+  style.<span class="hljs-property">textContent</span> = wrapperStyles;
+  <span class="hljs-variable language_">document</span>.<span class="hljs-property">head</span>.<span class="hljs-title function_">appendChild</span>(style);
+  stylesInjected = <span class="hljs-literal">true</span>;
+}
+
+<span class="hljs-keyword">interface</span> <span class="hljs-title class_">CameraState</span> {
+  <span class="hljs-attr">position</span>: <span class="hljs-built_in">number</span>[];
+  <span class="hljs-attr">target</span>: <span class="hljs-built_in">number</span>[];
+}
+
+<span class="hljs-keyword">export</span> <span class="hljs-keyword">default</span> <span class="hljs-keyword">function</span> (<span class="hljs-params">
+  <span class="hljs-attr">containerElement</span>: <span class="hljs-title class_">HTMLElement</span>,
+  <span class="hljs-attr">solidsOrFunction</span>: <span class="hljs-built_in">any</span>[] | <span class="hljs-title class_">Function</span>
+</span>) {
+  <span class="hljs-comment">// Inject CSS styles</span>
+  <span class="hljs-title function_">injectStyles</span>();
+
+  <span class="hljs-comment">// Clear container to handle HMR properly</span>
+  containerElement.<span class="hljs-property">innerHTML</span> = <span class="hljs-string">""</span>;
+
+  <span class="hljs-keyword">const</span> perspectiveCamera = cameras.<span class="hljs-property">perspective</span>;
+  <span class="hljs-keyword">const</span> orbitControls = controls.<span class="hljs-property">orbit</span>;
+
+  <span class="hljs-keyword">const</span> width = containerElement.<span class="hljs-property">clientWidth</span>;
+  <span class="hljs-keyword">const</span> height = containerElement.<span class="hljs-property">clientHeight</span>;
+
+  <span class="hljs-keyword">const</span> <span class="hljs-attr">state</span>: <span class="hljs-built_in">any</span> = {};
+
+  <span class="hljs-comment">// Use stable storage key from data attribute (doesn't change with content)</span>
+  <span class="hljs-keyword">const</span> storageKeyBase =
+    containerElement.<span class="hljs-title function_">getAttribute</span>(<span class="hljs-string">"data-storage-key"</span>) || containerElement.<span class="hljs-property">id</span>;
+  <span class="hljs-keyword">const</span> storageKey = storageKeyBase
+    ? <span class="hljs-string">`jscad-camera-<span class="hljs-subst">${storageKeyBase}</span>`</span>
+    : <span class="hljs-string">`jscad-camera-<span class="hljs-subst">${<span class="hljs-built_in">Date</span>.now()}</span>`</span>;
+
+  <span class="hljs-comment">// Try to load saved camera state</span>
+  <span class="hljs-keyword">let</span> <span class="hljs-attr">savedCameraState</span>: <span class="hljs-title class_">CameraState</span> | <span class="hljs-literal">null</span> = <span class="hljs-literal">null</span>;
+  <span class="hljs-keyword">try</span> {
+    <span class="hljs-keyword">const</span> saved = <span class="hljs-variable language_">localStorage</span>.<span class="hljs-title function_">getItem</span>(storageKey);
+    <span class="hljs-keyword">if</span> (saved) {
+      savedCameraState = <span class="hljs-title class_">JSON</span>.<span class="hljs-title function_">parse</span>(saved);
+    }
+  } <span class="hljs-keyword">catch</span> (e) {
+    <span class="hljs-variable language_">console</span>.<span class="hljs-title function_">warn</span>(<span class="hljs-string">"Failed to load saved camera state:"</span>, e);
+  }
+
+  <span class="hljs-comment">// Prepare the camera</span>
+  state.<span class="hljs-property">camera</span> = <span class="hljs-title class_">Object</span>.<span class="hljs-title function_">assign</span>({}, perspectiveCamera.<span class="hljs-property">defaults</span>);
+
+  <span class="hljs-comment">// Apply saved camera state if available</span>
+  <span class="hljs-keyword">if</span> (savedCameraState) {
+    state.<span class="hljs-property">camera</span>.<span class="hljs-property">position</span> = savedCameraState.<span class="hljs-property">position</span>;
+    state.<span class="hljs-property">camera</span>.<span class="hljs-property">target</span> = savedCameraState.<span class="hljs-property">target</span>;
+  }
+
+  <span class="hljs-comment">// Store initial camera state for reset functionality</span>
+  <span class="hljs-keyword">const</span> <span class="hljs-attr">initialCameraState</span>: <span class="hljs-title class_">CameraState</span> = {
+    <span class="hljs-attr">position</span>: [...state.<span class="hljs-property">camera</span>.<span class="hljs-property">position</span>],
+    <span class="hljs-attr">target</span>: [...state.<span class="hljs-property">camera</span>.<span class="hljs-property">target</span>],
+  };
+
+  perspectiveCamera.<span class="hljs-title function_">setProjection</span>(state.<span class="hljs-property">camera</span>, state.<span class="hljs-property">camera</span>, {
+    width,
+    height,
+  });
+  perspectiveCamera.<span class="hljs-title function_">update</span>(state.<span class="hljs-property">camera</span>, state.<span class="hljs-property">camera</span>);
+
+  <span class="hljs-comment">// Prepare the controls</span>
+  state.<span class="hljs-property">controls</span> = orbitControls.<span class="hljs-property">defaults</span>;
+
+  <span class="hljs-comment">// Create UI controls panel</span>
+  <span class="hljs-keyword">const</span> controlsPanel = <span class="hljs-variable language_">document</span>.<span class="hljs-title function_">createElement</span>(<span class="hljs-string">"div"</span>);
+  controlsPanel.<span class="hljs-title function_">setAttribute</span>(<span class="hljs-string">"data-jscad-controls"</span>, <span class="hljs-string">"true"</span>);
+  controlsPanel.<span class="hljs-property">style</span>.<span class="hljs-property">cssText</span> = <span class="hljs-string">`
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 10px;
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 4px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    pointer-events: auto;
+  `</span>;
+
+  <span class="hljs-comment">// Fullscreen button</span>
+  <span class="hljs-keyword">const</span> fullscreenBtn = <span class="hljs-variable language_">document</span>.<span class="hljs-title function_">createElement</span>(<span class="hljs-string">"button"</span>);
+  fullscreenBtn.<span class="hljs-title function_">setAttribute</span>(<span class="hljs-string">"data-jscad-fullscreen"</span>, <span class="hljs-string">"true"</span>);
+  fullscreenBtn.<span class="hljs-property">textContent</span> = <span class="hljs-string">"⛶ Fullscreen"</span>;
+  fullscreenBtn.<span class="hljs-property">style</span>.<span class="hljs-property">cssText</span> = <span class="hljs-string">`
+    padding: 6px 12px;
+    cursor: pointer;
+    border: 1px solid #ccc;
+    border-radius: 3px;
+    background: white;
+  `</span>;
+  fullscreenBtn.<span class="hljs-property">onclick</span> = <span class="hljs-function">() =></span> {
+    <span class="hljs-keyword">if</span> (containerElement.<span class="hljs-property">requestFullscreen</span>) {
+      containerElement.<span class="hljs-title function_">requestFullscreen</span>();
+    }
+  };
+  controlsPanel.<span class="hljs-title function_">appendChild</span>(fullscreenBtn);
+
+  <span class="hljs-comment">// Download STL button</span>
+  <span class="hljs-keyword">const</span> downloadBtn = <span class="hljs-variable language_">document</span>.<span class="hljs-title function_">createElement</span>(<span class="hljs-string">"button"</span>);
+  downloadBtn.<span class="hljs-title function_">setAttribute</span>(<span class="hljs-string">"data-jscad-download"</span>, <span class="hljs-string">"true"</span>);
+  downloadBtn.<span class="hljs-property">textContent</span> = <span class="hljs-string">"↓ Download STL"</span>;
+  downloadBtn.<span class="hljs-property">style</span>.<span class="hljs-property">cssText</span> = <span class="hljs-string">`
+    padding: 6px 12px;
+    cursor: pointer;
+    border: 1px solid #ccc;
+    border-radius: 3px;
+    background: white;
+  `</span>;
+  controlsPanel.<span class="hljs-title function_">appendChild</span>(downloadBtn);
+
+  <span class="hljs-comment">// Clear camera button</span>
+  <span class="hljs-keyword">const</span> clearCameraBtn = <span class="hljs-variable language_">document</span>.<span class="hljs-title function_">createElement</span>(<span class="hljs-string">"button"</span>);
+  clearCameraBtn.<span class="hljs-title function_">setAttribute</span>(<span class="hljs-string">"data-jscad-clear-camera"</span>, <span class="hljs-string">"true"</span>);
+  clearCameraBtn.<span class="hljs-property">textContent</span> = <span class="hljs-string">"↻ Reset Camera"</span>;
+  clearCameraBtn.<span class="hljs-property">style</span>.<span class="hljs-property">cssText</span> = <span class="hljs-string">`
+    padding: 6px 12px;
+    cursor: pointer;
+    border: 1px solid #ccc;
+    border-radius: 3px;
+    background: white;
+    display: none;
+  `</span>;
+  clearCameraBtn.<span class="hljs-property">onclick</span> = <span class="hljs-function">() =></span> {
+    <span class="hljs-title function_">resetCamera</span>();
+  };
+  controlsPanel.<span class="hljs-title function_">appendChild</span>(clearCameraBtn);
+
+  <span class="hljs-comment">// Autosave checkbox</span>
+  <span class="hljs-keyword">const</span> autosaveLabel = <span class="hljs-variable language_">document</span>.<span class="hljs-title function_">createElement</span>(<span class="hljs-string">"label"</span>);
+  autosaveLabel.<span class="hljs-property">style</span>.<span class="hljs-property">cssText</span> = <span class="hljs-string">`
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 14px;
+    cursor: pointer;
+  `</span>;
+
+  <span class="hljs-keyword">const</span> autosaveCheckbox = <span class="hljs-variable language_">document</span>.<span class="hljs-title function_">createElement</span>(<span class="hljs-string">"input"</span>);
+  autosaveCheckbox.<span class="hljs-property">type</span> = <span class="hljs-string">"checkbox"</span>;
+  autosaveCheckbox.<span class="hljs-property">checked</span> = <span class="hljs-literal">true</span>;
+  autosaveCheckbox.<span class="hljs-title function_">setAttribute</span>(<span class="hljs-string">"data-jscad-autosave"</span>, <span class="hljs-string">"true"</span>);
+  autosaveCheckbox.<span class="hljs-property">style</span>.<span class="hljs-property">cursor</span> = <span class="hljs-string">"pointer"</span>;
+
+  <span class="hljs-keyword">const</span> autosaveText = <span class="hljs-variable language_">document</span>.<span class="hljs-title function_">createTextNode</span>(<span class="hljs-string">"Auto-save camera"</span>);
+  autosaveLabel.<span class="hljs-title function_">appendChild</span>(autosaveCheckbox);
+  autosaveLabel.<span class="hljs-title function_">appendChild</span>(autosaveText);
+  controlsPanel.<span class="hljs-title function_">appendChild</span>(autosaveLabel);
+
+  containerElement.<span class="hljs-title function_">appendChild</span>(controlsPanel);
+
+  <span class="hljs-comment">// Prepare the renderer</span>
+  <span class="hljs-keyword">const</span> setupOptions = {
+    <span class="hljs-attr">glOptions</span>: { <span class="hljs-attr">container</span>: containerElement },
+  };
+  <span class="hljs-keyword">const</span> renderer = <span class="hljs-title function_">prepareRender</span>(setupOptions);
+
+  <span class="hljs-keyword">const</span> gridOptions = {
+    <span class="hljs-attr">visuals</span>: {
+      <span class="hljs-attr">drawCmd</span>: <span class="hljs-string">"drawGrid"</span>,
+      <span class="hljs-attr">show</span>: <span class="hljs-literal">true</span>,
+    },
+    <span class="hljs-attr">size</span>: [<span class="hljs-number">500</span>, <span class="hljs-number">500</span>],
+    <span class="hljs-attr">ticks</span>: [<span class="hljs-number">25</span>, <span class="hljs-number">5</span>],
+  };
+
+  <span class="hljs-keyword">const</span> axisOptions = {
+    <span class="hljs-attr">visuals</span>: {
+      <span class="hljs-attr">drawCmd</span>: <span class="hljs-string">"drawAxis"</span>,
+      <span class="hljs-attr">show</span>: <span class="hljs-literal">true</span>,
+    },
+    <span class="hljs-attr">size</span>: <span class="hljs-number">300</span>,
+  };
+
+  <span class="hljs-comment">// Support both array of solids and function that returns solids</span>
+  <span class="hljs-keyword">const</span> solids = <span class="hljs-title class_">Array</span>.<span class="hljs-title function_">isArray</span>(solidsOrFunction)
+    ? solidsOrFunction
+    : <span class="hljs-title function_">solidsOrFunction</span>({ <span class="hljs-attr">scale</span>: <span class="hljs-number">1</span> });
+
+  <span class="hljs-keyword">const</span> entities = <span class="hljs-title function_">entitiesFromSolids</span>({}, solids);
+
+  <span class="hljs-comment">// Set up the download button handler</span>
+  downloadBtn.<span class="hljs-property">onclick</span> = <span class="hljs-function">() =></span> {
+    <span class="hljs-title function_">downloadSTL</span>(solids);
+  };
+
+  <span class="hljs-comment">// Assemble the options for rendering</span>
+  <span class="hljs-keyword">const</span> renderOptions = {
+    <span class="hljs-attr">camera</span>: state.<span class="hljs-property">camera</span>,
+    <span class="hljs-attr">drawCommands</span>: {
+      <span class="hljs-attr">drawAxis</span>: drawCommands.<span class="hljs-property">drawAxis</span>,
+      <span class="hljs-attr">drawGrid</span>: drawCommands.<span class="hljs-property">drawGrid</span>,
+      <span class="hljs-attr">drawLines</span>: drawCommands.<span class="hljs-property">drawLines</span>,
+      <span class="hljs-attr">drawMesh</span>: drawCommands.<span class="hljs-property">drawMesh</span>,
+    },
+    <span class="hljs-attr">entities</span>: [gridOptions, axisOptions, ...entities],
+  };
+
+  <span class="hljs-comment">// Save camera position to localStorage</span>
+  <span class="hljs-keyword">function</span> <span class="hljs-title function_">saveCameraState</span>(<span class="hljs-params"></span>) {
+    <span class="hljs-keyword">if</span> (!autosaveCheckbox.<span class="hljs-property">checked</span>) <span class="hljs-keyword">return</span>;
+
+    <span class="hljs-keyword">const</span> <span class="hljs-attr">cameraState</span>: <span class="hljs-title class_">CameraState</span> = {
+      <span class="hljs-attr">position</span>: [...state.<span class="hljs-property">camera</span>.<span class="hljs-property">position</span>],
+      <span class="hljs-attr">target</span>: [...state.<span class="hljs-property">camera</span>.<span class="hljs-property">target</span>],
+    };
+    <span class="hljs-variable language_">localStorage</span>.<span class="hljs-title function_">setItem</span>(storageKey, <span class="hljs-title class_">JSON</span>.<span class="hljs-title function_">stringify</span>(cameraState));
+  }
+
+  <span class="hljs-comment">// Check if camera has moved from initial position</span>
+  <span class="hljs-keyword">function</span> <span class="hljs-title function_">isCameraAtInitialPosition</span>(<span class="hljs-params"></span>): <span class="hljs-built_in">boolean</span> {
+    <span class="hljs-keyword">const</span> posEqual =
+      state.<span class="hljs-property">camera</span>.<span class="hljs-property">position</span>[<span class="hljs-number">0</span>] === initialCameraState.<span class="hljs-property">position</span>[<span class="hljs-number">0</span>] &#x26;&#x26;
+      state.<span class="hljs-property">camera</span>.<span class="hljs-property">position</span>[<span class="hljs-number">1</span>] === initialCameraState.<span class="hljs-property">position</span>[<span class="hljs-number">1</span>] &#x26;&#x26;
+      state.<span class="hljs-property">camera</span>.<span class="hljs-property">position</span>[<span class="hljs-number">2</span>] === initialCameraState.<span class="hljs-property">position</span>[<span class="hljs-number">2</span>];
+
+    <span class="hljs-keyword">const</span> targetEqual =
+      state.<span class="hljs-property">camera</span>.<span class="hljs-property">target</span>[<span class="hljs-number">0</span>] === initialCameraState.<span class="hljs-property">target</span>[<span class="hljs-number">0</span>] &#x26;&#x26;
+      state.<span class="hljs-property">camera</span>.<span class="hljs-property">target</span>[<span class="hljs-number">1</span>] === initialCameraState.<span class="hljs-property">target</span>[<span class="hljs-number">1</span>] &#x26;&#x26;
+      state.<span class="hljs-property">camera</span>.<span class="hljs-property">target</span>[<span class="hljs-number">2</span>] === initialCameraState.<span class="hljs-property">target</span>[<span class="hljs-number">2</span>];
+
+    <span class="hljs-keyword">return</span> posEqual &#x26;&#x26; targetEqual;
+  }
+
+  <span class="hljs-comment">// Update clear button visibility based on camera position</span>
+  <span class="hljs-keyword">function</span> <span class="hljs-title function_">updateClearButtonVisibility</span>(<span class="hljs-params"></span>) {
+    clearCameraBtn.<span class="hljs-property">style</span>.<span class="hljs-property">display</span> = <span class="hljs-title function_">isCameraAtInitialPosition</span>() ? <span class="hljs-string">"none"</span> : <span class="hljs-string">"block"</span>;
+  }
+
+  <span class="hljs-comment">// Reset camera to initial position</span>
+  <span class="hljs-keyword">function</span> <span class="hljs-title function_">resetCamera</span>(<span class="hljs-params"></span>) {
+    state.<span class="hljs-property">camera</span>.<span class="hljs-property">position</span> = [...initialCameraState.<span class="hljs-property">position</span>];
+    state.<span class="hljs-property">camera</span>.<span class="hljs-property">target</span> = [...initialCameraState.<span class="hljs-property">target</span>];
+    perspectiveCamera.<span class="hljs-title function_">update</span>(state.<span class="hljs-property">camera</span>);
+    updateView = <span class="hljs-literal">true</span>;
+    <span class="hljs-title function_">updateClearButtonVisibility</span>();
+    <span class="hljs-title function_">saveCameraState</span>();
+  }
+
+  <span class="hljs-comment">// Download solids as STL</span>
+  <span class="hljs-keyword">function</span> <span class="hljs-title function_">downloadSTL</span>(<span class="hljs-params"><span class="hljs-attr">solids</span>: <span class="hljs-built_in">any</span>[]</span>) {
+    <span class="hljs-keyword">try</span> {
+      <span class="hljs-keyword">const</span> stlString = <span class="hljs-title function_">solidsToSTL</span>(solids);
+      <span class="hljs-keyword">const</span> blob = <span class="hljs-keyword">new</span> <span class="hljs-title class_">Blob</span>([stlString], { <span class="hljs-attr">type</span>: <span class="hljs-string">"text/plain"</span> });
+      <span class="hljs-keyword">const</span> url = <span class="hljs-variable constant_">URL</span>.<span class="hljs-title function_">createObjectURL</span>(blob);
+
+      <span class="hljs-keyword">const</span> a = <span class="hljs-variable language_">document</span>.<span class="hljs-title function_">createElement</span>(<span class="hljs-string">"a"</span>);
+      a.<span class="hljs-property">href</span> = url;
+      a.<span class="hljs-property">download</span> = <span class="hljs-string">"model.stl"</span>;
+      <span class="hljs-variable language_">document</span>.<span class="hljs-property">body</span>.<span class="hljs-title function_">appendChild</span>(a);
+      a.<span class="hljs-title function_">click</span>();
+      <span class="hljs-variable language_">document</span>.<span class="hljs-property">body</span>.<span class="hljs-title function_">removeChild</span>(a);
+      <span class="hljs-variable constant_">URL</span>.<span class="hljs-title function_">revokeObjectURL</span>(url);
+    } <span class="hljs-keyword">catch</span> (e) {
+      <span class="hljs-variable language_">console</span>.<span class="hljs-title function_">error</span>(<span class="hljs-string">"Failed to download STL:"</span>, e);
+      <span class="hljs-title function_">alert</span>(<span class="hljs-string">"Failed to download STL. Make sure the model is valid."</span>);
+    }
+  }
+
+  <span class="hljs-comment">// Convert JSCAD solids to STL format</span>
+  <span class="hljs-keyword">function</span> <span class="hljs-title function_">solidsToSTL</span>(<span class="hljs-params"><span class="hljs-attr">solids</span>: <span class="hljs-built_in">any</span>[]</span>): <span class="hljs-built_in">string</span> {
+    <span class="hljs-keyword">let</span> stl = <span class="hljs-string">"solid model\n"</span>;
+
+    <span class="hljs-keyword">for</span> (<span class="hljs-keyword">const</span> solid <span class="hljs-keyword">of</span> solids) {
+      <span class="hljs-keyword">const</span> polygons = geometries.<span class="hljs-property">geom3</span>.<span class="hljs-title function_">toPolygons</span>(solid);
+
+      <span class="hljs-keyword">for</span> (<span class="hljs-keyword">const</span> polygon <span class="hljs-keyword">of</span> polygons) {
+        <span class="hljs-keyword">const</span> vertices = polygon.<span class="hljs-property">vertices</span>;
+
+        <span class="hljs-comment">// Calculate normal</span>
+        <span class="hljs-keyword">const</span> v1 = vertices[<span class="hljs-number">0</span>];
+        <span class="hljs-keyword">const</span> v2 = vertices[<span class="hljs-number">1</span>];
+        <span class="hljs-keyword">const</span> v3 = vertices[<span class="hljs-number">2</span>];
+
+        <span class="hljs-keyword">const</span> u = [v2[<span class="hljs-number">0</span>] - v1[<span class="hljs-number">0</span>], v2[<span class="hljs-number">1</span>] - v1[<span class="hljs-number">1</span>], v2[<span class="hljs-number">2</span>] - v1[<span class="hljs-number">2</span>]];
+        <span class="hljs-keyword">const</span> v = [v3[<span class="hljs-number">0</span>] - v1[<span class="hljs-number">0</span>], v3[<span class="hljs-number">1</span>] - v1[<span class="hljs-number">1</span>], v3[<span class="hljs-number">2</span>] - v1[<span class="hljs-number">2</span>]];
+
+        <span class="hljs-keyword">const</span> normal = [
+          u[<span class="hljs-number">1</span>] * v[<span class="hljs-number">2</span>] - u[<span class="hljs-number">2</span>] * v[<span class="hljs-number">1</span>],
+          u[<span class="hljs-number">2</span>] * v[<span class="hljs-number">0</span>] - u[<span class="hljs-number">0</span>] * v[<span class="hljs-number">2</span>],
+          u[<span class="hljs-number">0</span>] * v[<span class="hljs-number">1</span>] - u[<span class="hljs-number">1</span>] * v[<span class="hljs-number">0</span>],
+        ];
+
+        <span class="hljs-comment">// Normalize</span>
+        <span class="hljs-keyword">const</span> len = <span class="hljs-title class_">Math</span>.<span class="hljs-title function_">sqrt</span>(
+          normal[<span class="hljs-number">0</span>] * normal[<span class="hljs-number">0</span>] + normal[<span class="hljs-number">1</span>] * normal[<span class="hljs-number">1</span>] + normal[<span class="hljs-number">2</span>] * normal[<span class="hljs-number">2</span>]
+        );
+        normal[<span class="hljs-number">0</span>] /= len;
+        normal[<span class="hljs-number">1</span>] /= len;
+        normal[<span class="hljs-number">2</span>] /= len;
+
+        stl += <span class="hljs-string">`  facet normal <span class="hljs-subst">${normal[<span class="hljs-number">0</span>]}</span> <span class="hljs-subst">${normal[<span class="hljs-number">1</span>]}</span> <span class="hljs-subst">${normal[<span class="hljs-number">2</span>]}</span>\n`</span>;
+        stl += <span class="hljs-string">`    outer loop\n`</span>;
+
+        <span class="hljs-keyword">for</span> (<span class="hljs-keyword">const</span> vertex <span class="hljs-keyword">of</span> vertices) {
+          stl += <span class="hljs-string">`      vertex <span class="hljs-subst">${vertex[<span class="hljs-number">0</span>]}</span> <span class="hljs-subst">${vertex[<span class="hljs-number">1</span>]}</span> <span class="hljs-subst">${vertex[<span class="hljs-number">2</span>]}</span>\n`</span>;
+        }
+
+        stl += <span class="hljs-string">`    endloop\n`</span>;
+        stl += <span class="hljs-string">`  endfacet\n`</span>;
+      }
+    }
+
+    stl += <span class="hljs-string">"endsolid model\n"</span>;
+    <span class="hljs-keyword">return</span> stl;
+  }
+
+  <span class="hljs-comment">// Update clear button visibility based on initial camera state</span>
+  <span class="hljs-title function_">updateClearButtonVisibility</span>();
+
+  <span class="hljs-comment">// The heart of rendering</span>
+  <span class="hljs-keyword">let</span> updateView = <span class="hljs-literal">true</span>;
+
+  <span class="hljs-keyword">const</span> rotateSpeed = <span class="hljs-number">0.002</span>;
+  <span class="hljs-keyword">const</span> panSpeed = <span class="hljs-number">1</span>;
+  <span class="hljs-keyword">const</span> zoomSpeed = <span class="hljs-number">0.08</span>;
+  <span class="hljs-keyword">let</span> rotateDelta = [<span class="hljs-number">0</span>, <span class="hljs-number">0</span>];
+  <span class="hljs-keyword">let</span> panDelta = [<span class="hljs-number">0</span>, <span class="hljs-number">0</span>];
+  <span class="hljs-keyword">let</span> zoomDelta = <span class="hljs-number">0</span>;
+  <span class="hljs-keyword">let</span> pointerDown = <span class="hljs-literal">false</span>;
+  <span class="hljs-keyword">let</span> lastX = <span class="hljs-number">0</span>;
+  <span class="hljs-keyword">let</span> lastY = <span class="hljs-number">0</span>;
+
+  <span class="hljs-keyword">const</span> <span class="hljs-title function_">doRotatePanZoom</span> = (<span class="hljs-params"></span>) => {
+    <span class="hljs-keyword">if</span> (rotateDelta[<span class="hljs-number">0</span>] || rotateDelta[<span class="hljs-number">1</span>]) {
+      <span class="hljs-keyword">const</span> updated = orbitControls.<span class="hljs-title function_">rotate</span>(
+        { <span class="hljs-attr">controls</span>: state.<span class="hljs-property">controls</span>, <span class="hljs-attr">camera</span>: state.<span class="hljs-property">camera</span>, <span class="hljs-attr">speed</span>: rotateSpeed },
+        rotateDelta
+      );
+      state.<span class="hljs-property">controls</span> = { ...state.<span class="hljs-property">controls</span>, ...updated.<span class="hljs-property">controls</span> };
+      updateView = <span class="hljs-literal">true</span>;
+      rotateDelta = [<span class="hljs-number">0</span>, <span class="hljs-number">0</span>];
+    }
+
+    <span class="hljs-keyword">if</span> (panDelta[<span class="hljs-number">0</span>] || panDelta[<span class="hljs-number">1</span>]) {
+      <span class="hljs-keyword">const</span> updated = orbitControls.<span class="hljs-title function_">pan</span>(
+        { <span class="hljs-attr">controls</span>: state.<span class="hljs-property">controls</span>, <span class="hljs-attr">camera</span>: state.<span class="hljs-property">camera</span>, <span class="hljs-attr">speed</span>: panSpeed },
+        panDelta
+      );
+      state.<span class="hljs-property">controls</span> = { ...state.<span class="hljs-property">controls</span>, ...updated.<span class="hljs-property">controls</span> };
+      panDelta = [<span class="hljs-number">0</span>, <span class="hljs-number">0</span>];
+      state.<span class="hljs-property">camera</span>.<span class="hljs-property">position</span> = updated.<span class="hljs-property">camera</span>.<span class="hljs-property">position</span>;
+      state.<span class="hljs-property">camera</span>.<span class="hljs-property">target</span> = updated.<span class="hljs-property">camera</span>.<span class="hljs-property">target</span>;
+      updateView = <span class="hljs-literal">true</span>;
+    }
+
+    <span class="hljs-keyword">if</span> (zoomDelta) {
+      <span class="hljs-keyword">const</span> updated = orbitControls.<span class="hljs-title function_">zoom</span>(
+        { <span class="hljs-attr">controls</span>: state.<span class="hljs-property">controls</span>, <span class="hljs-attr">camera</span>: state.<span class="hljs-property">camera</span>, <span class="hljs-attr">speed</span>: zoomSpeed },
+        zoomDelta
+      );
+      state.<span class="hljs-property">controls</span> = { ...state.<span class="hljs-property">controls</span>, ...updated.<span class="hljs-property">controls</span> };
+      zoomDelta = <span class="hljs-number">0</span>;
+      updateView = <span class="hljs-literal">true</span>;
+    }
+  };
+
+  <span class="hljs-keyword">const</span> <span class="hljs-title function_">updateAndRender</span> = (<span class="hljs-params"><span class="hljs-attr">timestamp</span>: <span class="hljs-built_in">number</span></span>) => {
+    <span class="hljs-title function_">doRotatePanZoom</span>();
+
+    <span class="hljs-keyword">if</span> (updateView) {
+      <span class="hljs-keyword">const</span> updates = orbitControls.<span class="hljs-title function_">update</span>({
+        <span class="hljs-attr">controls</span>: state.<span class="hljs-property">controls</span>,
+        <span class="hljs-attr">camera</span>: state.<span class="hljs-property">camera</span>,
+      });
+      state.<span class="hljs-property">controls</span> = { ...state.<span class="hljs-property">controls</span>, ...updates.<span class="hljs-property">controls</span> };
+      updateView = state.<span class="hljs-property">controls</span>.<span class="hljs-property">changed</span>;
+
+      state.<span class="hljs-property">camera</span>.<span class="hljs-property">position</span> = updates.<span class="hljs-property">camera</span>.<span class="hljs-property">position</span>;
+      perspectiveCamera.<span class="hljs-title function_">update</span>(state.<span class="hljs-property">camera</span>);
+
+      <span class="hljs-title function_">renderer</span>(renderOptions);
+
+      <span class="hljs-title function_">saveCameraState</span>();
+      <span class="hljs-title function_">updateClearButtonVisibility</span>();
+    }
+    <span class="hljs-variable language_">window</span>.<span class="hljs-title function_">requestAnimationFrame</span>(updateAndRender);
+  };
+  <span class="hljs-variable language_">window</span>.<span class="hljs-title function_">requestAnimationFrame</span>(updateAndRender);
+
+  <span class="hljs-comment">// Event handlers for mouse/touch interaction</span>
+  <span class="hljs-keyword">const</span> <span class="hljs-title function_">moveHandler</span> = (<span class="hljs-params"><span class="hljs-attr">ev</span>: <span class="hljs-title class_">PointerEvent</span></span>) => {
+    <span class="hljs-keyword">if</span> (!pointerDown) <span class="hljs-keyword">return</span>;
+
+    <span class="hljs-keyword">const</span> target = ev.<span class="hljs-property">target</span> <span class="hljs-keyword">as</span> <span class="hljs-title class_">HTMLElement</span>;
+    <span class="hljs-keyword">if</span> (target.<span class="hljs-title function_">closest</span>(<span class="hljs-string">'[data-jscad-controls]'</span>)) {
+      <span class="hljs-keyword">return</span>;
+    }
+
+    <span class="hljs-keyword">const</span> dx = lastX - ev.<span class="hljs-property">pageX</span>;
+    <span class="hljs-keyword">const</span> dy = ev.<span class="hljs-property">pageY</span> - lastY;
+
+    <span class="hljs-keyword">const</span> shiftKey =
+      ev.<span class="hljs-property">shiftKey</span> === <span class="hljs-literal">true</span> || ((ev <span class="hljs-keyword">as</span> <span class="hljs-built_in">any</span>).<span class="hljs-property">touches</span> &#x26;&#x26; (ev <span class="hljs-keyword">as</span> <span class="hljs-built_in">any</span>).<span class="hljs-property">touches</span>.<span class="hljs-property">length</span> > <span class="hljs-number">2</span>);
+    <span class="hljs-keyword">if</span> (shiftKey) {
+      panDelta[<span class="hljs-number">0</span>] += dx;
+      panDelta[<span class="hljs-number">1</span>] += dy;
+    } <span class="hljs-keyword">else</span> {
+      rotateDelta[<span class="hljs-number">0</span>] -= dx;
+      rotateDelta[<span class="hljs-number">1</span>] -= dy;
+    }
+
+    lastX = ev.<span class="hljs-property">pageX</span>;
+    lastY = ev.<span class="hljs-property">pageY</span>;
+
+    ev.<span class="hljs-title function_">preventDefault</span>();
+  };
+
+  <span class="hljs-keyword">const</span> <span class="hljs-title function_">downHandler</span> = (<span class="hljs-params"><span class="hljs-attr">ev</span>: <span class="hljs-title class_">PointerEvent</span></span>) => {
+    <span class="hljs-keyword">const</span> target = ev.<span class="hljs-property">target</span> <span class="hljs-keyword">as</span> <span class="hljs-title class_">HTMLElement</span>;
+    <span class="hljs-keyword">if</span> (target.<span class="hljs-title function_">closest</span>(<span class="hljs-string">'[data-jscad-controls]'</span>)) {
+      <span class="hljs-keyword">return</span>;
+    }
+
+    pointerDown = <span class="hljs-literal">true</span>;
+    lastX = ev.<span class="hljs-property">pageX</span>;
+    lastY = ev.<span class="hljs-property">pageY</span>;
+    containerElement.<span class="hljs-title function_">setPointerCapture</span>(ev.<span class="hljs-property">pointerId</span>);
+  };
+
+  <span class="hljs-keyword">const</span> <span class="hljs-title function_">upHandler</span> = (<span class="hljs-params"><span class="hljs-attr">ev</span>: <span class="hljs-title class_">PointerEvent</span></span>) => {
+    pointerDown = <span class="hljs-literal">false</span>;
+    <span class="hljs-keyword">const</span> target = ev.<span class="hljs-property">target</span> <span class="hljs-keyword">as</span> <span class="hljs-title class_">HTMLElement</span>;
+    <span class="hljs-keyword">if</span> (!target.<span class="hljs-title function_">closest</span>(<span class="hljs-string">'[data-jscad-controls]'</span>)) {
+      containerElement.<span class="hljs-title function_">releasePointerCapture</span>(ev.<span class="hljs-property">pointerId</span>);
+    }
+  };
+
+  <span class="hljs-keyword">const</span> <span class="hljs-title function_">wheelHandler</span> = (<span class="hljs-params"><span class="hljs-attr">ev</span>: <span class="hljs-title class_">WheelEvent</span></span>) => {
+    zoomDelta += ev.<span class="hljs-property">deltaY</span>;
+    ev.<span class="hljs-title function_">preventDefault</span>();
+  };
+
+  containerElement.<span class="hljs-property">onpointermove</span> = moveHandler;
+  containerElement.<span class="hljs-property">onpointerdown</span> = downHandler;
+  containerElement.<span class="hljs-property">onpointerup</span> = upHandler;
+  containerElement.<span class="hljs-property">onwheel</span> = wheelHandler;
+}
+</code></pre></details>
+<h1 id="examples">Examples</h1><h2 id="simple-cube">Simple Cube</h2><p>A basic 3D cube:
+</p><div class="org-tabs" data-tabs-id="tabs-d5klxhc">
+  <div class="org-tabs-header">
+    <button class="org-tab active" data-tab="result" type="button">Result</button>
+    <button class="org-tab" data-tab="source" type="button">Source</button>
+  </div>
+  <div class="org-tabs-content">
+    <div class="org-tab-panel active" data-panel="result">
+      <div id="org-block-2-result" data-org-block="block-content-plugins-jscad-org-2" class="org-block-result"></div>
+    </div>
+    <div class="org-tab-panel" data-panel="source">
+      <pre class="org-source-pre"><code class="hljs language-javascript"><span class="hljs-keyword">import</span> * <span class="hljs-keyword">as</span> jscad <span class="hljs-keyword">from</span> <span class="hljs-string">'@jscad/modeling'</span>;
+
+<span class="hljs-keyword">const</span> { cube } = jscad.<span class="hljs-property">primitives</span>;
+
+<span class="hljs-keyword">export</span> <span class="hljs-keyword">default</span> [<span class="hljs-title function_">cube</span>({ <span class="hljs-attr">size</span>: <span class="hljs-number">10</span> })];
+</code></pre>
+    </div>
+  </div>
+</div>
+<script type="module">
+(function() {
+  const container = document.querySelector('[data-tabs-id="tabs-d5klxhc"]');
+  if (!container) return;
+  const tabs = container.querySelectorAll('.org-tab');
+  const panels = container.querySelectorAll('.org-tab-panel');
+  tabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      const target = tab.dataset.tab;
+      tabs.forEach(t => t.classList.toggle('active', t.dataset.tab === target));
+      panels.forEach(p => p.classList.toggle('active', p.dataset.panel === target));
+    });
+  });
+})();
+</script><h2 id="basic-shapes">Basic Shapes</h2><p>Multiple primitives with transformations:
+</p><div class="org-tabs" data-tabs-id="tabs-vi17qqw">
+  <div class="org-tabs-header">
+    <button class="org-tab active" data-tab="result" type="button">Result</button>
+    <button class="org-tab" data-tab="source" type="button">Source</button>
+  </div>
+  <div class="org-tabs-content">
+    <div class="org-tab-panel active" data-panel="result">
+      <div id="org-block-3-result" data-org-block="block-content-plugins-jscad-org-3" class="org-block-result"></div>
+    </div>
+    <div class="org-tab-panel" data-panel="source">
+      <pre class="org-source-pre"><code class="hljs language-javascript"><span class="hljs-keyword">import</span> * <span class="hljs-keyword">as</span> jscad <span class="hljs-keyword">from</span> <span class="hljs-string">'@jscad/modeling'</span>;
+
+<span class="hljs-keyword">const</span> { cube, sphere, cylinder, cuboid } = jscad.<span class="hljs-property">primitives</span>;
+<span class="hljs-keyword">const</span> { translate } = jscad.<span class="hljs-property">transforms</span>;
+
+<span class="hljs-keyword">const</span> shapes = [
+  <span class="hljs-title function_">translate</span>([-<span class="hljs-number">25</span>, <span class="hljs-number">0</span>, <span class="hljs-number">0</span>], <span class="hljs-title function_">cube</span>({ <span class="hljs-attr">size</span>: <span class="hljs-number">8</span> })),
+  <span class="hljs-title function_">translate</span>([<span class="hljs-number">0</span>, <span class="hljs-number">0</span>, <span class="hljs-number">0</span>], <span class="hljs-title function_">sphere</span>({ <span class="hljs-attr">radius</span>: <span class="hljs-number">5</span> })),
+  <span class="hljs-title function_">translate</span>([<span class="hljs-number">25</span>, <span class="hljs-number">0</span>, <span class="hljs-number">0</span>], <span class="hljs-title function_">cylinder</span>({ <span class="hljs-attr">radius</span>: <span class="hljs-number">4</span>, <span class="hljs-attr">height</span>: <span class="hljs-number">10</span> })),
+  <span class="hljs-title function_">translate</span>([<span class="hljs-number">0</span>, -<span class="hljs-number">25</span>, <span class="hljs-number">0</span>], <span class="hljs-title function_">cuboid</span>({ <span class="hljs-attr">size</span>: [<span class="hljs-number">12</span>, <span class="hljs-number">6</span>, <span class="hljs-number">4</span>] }))
+];
+
+<span class="hljs-keyword">export</span> <span class="hljs-keyword">default</span> shapes;
+</code></pre>
+    </div>
+  </div>
+</div>
+<script type="module">
+(function() {
+  const container = document.querySelector('[data-tabs-id="tabs-vi17qqw"]');
+  if (!container) return;
+  const tabs = container.querySelectorAll('.org-tab');
+  const panels = container.querySelectorAll('.org-tab-panel');
+  tabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      const target = tab.dataset.tab;
+      tabs.forEach(t => t.classList.toggle('active', t.dataset.tab === target));
+      panels.forEach(p => p.classList.toggle('active', p.dataset.panel === target));
+    });
+  });
+})();
+</script><h2 id="boolean-operations">Boolean Operations</h2><p>Union, subtract, and intersect:
+</p><div class="org-tabs" data-tabs-id="tabs-io044pk">
+  <div class="org-tabs-header">
+    <button class="org-tab active" data-tab="result" type="button">Result</button>
+    <button class="org-tab" data-tab="source" type="button">Source</button>
+  </div>
+  <div class="org-tabs-content">
+    <div class="org-tab-panel active" data-panel="result">
+      <div id="org-block-4-result" data-org-block="block-content-plugins-jscad-org-4" class="org-block-result"></div>
+    </div>
+    <div class="org-tab-panel" data-panel="source">
+      <pre class="org-source-pre"><code class="hljs language-javascript"><span class="hljs-keyword">import</span> * <span class="hljs-keyword">as</span> jscad <span class="hljs-keyword">from</span> <span class="hljs-string">'@jscad/modeling'</span>;
+
+<span class="hljs-keyword">const</span> { cube, sphere } = jscad.<span class="hljs-property">primitives</span>;
+<span class="hljs-keyword">const</span> { union, subtract, intersect } = jscad.<span class="hljs-property">booleans</span>;
+<span class="hljs-keyword">const</span> { translate } = jscad.<span class="hljs-property">transforms</span>;
+
+<span class="hljs-keyword">const</span> base = <span class="hljs-title function_">cube</span>({ <span class="hljs-attr">size</span>: <span class="hljs-number">15</span> });
+<span class="hljs-keyword">const</span> ball = <span class="hljs-title function_">translate</span>([<span class="hljs-number">5</span>, <span class="hljs-number">5</span>, <span class="hljs-number">5</span>], <span class="hljs-title function_">sphere</span>({ <span class="hljs-attr">radius</span>: <span class="hljs-number">8</span> }));
+
+<span class="hljs-keyword">const</span> shapes = [
+  <span class="hljs-comment">// Union (combine)</span>
+  <span class="hljs-title function_">translate</span>([-<span class="hljs-number">30</span>, <span class="hljs-number">0</span>, <span class="hljs-number">0</span>], <span class="hljs-title function_">union</span>(base, ball)),
+
+  <span class="hljs-comment">// Subtract (cut)</span>
+  <span class="hljs-title function_">translate</span>([<span class="hljs-number">0</span>, <span class="hljs-number">0</span>, <span class="hljs-number">0</span>], <span class="hljs-title function_">subtract</span>(base, ball)),
+
+  <span class="hljs-comment">// Intersect (overlap only)</span>
+  <span class="hljs-title function_">translate</span>([<span class="hljs-number">30</span>, <span class="hljs-number">0</span>, <span class="hljs-number">0</span>], <span class="hljs-title function_">intersect</span>(base, ball))
+];
+
+<span class="hljs-keyword">export</span> <span class="hljs-keyword">default</span> shapes;
+</code></pre>
+    </div>
+  </div>
+</div>
+<script type="module">
+(function() {
+  const container = document.querySelector('[data-tabs-id="tabs-io044pk"]');
+  if (!container) return;
+  const tabs = container.querySelectorAll('.org-tab');
+  const panels = container.querySelectorAll('.org-tab-panel');
+  tabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      const target = tab.dataset.tab;
+      tabs.forEach(t => t.classList.toggle('active', t.dataset.tab === target));
+      panels.forEach(p => p.classList.toggle('active', p.dataset.panel === target));
+    });
+  });
+})();
+</script><h2 id="parametric-box">Parametric Box</h2><p>A configurable enclosure with mounting holes:
+</p><div class="org-tabs" data-tabs-id="tabs-8mp9fjk">
+  <div class="org-tabs-header">
+    <button class="org-tab active" data-tab="result" type="button">Result</button>
+    <button class="org-tab" data-tab="source" type="button">Source</button>
+  </div>
+  <div class="org-tabs-content">
+    <div class="org-tab-panel active" data-panel="result">
+      <div id="org-block-5-result" data-org-block="block-content-plugins-jscad-org-5" class="org-block-result"></div>
+    </div>
+    <div class="org-tab-panel" data-panel="source">
+      <pre class="org-source-pre"><code class="hljs language-javascript"><span class="hljs-keyword">import</span> * <span class="hljs-keyword">as</span> jscad <span class="hljs-keyword">from</span> <span class="hljs-string">'@jscad/modeling'</span>;
+
+<span class="hljs-keyword">const</span> { cuboid, cylinder } = jscad.<span class="hljs-property">primitives</span>;
+<span class="hljs-keyword">const</span> { subtract } = jscad.<span class="hljs-property">booleans</span>;
+<span class="hljs-keyword">const</span> { translate } = jscad.<span class="hljs-property">transforms</span>;
+
+<span class="hljs-comment">// Parameters (easy to modify)</span>
+<span class="hljs-keyword">const</span> <span class="hljs-variable constant_">BOX_SIZE</span> = [<span class="hljs-number">40</span>, <span class="hljs-number">30</span>, <span class="hljs-number">20</span>];
+<span class="hljs-keyword">const</span> <span class="hljs-variable constant_">WALL_THICKNESS</span> = <span class="hljs-number">2</span>;
+<span class="hljs-keyword">const</span> <span class="hljs-variable constant_">HOLE_RADIUS</span> = <span class="hljs-number">3</span>;
+<span class="hljs-keyword">const</span> <span class="hljs-variable constant_">NUM_HOLES</span> = <span class="hljs-number">4</span>;
+
+<span class="hljs-keyword">function</span> <span class="hljs-title function_">createBox</span>(<span class="hljs-params">size, thickness, holeRadius, numHoles</span>) {
+  <span class="hljs-comment">// Outer box</span>
+  <span class="hljs-keyword">const</span> outer = <span class="hljs-title function_">cuboid</span>({ size });
+
+  <span class="hljs-comment">// Inner cavity (hollow)</span>
+  <span class="hljs-keyword">const</span> inner = <span class="hljs-title function_">cuboid</span>({
+    <span class="hljs-attr">size</span>: [
+      size[<span class="hljs-number">0</span>] - thickness * <span class="hljs-number">2</span>,
+      size[<span class="hljs-number">1</span>] - thickness * <span class="hljs-number">2</span>,
+      size[<span class="hljs-number">2</span>]
+    ]
+  });
+
+  <span class="hljs-comment">// Mounting holes</span>
+  <span class="hljs-keyword">const</span> holes = [];
+  <span class="hljs-keyword">for</span> (<span class="hljs-keyword">let</span> i = <span class="hljs-number">0</span>; i &#x3C; numHoles; i++) {
+    <span class="hljs-keyword">const</span> angle = (i / numHoles) * <span class="hljs-title class_">Math</span>.<span class="hljs-property">PI</span> * <span class="hljs-number">2</span>;
+    <span class="hljs-keyword">const</span> x = <span class="hljs-title class_">Math</span>.<span class="hljs-title function_">cos</span>(angle) * (size[<span class="hljs-number">0</span>] / <span class="hljs-number">2</span> - <span class="hljs-number">5</span>);
+    <span class="hljs-keyword">const</span> y = <span class="hljs-title class_">Math</span>.<span class="hljs-title function_">sin</span>(angle) * (size[<span class="hljs-number">1</span>] / <span class="hljs-number">2</span> - <span class="hljs-number">5</span>);
+    holes.<span class="hljs-title function_">push</span>(
+      <span class="hljs-title function_">translate</span>([x, y, <span class="hljs-number">0</span>],
+        <span class="hljs-title function_">cylinder</span>({ <span class="hljs-attr">radius</span>: holeRadius, <span class="hljs-attr">height</span>: thickness * <span class="hljs-number">2</span> }))
+    );
+  }
+
+  <span class="hljs-keyword">return</span> <span class="hljs-title function_">subtract</span>(outer, inner, ...holes);
+}
+
+<span class="hljs-keyword">export</span> <span class="hljs-keyword">default</span> [<span class="hljs-title function_">createBox</span>(<span class="hljs-variable constant_">BOX_SIZE</span>, <span class="hljs-variable constant_">WALL_THICKNESS</span>, <span class="hljs-variable constant_">HOLE_RADIUS</span>, <span class="hljs-variable constant_">NUM_HOLES</span>)];
+</code></pre>
+    </div>
+  </div>
+</div>
+<script type="module">
+(function() {
+  const container = document.querySelector('[data-tabs-id="tabs-8mp9fjk"]');
+  if (!container) return;
+  const tabs = container.querySelectorAll('.org-tab');
+  const panels = container.querySelectorAll('.org-tab-panel');
+  tabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      const target = tab.dataset.tab;
+      tabs.forEach(t => t.classList.toggle('active', t.dataset.tab === target));
+      panels.forEach(p => p.classList.toggle('active', p.dataset.panel === target));
+    });
+  });
+})();
+</script><h2 id="mechanical-assembly-with-imports">Mechanical Assembly with Imports</h2><p>This example demonstrates importing reusable components from a library.
+</p><div class="org-tabs" data-tabs-id="tabs-oxvmglr">
+  <div class="org-tabs-header">
+    <button class="org-tab active" data-tab="result" type="button">Result</button>
+    <button class="org-tab" data-tab="source" type="button">Source</button>
+  </div>
+  <div class="org-tabs-content">
+    <div class="org-tab-panel active" data-panel="result">
+      <div id="org-block-6-result" data-org-block="block-content-plugins-jscad-org-6" class="org-block-result"></div>
+    </div>
+    <div class="org-tab-panel" data-panel="source">
+      <pre class="org-source-pre"><code class="hljs language-javascript"><span class="hljs-keyword">import</span> * <span class="hljs-keyword">as</span> jscad <span class="hljs-keyword">from</span> <span class="hljs-string">'@jscad/modeling'</span>;
+
+<span class="hljs-comment">// Import reusable components from named blocks (defined below)</span>
+<span class="hljs-keyword">import</span> { createGear } <span class="hljs-keyword">from</span> <span class="hljs-string">'./jscad.org?name=gear'</span>;
+<span class="hljs-keyword">import</span> { createBolt } <span class="hljs-keyword">from</span> <span class="hljs-string">'./jscad.org?name=bolt'</span>;
+<span class="hljs-keyword">import</span> { createNut } <span class="hljs-keyword">from</span> <span class="hljs-string">'./jscad.org?name=nut'</span>;
+
+<span class="hljs-keyword">const</span> { translate, rotateX, rotateZ } = jscad.<span class="hljs-property">transforms</span>;
+<span class="hljs-keyword">const</span> { colorize } = jscad.<span class="hljs-property">colors</span>;
+
+<span class="hljs-comment">// Create assembly using imported components</span>
+<span class="hljs-keyword">const</span> assembly = [
+  <span class="hljs-comment">// Large gear (blue)</span>
+  <span class="hljs-title function_">colorize</span>([<span class="hljs-number">0.2</span>, <span class="hljs-number">0.4</span>, <span class="hljs-number">0.8</span>], <span class="hljs-title function_">createGear</span>(<span class="hljs-number">20</span>, <span class="hljs-number">30</span>, <span class="hljs-number">8</span>, <span class="hljs-number">5</span>)),
+
+  <span class="hljs-comment">// Small gear meshed with large (orange)</span>
+  <span class="hljs-title function_">colorize</span>([<span class="hljs-number">0.9</span>, <span class="hljs-number">0.5</span>, <span class="hljs-number">0.2</span>],
+    <span class="hljs-title function_">translate</span>([<span class="hljs-number">52</span>, <span class="hljs-number">0</span>, <span class="hljs-number">0</span>], <span class="hljs-title function_">rotateZ</span>(<span class="hljs-title class_">Math</span>.<span class="hljs-property">PI</span> / <span class="hljs-number">20</span>, <span class="hljs-title function_">createGear</span>(<span class="hljs-number">12</span>, <span class="hljs-number">18</span>, <span class="hljs-number">8</span>, <span class="hljs-number">3</span>)))
+  ),
+
+  <span class="hljs-comment">// Bolt through large gear (silver)</span>
+  <span class="hljs-title function_">colorize</span>([<span class="hljs-number">0.7</span>, <span class="hljs-number">0.7</span>, <span class="hljs-number">0.75</span>],
+    <span class="hljs-title function_">translate</span>([<span class="hljs-number">0</span>, <span class="hljs-number">0</span>, <span class="hljs-number">4</span>], <span class="hljs-title function_">rotateX</span>(<span class="hljs-title class_">Math</span>.<span class="hljs-property">PI</span>, <span class="hljs-title function_">createBolt</span>(<span class="hljs-number">12</span>, <span class="hljs-number">6</span>, <span class="hljs-number">4</span>, <span class="hljs-number">30</span>, <span class="hljs-number">1.5</span>)))
+  ),
+
+  <span class="hljs-comment">// Nut on bottom of large gear</span>
+  <span class="hljs-title function_">colorize</span>([<span class="hljs-number">0.7</span>, <span class="hljs-number">0.7</span>, <span class="hljs-number">0.75</span>], <span class="hljs-title function_">translate</span>([<span class="hljs-number">0</span>, <span class="hljs-number">0</span>, -<span class="hljs-number">22</span>], <span class="hljs-title function_">createNut</span>(<span class="hljs-number">14</span>, <span class="hljs-number">6</span>, <span class="hljs-number">4.2</span>))),
+
+  <span class="hljs-comment">// Bolt through small gear</span>
+  <span class="hljs-title function_">colorize</span>([<span class="hljs-number">0.7</span>, <span class="hljs-number">0.7</span>, <span class="hljs-number">0.75</span>],
+    <span class="hljs-title function_">translate</span>([<span class="hljs-number">52</span>, <span class="hljs-number">0</span>, <span class="hljs-number">4</span>], <span class="hljs-title function_">rotateX</span>(<span class="hljs-title class_">Math</span>.<span class="hljs-property">PI</span>, <span class="hljs-title function_">createBolt</span>(<span class="hljs-number">8</span>, <span class="hljs-number">4</span>, <span class="hljs-number">2.5</span>, <span class="hljs-number">25</span>, <span class="hljs-number">1</span>)))
+  ),
+
+  <span class="hljs-comment">// Nut for small gear</span>
+  <span class="hljs-title function_">colorize</span>([<span class="hljs-number">0.7</span>, <span class="hljs-number">0.7</span>, <span class="hljs-number">0.75</span>], <span class="hljs-title function_">translate</span>([<span class="hljs-number">52</span>, <span class="hljs-number">0</span>, -<span class="hljs-number">18</span>], <span class="hljs-title function_">createNut</span>(<span class="hljs-number">10</span>, <span class="hljs-number">5</span>, <span class="hljs-number">2.7</span>)))
+];
+
+<span class="hljs-keyword">export</span> <span class="hljs-keyword">default</span> assembly;
+</code></pre>
+    </div>
+  </div>
+</div>
+<script type="module">
+(function() {
+  const container = document.querySelector('[data-tabs-id="tabs-oxvmglr"]');
+  if (!container) return;
+  const tabs = container.querySelectorAll('.org-tab');
+  const panels = container.querySelectorAll('.org-tab-panel');
+  tabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      const target = tab.dataset.tab;
+      tabs.forEach(t => t.classList.toggle('active', t.dataset.tab === target));
+      panels.forEach(p => p.classList.toggle('active', p.dataset.panel === target));
+    });
+  });
+})();
+</script><p>The import syntax <code class="inline-verbatim">import { createGear } from './jscad.org?name=gear'</code> enables:
+</p><ul><li><strong>Modular design</strong> - Break complex models into reusable components
+</li><li><strong>Single source of truth</strong> - Change a component once, update everywhere
+</li><li><strong>Cross-file sharing</strong> - Import from any org file in your project
+</li></ul><br>
+<details>
+<summary><strong>Component Library</strong> (click to expand)</summary>
+<h3 id="gear-generator">Gear Generator</h3><div class="org-tabs" data-tabs-id="tabs-5td8yv1">
+  <div class="org-tabs-header">
+    <button class="org-tab active" data-tab="result" type="button">Result</button>
+    <button class="org-tab" data-tab="source" type="button">Source</button>
+  </div>
+  <div class="org-tabs-content">
+    <div class="org-tab-panel active" data-panel="result">
+      <div id="org-block-7-result" data-org-block="block-content-plugins-jscad-org-7" class="org-block-result"></div>
+    </div>
+    <div class="org-tab-panel" data-panel="source">
+      <pre class="org-source-pre"><code class="hljs language-javascript"><span class="hljs-keyword">import</span> * <span class="hljs-keyword">as</span> jscad <span class="hljs-keyword">from</span> <span class="hljs-string">'@jscad/modeling'</span>;
+
+<span class="hljs-keyword">const</span> { cylinder, polygon } = jscad.<span class="hljs-property">primitives</span>;
+<span class="hljs-keyword">const</span> { extrudeLinear } = jscad.<span class="hljs-property">extrusions</span>;
+<span class="hljs-keyword">const</span> { subtract, union } = jscad.<span class="hljs-property">booleans</span>;
+<span class="hljs-keyword">const</span> { translate, rotateZ } = jscad.<span class="hljs-property">transforms</span>;
+
+<span class="hljs-comment">/**
+ * Create a gear with involute-like teeth
+ * <span class="hljs-doctag">@param</span> {<span class="hljs-type">number</span>} <span class="hljs-variable">numTeeth</span> - Number of teeth
+ * <span class="hljs-doctag">@param</span> {<span class="hljs-type">number</span>} <span class="hljs-variable">pitchRadius</span> - Distance from center to pitch circle
+ * <span class="hljs-doctag">@param</span> {<span class="hljs-type">number</span>} <span class="hljs-variable">thickness</span> - Gear thickness
+ * <span class="hljs-doctag">@param</span> {<span class="hljs-type">number</span>} <span class="hljs-variable">holeRadius</span> - Center hole radius
+ */</span>
+<span class="hljs-keyword">export</span> <span class="hljs-keyword">function</span> <span class="hljs-title function_">createGear</span>(<span class="hljs-params">numTeeth = <span class="hljs-number">12</span>, pitchRadius = <span class="hljs-number">20</span>, thickness = <span class="hljs-number">5</span>, holeRadius = <span class="hljs-number">3</span></span>) {
+  <span class="hljs-keyword">const</span> toothHeight = pitchRadius * <span class="hljs-number">0.2</span>;
+  <span class="hljs-keyword">const</span> toothWidth = (<span class="hljs-number">2</span> * <span class="hljs-title class_">Math</span>.<span class="hljs-property">PI</span> * pitchRadius) / numTeeth * <span class="hljs-number">0.4</span>;
+
+  <span class="hljs-comment">// Create gear profile points</span>
+  <span class="hljs-keyword">const</span> points = [];
+  <span class="hljs-keyword">const</span> outerRadius = pitchRadius + toothHeight;
+  <span class="hljs-keyword">const</span> innerRadius = pitchRadius - toothHeight * <span class="hljs-number">0.5</span>;
+
+  <span class="hljs-keyword">for</span> (<span class="hljs-keyword">let</span> i = <span class="hljs-number">0</span>; i &#x3C; numTeeth; i++) {
+    <span class="hljs-keyword">const</span> angle = (i / numTeeth) * <span class="hljs-title class_">Math</span>.<span class="hljs-property">PI</span> * <span class="hljs-number">2</span>;
+    <span class="hljs-keyword">const</span> nextAngle = ((i + <span class="hljs-number">1</span>) / numTeeth) * <span class="hljs-title class_">Math</span>.<span class="hljs-property">PI</span> * <span class="hljs-number">2</span>;
+    <span class="hljs-keyword">const</span> midAngle = (angle + nextAngle) / <span class="hljs-number">2</span>;
+    <span class="hljs-keyword">const</span> toothAngle = toothWidth / pitchRadius;
+
+    <span class="hljs-comment">// Root before tooth</span>
+    points.<span class="hljs-title function_">push</span>([
+      <span class="hljs-title class_">Math</span>.<span class="hljs-title function_">cos</span>(angle) * innerRadius,
+      <span class="hljs-title class_">Math</span>.<span class="hljs-title function_">sin</span>(angle) * innerRadius
+    ]);
+
+    <span class="hljs-comment">// Tooth leading edge</span>
+    points.<span class="hljs-title function_">push</span>([
+      <span class="hljs-title class_">Math</span>.<span class="hljs-title function_">cos</span>(midAngle - toothAngle / <span class="hljs-number">2</span>) * outerRadius,
+      <span class="hljs-title class_">Math</span>.<span class="hljs-title function_">sin</span>(midAngle - toothAngle / <span class="hljs-number">2</span>) * outerRadius
+    ]);
+
+    <span class="hljs-comment">// Tooth trailing edge</span>
+    points.<span class="hljs-title function_">push</span>([
+      <span class="hljs-title class_">Math</span>.<span class="hljs-title function_">cos</span>(midAngle + toothAngle / <span class="hljs-number">2</span>) * outerRadius,
+      <span class="hljs-title class_">Math</span>.<span class="hljs-title function_">sin</span>(midAngle + toothAngle / <span class="hljs-number">2</span>) * outerRadius
+    ]);
+
+    <span class="hljs-comment">// Root after tooth</span>
+    points.<span class="hljs-title function_">push</span>([
+      <span class="hljs-title class_">Math</span>.<span class="hljs-title function_">cos</span>(nextAngle) * innerRadius,
+      <span class="hljs-title class_">Math</span>.<span class="hljs-title function_">sin</span>(nextAngle) * innerRadius
+    ]);
+  }
+
+  <span class="hljs-comment">// Create 2D profile and extrude</span>
+  <span class="hljs-keyword">const</span> profile = <span class="hljs-title function_">polygon</span>({ points });
+  <span class="hljs-keyword">const</span> gear3d = <span class="hljs-title function_">extrudeLinear</span>({ <span class="hljs-attr">height</span>: thickness }, profile);
+
+  <span class="hljs-comment">// Center hole</span>
+  <span class="hljs-keyword">const</span> hole = <span class="hljs-title function_">cylinder</span>({ <span class="hljs-attr">radius</span>: holeRadius, <span class="hljs-attr">height</span>: thickness + <span class="hljs-number">2</span> });
+
+  <span class="hljs-keyword">return</span> <span class="hljs-title function_">subtract</span>(
+    <span class="hljs-title function_">translate</span>([<span class="hljs-number">0</span>, <span class="hljs-number">0</span>, -thickness / <span class="hljs-number">2</span>], gear3d),
+    <span class="hljs-title function_">translate</span>([<span class="hljs-number">0</span>, <span class="hljs-number">0</span>, -thickness / <span class="hljs-number">2</span> - <span class="hljs-number">1</span>], hole)
+  );
+}
+
+<span class="hljs-comment">// Demo: Single gear</span>
+<span class="hljs-keyword">export</span> <span class="hljs-keyword">default</span> [<span class="hljs-title function_">createGear</span>(<span class="hljs-number">16</span>, <span class="hljs-number">25</span>, <span class="hljs-number">6</span>, <span class="hljs-number">4</span>)];
+</code></pre>
+    </div>
+  </div>
+</div>
+<script type="module">
+(function() {
+  const container = document.querySelector('[data-tabs-id="tabs-5td8yv1"]');
+  if (!container) return;
+  const tabs = container.querySelectorAll('.org-tab');
+  const panels = container.querySelectorAll('.org-tab-panel');
+  tabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      const target = tab.dataset.tab;
+      tabs.forEach(t => t.classList.toggle('active', t.dataset.tab === target));
+      panels.forEach(p => p.classList.toggle('active', p.dataset.panel === target));
+    });
+  });
+})();
+</script><h3 id="hex-bolt-generator">Hex Bolt Generator</h3><div class="org-tabs" data-tabs-id="tabs-6h8zw1s">
+  <div class="org-tabs-header">
+    <button class="org-tab active" data-tab="result" type="button">Result</button>
+    <button class="org-tab" data-tab="source" type="button">Source</button>
+  </div>
+  <div class="org-tabs-content">
+    <div class="org-tab-panel active" data-panel="result">
+      <div id="org-block-8-result" data-org-block="block-content-plugins-jscad-org-8" class="org-block-result"></div>
+    </div>
+    <div class="org-tab-panel" data-panel="source">
+      <pre class="org-source-pre"><code class="hljs language-javascript"><span class="hljs-keyword">import</span> * <span class="hljs-keyword">as</span> jscad <span class="hljs-keyword">from</span> <span class="hljs-string">'@jscad/modeling'</span>;
+
+<span class="hljs-keyword">const</span> { cylinder, polygon } = jscad.<span class="hljs-property">primitives</span>;
+<span class="hljs-keyword">const</span> { extrudeLinear, extrudeHelical } = jscad.<span class="hljs-property">extrusions</span>;
+<span class="hljs-keyword">const</span> { subtract, union } = jscad.<span class="hljs-property">booleans</span>;
+<span class="hljs-keyword">const</span> { translate, rotateZ } = jscad.<span class="hljs-property">transforms</span>;
+
+<span class="hljs-comment">/**
+ * Create a hexagonal head
+ */</span>
+<span class="hljs-keyword">function</span> <span class="hljs-title function_">createHexHead</span>(<span class="hljs-params">size, height</span>) {
+  <span class="hljs-keyword">const</span> points = [];
+  <span class="hljs-keyword">for</span> (<span class="hljs-keyword">let</span> i = <span class="hljs-number">0</span>; i &#x3C; <span class="hljs-number">6</span>; i++) {
+    <span class="hljs-keyword">const</span> angle = (i / <span class="hljs-number">6</span>) * <span class="hljs-title class_">Math</span>.<span class="hljs-property">PI</span> * <span class="hljs-number">2</span> + <span class="hljs-title class_">Math</span>.<span class="hljs-property">PI</span> / <span class="hljs-number">6</span>;
+    points.<span class="hljs-title function_">push</span>([
+      <span class="hljs-title class_">Math</span>.<span class="hljs-title function_">cos</span>(angle) * size,
+      <span class="hljs-title class_">Math</span>.<span class="hljs-title function_">sin</span>(angle) * size
+    ]);
+  }
+  <span class="hljs-keyword">const</span> profile = <span class="hljs-title function_">polygon</span>({ points });
+  <span class="hljs-keyword">return</span> <span class="hljs-title function_">extrudeLinear</span>({ height }, profile);
+}
+
+<span class="hljs-comment">/**
+ * Create simple thread representation
+ */</span>
+<span class="hljs-keyword">function</span> <span class="hljs-title function_">createThread</span>(<span class="hljs-params">radius, length, pitch</span>) {
+  <span class="hljs-comment">// Simplified thread: grooved cylinder</span>
+  <span class="hljs-keyword">const</span> shaft = <span class="hljs-title function_">cylinder</span>({ radius, <span class="hljs-attr">height</span>: length });
+  <span class="hljs-keyword">const</span> grooves = [];
+
+  <span class="hljs-keyword">const</span> numGrooves = <span class="hljs-title class_">Math</span>.<span class="hljs-title function_">floor</span>(length / pitch);
+  <span class="hljs-keyword">for</span> (<span class="hljs-keyword">let</span> i = <span class="hljs-number">0</span>; i &#x3C; numGrooves; i++) {
+    <span class="hljs-keyword">const</span> groove = <span class="hljs-title function_">cylinder</span>({
+      <span class="hljs-attr">radius</span>: radius + <span class="hljs-number">0.5</span>,
+      <span class="hljs-attr">height</span>: pitch * <span class="hljs-number">0.3</span>
+    });
+    grooves.<span class="hljs-title function_">push</span>(
+      <span class="hljs-title function_">translate</span>([<span class="hljs-number">0</span>, <span class="hljs-number">0</span>, i * pitch + pitch * <span class="hljs-number">0.5</span>], groove)
+    );
+  }
+
+  <span class="hljs-keyword">return</span> <span class="hljs-title function_">subtract</span>(shaft, ...grooves);
+}
+
+<span class="hljs-comment">/**
+ * Create a hex bolt
+ * <span class="hljs-doctag">@param</span> {<span class="hljs-type">number</span>} <span class="hljs-variable">headSize</span> - Hex head width (across flats)
+ * <span class="hljs-doctag">@param</span> {<span class="hljs-type">number</span>} <span class="hljs-variable">headHeight</span> - Height of head
+ * <span class="hljs-doctag">@param</span> {<span class="hljs-type">number</span>} <span class="hljs-variable">shaftRadius</span> - Radius of threaded shaft
+ * <span class="hljs-doctag">@param</span> {<span class="hljs-type">number</span>} <span class="hljs-variable">shaftLength</span> - Length of shaft
+ * <span class="hljs-doctag">@param</span> {<span class="hljs-type">number</span>} <span class="hljs-variable">threadPitch</span> - Distance between threads
+ */</span>
+<span class="hljs-keyword">export</span> <span class="hljs-keyword">function</span> <span class="hljs-title function_">createBolt</span>(<span class="hljs-params">headSize = <span class="hljs-number">8</span>, headHeight = <span class="hljs-number">5</span>, shaftRadius = <span class="hljs-number">4</span>, shaftLength = <span class="hljs-number">20</span>, threadPitch = <span class="hljs-number">2</span></span>) {
+  <span class="hljs-keyword">const</span> head = <span class="hljs-title function_">translate</span>([<span class="hljs-number">0</span>, <span class="hljs-number">0</span>, <span class="hljs-number">0</span>], <span class="hljs-title function_">createHexHead</span>(headSize / <span class="hljs-number">2</span>, headHeight));
+  <span class="hljs-keyword">const</span> shaft = <span class="hljs-title function_">translate</span>([<span class="hljs-number">0</span>, <span class="hljs-number">0</span>, -shaftLength], <span class="hljs-title function_">createThread</span>(shaftRadius, shaftLength, threadPitch));
+
+  <span class="hljs-keyword">return</span> <span class="hljs-title function_">union</span>(head, shaft);
+}
+
+<span class="hljs-comment">// Demo: Single bolt</span>
+<span class="hljs-keyword">export</span> <span class="hljs-keyword">default</span> [<span class="hljs-title function_">createBolt</span>(<span class="hljs-number">10</span>, <span class="hljs-number">6</span>, <span class="hljs-number">3</span>, <span class="hljs-number">25</span>, <span class="hljs-number">1.5</span>)];
+</code></pre>
+    </div>
+  </div>
+</div>
+<script type="module">
+(function() {
+  const container = document.querySelector('[data-tabs-id="tabs-6h8zw1s"]');
+  if (!container) return;
+  const tabs = container.querySelectorAll('.org-tab');
+  const panels = container.querySelectorAll('.org-tab-panel');
+  tabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      const target = tab.dataset.tab;
+      tabs.forEach(t => t.classList.toggle('active', t.dataset.tab === target));
+      panels.forEach(p => p.classList.toggle('active', p.dataset.panel === target));
+    });
+  });
+})();
+</script><h3 id="hex-nut-generator">Hex Nut Generator</h3><div class="org-tabs" data-tabs-id="tabs-bdbv73i">
+  <div class="org-tabs-header">
+    <button class="org-tab active" data-tab="result" type="button">Result</button>
+    <button class="org-tab" data-tab="source" type="button">Source</button>
+  </div>
+  <div class="org-tabs-content">
+    <div class="org-tab-panel active" data-panel="result">
+      <div id="org-block-9-result" data-org-block="block-content-plugins-jscad-org-9" class="org-block-result"></div>
+    </div>
+    <div class="org-tab-panel" data-panel="source">
+      <pre class="org-source-pre"><code class="hljs language-javascript"><span class="hljs-keyword">import</span> * <span class="hljs-keyword">as</span> jscad <span class="hljs-keyword">from</span> <span class="hljs-string">'@jscad/modeling'</span>;
+
+<span class="hljs-keyword">const</span> { cylinder, polygon } = jscad.<span class="hljs-property">primitives</span>;
+<span class="hljs-keyword">const</span> { extrudeLinear } = jscad.<span class="hljs-property">extrusions</span>;
+<span class="hljs-keyword">const</span> { subtract } = jscad.<span class="hljs-property">booleans</span>;
+
+<span class="hljs-comment">/**
+ * Create a hex nut
+ * <span class="hljs-doctag">@param</span> {<span class="hljs-type">number</span>} <span class="hljs-variable">size</span> - Hex size (across flats)
+ * <span class="hljs-doctag">@param</span> {<span class="hljs-type">number</span>} <span class="hljs-variable">height</span> - Nut height
+ * <span class="hljs-doctag">@param</span> {<span class="hljs-type">number</span>} <span class="hljs-variable">holeRadius</span> - Center hole radius (for bolt)
+ */</span>
+<span class="hljs-keyword">export</span> <span class="hljs-keyword">function</span> <span class="hljs-title function_">createNut</span>(<span class="hljs-params">size = <span class="hljs-number">10</span>, height = <span class="hljs-number">5</span>, holeRadius = <span class="hljs-number">3.2</span></span>) {
+  <span class="hljs-comment">// Hex profile</span>
+  <span class="hljs-keyword">const</span> points = [];
+  <span class="hljs-keyword">for</span> (<span class="hljs-keyword">let</span> i = <span class="hljs-number">0</span>; i &#x3C; <span class="hljs-number">6</span>; i++) {
+    <span class="hljs-keyword">const</span> angle = (i / <span class="hljs-number">6</span>) * <span class="hljs-title class_">Math</span>.<span class="hljs-property">PI</span> * <span class="hljs-number">2</span> + <span class="hljs-title class_">Math</span>.<span class="hljs-property">PI</span> / <span class="hljs-number">6</span>;
+    points.<span class="hljs-title function_">push</span>([
+      <span class="hljs-title class_">Math</span>.<span class="hljs-title function_">cos</span>(angle) * size / <span class="hljs-number">2</span>,
+      <span class="hljs-title class_">Math</span>.<span class="hljs-title function_">sin</span>(angle) * size / <span class="hljs-number">2</span>
+    ]);
+  }
+  <span class="hljs-keyword">const</span> profile = <span class="hljs-title function_">polygon</span>({ points });
+  <span class="hljs-keyword">const</span> hex = <span class="hljs-title function_">extrudeLinear</span>({ height }, profile);
+
+  <span class="hljs-comment">// Center hole</span>
+  <span class="hljs-keyword">const</span> hole = <span class="hljs-title function_">cylinder</span>({ <span class="hljs-attr">radius</span>: holeRadius, <span class="hljs-attr">height</span>: height + <span class="hljs-number">2</span> });
+
+  <span class="hljs-keyword">return</span> <span class="hljs-title function_">subtract</span>(hex, hole);
+}
+
+<span class="hljs-comment">// Demo: Single nut</span>
+<span class="hljs-keyword">export</span> <span class="hljs-keyword">default</span> [<span class="hljs-title function_">createNut</span>(<span class="hljs-number">12</span>, <span class="hljs-number">6</span>, <span class="hljs-number">4</span>)];
+</code></pre>
+    </div>
+  </div>
+</div>
+<script type="module">
+(function() {
+  const container = document.querySelector('[data-tabs-id="tabs-bdbv73i"]');
+  if (!container) return;
+  const tabs = container.querySelectorAll('.org-tab');
+  const panels = container.querySelectorAll('.org-tab-panel');
+  tabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      const target = tab.dataset.tab;
+      tabs.forEach(t => t.classList.toggle('active', t.dataset.tab === target));
+      panels.forEach(p => p.classList.toggle('active', p.dataset.panel === target));
+    });
+  });
+})();
+</script></details>
+<h1 id="jscad-reference">JSCad Reference</h1><h2 id="primitives">Primitives</h2><ul><li><code class="inline-verbatim">cube({ size })</code> - Cube with equal sides
+</li><li><code class="inline-verbatim">cuboid({ size: [x, y, z] })</code> - Rectangular box
+</li><li><code class="inline-verbatim">sphere({ radius })</code> - Sphere
+</li><li><code class="inline-verbatim">cylinder({ radius, height })</code> - Cylinder
+</li><li><code class="inline-verbatim">cylinderElliptic({ height, startRadius, endRadius })</code> - Elliptical cylinder
+</li><li><code class="inline-verbatim">roundedCuboid({ size, roundRadius })</code> - Rounded corners box
+</li><li><code class="inline-verbatim">roundedCylinder({ radius, height, roundRadius })</code> - Rounded edges cylinder
+</li></ul><h2 id="transformations">Transformations</h2><ul><li><code class="inline-verbatim">translate([x, y, z], geometry)</code> - Move geometry
+</li><li><code class="inline-verbatim">rotate([x, y, z], geometry)</code> - Rotate (radians)
+</li><li><code class="inline-verbatim">scale([x, y, z], geometry)</code> - Scale along axes
+</li><li><code class="inline-verbatim">center({ axes }, geometry)</code> - Center geometry
+</li><li><code class="inline-verbatim">mirror({ normal }, geometry)</code> - Mirror across plane
+</li></ul><h2 id="boolean-operations-1">Boolean Operations</h2><ul><li><code class="inline-verbatim">union(...geometries)</code> - Combine shapes
+</li><li><code class="inline-verbatim">subtract(base, ...cutters)</code> - Cut shapes from base
+</li><li><code class="inline-verbatim">intersect(...geometries)</code> - Keep only overlapping volume
+</li></ul><h1 id="tips-and-best-practices">Tips and Best Practices</h1><h2 id="performance">Performance</h2><ul><li>Keep polygon counts reasonable (&#x3C; 50k triangles for smooth interaction)
+</li><li>Use <code class="inline-verbatim">roundedCuboid</code> sparingly (generates many segments)
+</li><li>Combine geometries with <code class="inline-verbatim">union</code> before exporting
+</li></ul><h2 id="export-workflow">Export Workflow</h2><ol><li>Design and preview in browser
+</li><li>Click "Download STL" button in viewer
+</li><li>Import STL into slicing software (Cura, PrusaSlicer, etc.)
+</li><li>Configure print settings and slice
+</li><li>Print!
+</li></ol><h1 id="see-also">See Also</h1><ul><li><a href="https://openjscad.xyz/docs/">JSCad Official Documentation</a> - Full JSCad API reference
+</li><li><a href="/plugins/index.html">All Plugins</a> - Available org-press plugins
+</li><li><a href="/plugins/creating-plugins.html">Creating Plugins</a> - How to create org-press plugins
+</li></ul></div></div></article></main><aside class="toc"><div class="toc-content"><h4 class="toc-title">On this page</h4><nav class="toc-nav" aria-label="Table of contents"><ul class="toc-list"><li class="toc-item "><a href="#features" class="toc-link">Features</a></li><li class="toc-item "><a href="#installation" class="toc-link">Installation</a></li><li class="toc-item "><a href="#usage" class="toc-link">Usage</a></li><li class="toc-item toc-item-nested"><a href="#basic-syntax" class="toc-link">Basic Syntax</a></li><li class="toc-item toc-item-nested"><a href="#parameters" class="toc-link">Parameters</a></li><li class="toc-item "><a href="#simple-cube" class="toc-link">Simple Cube</a></li><li class="toc-item "><a href="#basic-shapes" class="toc-link">Basic Shapes</a></li><li class="toc-item "><a href="#boolean-operations" class="toc-link">Boolean Operations</a></li><li class="toc-item "><a href="#parametric-box" class="toc-link">Parametric Box</a></li><li class="toc-item "><a href="#mechanical-assembly-with-imports" class="toc-link">Mechanical Assembly with Imports</a></li><li class="toc-item toc-item-nested"><a href="#gear-generator" class="toc-link">Gear Generator</a></li><li class="toc-item toc-item-nested"><a href="#hex-bolt-generator" class="toc-link">Hex Bolt Generator</a></li><li class="toc-item toc-item-nested"><a href="#hex-nut-generator" class="toc-link">Hex Nut Generator</a></li><li class="toc-item "><a href="#primitives" class="toc-link">Primitives</a></li><li class="toc-item "><a href="#transformations" class="toc-link">Transformations</a></li><li class="toc-item "><a href="#boolean-operations-1" class="toc-link">Boolean Operations</a></li><li class="toc-item "><a href="#performance" class="toc-link">Performance</a></li><li class="toc-item "><a href="#export-workflow" class="toc-link">Export Workflow</a></li></ul></nav></div></aside></div><footer class="site-footer"><div class="footer-content"><div class="footer-grid"><div class="footer-column"><h4>Guide</h4><ul><li><a href="/guide/index.html">What is Org-Press?</a></li><li><a href="/guide/getting-started.html">Getting Started</a></li><li><a href="/guide/features.html">Features</a></li><li><a href="/guide/cli.html">CLI Reference</a></li><li><a href="/guide/building.html">Building</a></li></ul></div><div class="footer-column"><h4>Config</h4><ul><li><a href="/config/index.html">Overview</a></li><li><a href="/config/shared-options.html">Shared Options</a></li><li><a href="/config/build-options.html">Build Options</a></li><li><a href="/config/server-options.html">Server Options</a></li></ul></div><div class="footer-column"><h4>Plugins</h4><ul><li><a href="/plugins/index.html">Overview</a></li><li><a href="/plugins/excalidraw.html">Excalidraw</a></li><li><a href="/plugins/jscad.html">JSCAD</a></li><li><a href="/plugins/creating-plugins.html">Creating Plugins</a></li></ul></div><div class="footer-column"><h4>API</h4><ul><li><a href="/api/index.html">Overview</a></li><li><a href="/api/plugin-api.html">Plugin API</a></li><li><a href="/api/javascript-api.html">JavaScript API</a></li></ul></div><div class="footer-column"><h4>Resources</h4><ul><li><a href="/examples/index.html">Examples</a></li><li><a href="https://github.com/org-press/org-press" target="_blank" rel="noopener">GitHub</a></li><li><a href="https://github.com/org-press/org-press/releases" target="_blank" rel="noopener">Releases</a></li></ul></div></div><div class="footer-bottom"><p class="footer-copyright">Released under the GPL-2.0 License.</p><p class="footer-credit">Built with <a href="https://github.com/org-press/org-press">org-press</a></p></div></div></footer></div><script src="https://analytics.ideable.dev/api/script.js" data-site-id="5dc60eeeac5d" defer=""></script><script type="module" src="/assets/hydrate-content-plugins-jscad-BPqRiau9.js"></script></body></html>

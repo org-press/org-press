@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charSet="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/><title>ECharts Plugin for Org-Press | org-press</title><meta name="description" content="Interactive charts using Apache ECharts - literate plugin implementation"/><script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script><script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/highlight.min.js"></script><link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/styles/github.min.css" media="(prefers-color-scheme: light)"/><link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/styles/github-dark.min.css" media="(prefers-color-scheme: dark)"/><script>
+          // Register org-mode language for highlight.js
+          if (typeof hljs !== 'undefined') {
+            hljs.registerLanguage('org', function(hljs) {
+              return {
+                name: 'Org',
+                aliases: ['org', 'org-mode', 'orgmode'],
+                case_insensitive: true,
+                contains: [
+                  // Headlines
+                  {
+                    className: 'section',
+                    begin: /^\*+\s/,
+                    end: /$/,
+                    contains: [
+                      { className: 'keyword', begin: /\b(TODO|DONE|WAITING|CANCELLED|NEXT|HOLD)\b/ }
+                    ]
+                  },
+                  // Keywords (#+KEYWORD:)
+                  {
+                    className: 'meta',
+                    begin: /^#\+[A-Za-z_]+:/,
+                    end: /$/,
+                    contains: [{ className: 'string', begin: /\s/, end: /$/ }]
+                  },
+                  // Begin/end blocks
+                  { className: 'keyword', begin: /^#\+(begin|end)_[a-z]+/i, relevance: 10 },
+                  // Property drawers
+                  { className: 'attribute', begin: /^:\w+:/, end: /$/ },
+                  // Links [[url][description]]
+                  {
+                    className: 'link',
+                    begin: /\[\[/,
+                    end: /\]\]/,
+                    contains: [{ className: 'string', begin: /\]\[/, end: /(?=\]\])/ }]
+                  },
+                  // Comments (lines starting with #, but not #+)
+                  { className: 'comment', begin: /^#[^+]/, end: /$/ },
+                  // Timestamps
+                  { className: 'number', begin: /<\d{4}-\d{2}-\d{2}/, end: />/ },
+                  // Tags :tag1:tag2:
+                  { className: 'tag', begin: /\s:[a-zA-Z0-9_@#%:]+:\s*$/ }
+                ]
+              };
+            });
+            // Run highlighting after DOM is ready
+            document.addEventListener('DOMContentLoaded', function() {
+              hljs.highlightAll();
+            });
+          }
+        </script><script>
+          (function() {
+            // Set current path as data attribute for CSS styling
+            document.documentElement.dataset.path = window.location.pathname;
+
+            // Mobile menu toggle using event delegation
+            document.addEventListener('click', function(e) {
+              var button = e.target.closest('.mobile-menu-button');
+              if (button) {
+                e.stopPropagation();
+                document.body.classList.toggle('mobile-menu-open');
+                return;
+              }
+              // Close menu when clicking a link inside the menu
+              var menuLink = e.target.closest('.mobile-menu a');
+              if (menuLink) {
+                document.body.classList.remove('mobile-menu-open');
+                return;
+              }
+              // Close menu when clicking outside
+              if (document.body.classList.contains('mobile-menu-open')) {
+                var menu = document.querySelector('.mobile-menu');
+                if (menu && !menu.contains(e.target)) {
+                  document.body.classList.remove('mobile-menu-open');
+                }
+              }
+            });
+
+            // Highlight current page in navigation
+            document.addEventListener('DOMContentLoaded', function() {
+              var path = window.location.pathname;
+              // Highlight sidebar links
+              document.querySelectorAll('.sidebar-link').forEach(function(link) {
+                if (link.getAttribute('href') === path) {
+                  link.classList.add('active');
+                  link.closest('.sidebar-item')?.classList.add('active');
+                }
+              });
+              // Highlight top nav links
+              document.querySelectorAll('.top-nav-link').forEach(function(link) {
+                var href = link.getAttribute('href');
+                var match = link.dataset.match;
+                if (path === href || (match && path.startsWith(match))) {
+                  link.classList.add('active');
+                }
+              });
+            });
+          })();
+        </script><link rel="stylesheet" href="/assets/theme-DsForQV0.css"/><script type="module" src="/assets/entry-client-l0sNRNKZ.js"></script></head><body><div class="docs-layout"><header class="top-nav"><div class="top-nav-container"><a href="/index.html" class="top-nav-logo"><span class="logo-text">Org-Press</span></a><nav class="top-nav-links"><a href="/guide/index.html" class="top-nav-link " data-match="^\/(guide(\/|$)|getting-started|index\.html$)">Guide</a><a href="/config/index.html" class="top-nav-link " data-match="^\/config(\/|$)">Config</a><a href="/plugins/index.html" class="top-nav-link active" data-match="^\/plugins(\/|$)">Plugins</a><a href="/api/index.html" class="top-nav-link " data-match="^\/api(\/|$)">API</a></nav><div class="top-nav-social"><a href="https://github.com/org-press/org-press/blob/main/docs/content/plugins/echarts.org?plain=1" class="top-nav-source-link" target="_blank" rel="noopener noreferrer" title="View page source on GitHub">:view-source</a><a href="https://github.com/org-press/org-press" class="top-nav-social-link" target="_blank" rel="noopener noreferrer" aria-label="GitHub"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"></path></svg></a></div><button class="mobile-menu-button" aria-label="Toggle navigation menu" aria-expanded="false"><span class="hamburger-line"></span><span class="hamburger-line"></span><span class="hamburger-line"></span></button></div></header><div class="mobile-menu"><nav class="mobile-menu-nav"><div class="mobile-menu-section"><a href="/guide/index.html" class="mobile-menu-section-title ">Guide</a><ul class="mobile-menu-list"><li><a href="/guide/index.html" class="mobile-menu-link ">What is Org-Press?</a></li><li><a href="/guide/getting-started.html" class="mobile-menu-link ">Getting Started</a></li><li><a href="/guide/why-org-press.html" class="mobile-menu-link ">Why Org-Press?</a></li><li><a href="/guide/features.html" class="mobile-menu-link ">Features</a></li><li><a href="/guide/rendering-modes.html" class="mobile-menu-link ">Rendering Modes</a></li><li><a href="/guide/cli.html" class="mobile-menu-link ">CLI Reference</a></li><li><a href="/guide/using-plugins.html" class="mobile-menu-link ">Using Plugins</a></li><li><a href="/guide/block-imports.html" class="mobile-menu-link ">Block Imports</a></li><li><a href="/guide/static-assets.html" class="mobile-menu-link ">Static Assets</a></li><li><a href="/guide/building.html" class="mobile-menu-link ">Building for Production</a></li><li><a href="/guide/deploying.html" class="mobile-menu-link ">Deploying</a></li><li><a href="/guide/troubleshooting.html" class="mobile-menu-link ">Troubleshooting</a></li></ul></div><div class="mobile-menu-section"><a href="/config/index.html" class="mobile-menu-section-title ">Config</a><ul class="mobile-menu-list"><li><a href="/config/index.html" class="mobile-menu-link ">Overview</a></li><li><a href="/config/shared-options.html" class="mobile-menu-link ">Shared Options</a></li><li><a href="/config/build-options.html" class="mobile-menu-link ">Build Options</a></li><li><a href="/config/server-options.html" class="mobile-menu-link ">Server Options</a></li><li><a href="/config/plugin-options.html" class="mobile-menu-link ">Plugin Options</a></li></ul></div><div class="mobile-menu-section"><a href="/plugins/index.html" class="mobile-menu-section-title active">Plugins</a><ul class="mobile-menu-list"><li><a href="/plugins/index.html" class="mobile-menu-link ">Overview</a></li><li class="mobile-menu-group"><span class="mobile-menu-group-title">Official Plugins</span><ul class="mobile-menu-sublist"><li><a href="/plugins/react.html" class="mobile-menu-link ">React</a></li><li><a href="/plugins/echarts.html" class="mobile-menu-link ">ECharts</a></li><li><a href="/plugins/excalidraw.html" class="mobile-menu-link ">Excalidraw</a></li><li><a href="/plugins/jscad.html" class="mobile-menu-link ">JSCAD</a></li><li><a href="/plugins/test.html" class="mobile-menu-link ">Test</a></li></ul></li><li><a href="/plugins/creating-plugins.html" class="mobile-menu-link ">Creating Plugins</a></li></ul></div><div class="mobile-menu-section"><a href="/api/index.html" class="mobile-menu-section-title ">API</a><ul class="mobile-menu-list"><li><a href="/api/index.html" class="mobile-menu-link ">Overview</a></li><li><a href="/api/plugin-api.html" class="mobile-menu-link ">Plugin API</a></li><li><a href="/api/javascript-api.html" class="mobile-menu-link ">JavaScript API</a></li><li><a href="/api/hmr-api.html" class="mobile-menu-link ">HMR API</a></li><li><a href="/api/cli-plugins.html" class="mobile-menu-link ">CLI Plugins</a></li></ul></div></nav><div class="mobile-menu-footer"><a href="https://github.com/org-press/org-press" class="mobile-menu-link" target="_blank" rel="noopener noreferrer">GitHub</a></div></div><div class="alpha-banner"><span class="alpha-banner-icon">⚠️</span><span class="alpha-banner-text"><strong>Early Alpha</strong> — Org-press is experimental. Perfect for hackers and tinkerers, not ready for production. Documentation may be incomplete or inaccurate.</span></div><div class="docs-container"><aside class="sidebar"><div class="sidebar-content"><nav class="sidebar-nav" aria-label="Section navigation"><div class="sidebar-section"><h3 class="sidebar-section-title">Plugins</h3><ul class="sidebar-list"><li class="sidebar-item "><a href="/plugins/index.html" class="sidebar-link ">Overview</a></li><li class="sidebar-group"><span class="sidebar-group-title">Official Plugins</span><ul class="sidebar-list sidebar-list-nested"><li class="sidebar-item "><a href="/plugins/react.html" class="sidebar-link ">React</a></li><li class="sidebar-item "><a href="/plugins/echarts.html" class="sidebar-link ">ECharts</a></li><li class="sidebar-item "><a href="/plugins/excalidraw.html" class="sidebar-link ">Excalidraw</a></li><li class="sidebar-item "><a href="/plugins/jscad.html" class="sidebar-link ">JSCAD</a></li><li class="sidebar-item "><a href="/plugins/test.html" class="sidebar-link ">Test</a></li></ul></li><li class="sidebar-item "><a href="/plugins/creating-plugins.html" class="sidebar-link ">Creating Plugins</a></li></ul></div></nav></div></aside><main class="docs-content"><article class="docs-article"><div class="docs-body"><div><h1 id="echarts-plugin">ECharts Plugin</h1><p>This is a literate plugin implementation for Apache ECharts integration with org-press.
+The plugin source code, documentation, and examples all live together in this file.
+</p><h2 id="features">Features</h2><ul><li><strong>JSON mode</strong>: Simple chart configuration directly in org blocks
+</li><li><strong>JavaScript mode</strong>: Dynamic charts with imports from other blocks
+</li><li><strong>Responsive</strong>: Automatic resize handling
+</li><li><strong>Memory safe</strong>: Proper cleanup on navigation
+</li><li><strong>Theme support</strong>: Light and dark themes via parameters
+</li></ul><h2 id="installation">Installation</h2><p>Install the plugin and echarts as peer dependencies:
+</p><div class="example">npm install @org-press/block-echarts echarts
+</div><p>Add to your org-press config:
+</p><pre><code class="hljs language-typescript"><span class="hljs-comment">// .org-press/config.ts</span>
+<span class="hljs-keyword">import</span> { echartsPlugin } <span class="hljs-keyword">from</span> <span class="hljs-string">"@org-press/block-echarts"</span>;
+
+<span class="hljs-keyword">export</span> <span class="hljs-keyword">default</span> {
+  <span class="hljs-attr">plugins</span>: [echartsPlugin],
+};
+</code></pre>
+<h2 id="usage">Usage</h2><h3 id="json-mode-simple">JSON Mode (Simple)</h3><p>For static charts, use JSON directly:
+</p><pre><code class="hljs language-org">#+begin_src json :use echarts :height 400px
+{
+  "xAxis": { "type": "category", "data": ["Mon", "Tue", "Wed", "Thu", "Fri"] },
+  "yAxis": { "type": "value" },
+  "series": [{ "data": [150, 230, 224, 218, 135], "type": "line" }]
+}
+#+end_src
+</code></pre>
+<h3 id="javascript-mode-dynamic">JavaScript Mode (Dynamic)</h3><p>For dynamic data or imports:
+</p><pre><code class="hljs language-org">#+NAME: sales-data
+#+begin_src json
+{ "months": ["Jan", "Feb", "Mar"], "values": [100, 200, 150] }
+#+end_src
+
+#+begin_src javascript :use echarts
+import data from './index.org?name=sales-data';
+
+export default {
+  xAxis: { type: 'category', data: data.months },
+  yAxis: { type: 'value' },
+  series: [{ data: data.values, type: 'bar' }]
+};
+#+end_src
+</code></pre>
+<h3 id="parameters">Parameters</h3><ul><li><code class="inline-verbatim">:height</code> - Chart height (default: "400px")
+</li><li><code class="inline-verbatim">:theme</code> - ECharts theme: "light" | "dark" (default: "light")
+</li><li><code class="inline-verbatim">:renderer</code> - Renderer: "canvas" | "svg" (default: "canvas")
+</li></ul><p>Example with parameters:
+</p><pre><code class="hljs language-org">#+begin_src json :use echarts :height 600px :theme dark :renderer svg
+{ ... }
+#+end_src
+</code></pre>
+<h1 id="plugin-implementation">Plugin Implementation</h1><p>The plugin transforms ECharts blocks into executable JavaScript that renders
+interactive charts using the ECharts library.
+</p><details>
+<summary>View plugin source code</summary>
+<pre class="src-block"><code class="hljs language-typescript"><span class="hljs-keyword">import</span> <span class="hljs-keyword">type</span> {
+  <span class="hljs-title class_">BlockPlugin</span>,
+  <span class="hljs-title class_">CodeBlock</span>,
+  <span class="hljs-title class_">TransformContext</span>,
+  <span class="hljs-title class_">TransformResult</span>,
+} <span class="hljs-keyword">from</span> <span class="hljs-string">"org-press"</span>;
+<span class="hljs-keyword">import</span> { createBlockId, parseBlockParameters } <span class="hljs-keyword">from</span> <span class="hljs-string">"org-press"</span>;
+
+<span class="hljs-comment">/**
+ * Check if the block content is JavaScript (has imports or exports)
+ */</span>
+<span class="hljs-keyword">function</span> <span class="hljs-title function_">isJavaScriptBlock</span>(<span class="hljs-params"><span class="hljs-attr">content</span>: <span class="hljs-built_in">string</span>, <span class="hljs-attr">language</span>: <span class="hljs-built_in">string</span></span>): <span class="hljs-built_in">boolean</span> {
+  <span class="hljs-comment">// Explicit JavaScript language</span>
+  <span class="hljs-keyword">if</span> ([<span class="hljs-string">'javascript'</span>, <span class="hljs-string">'js'</span>, <span class="hljs-string">'typescript'</span>, <span class="hljs-string">'ts'</span>].<span class="hljs-title function_">includes</span>(language.<span class="hljs-title function_">toLowerCase</span>())) {
+    <span class="hljs-keyword">return</span> <span class="hljs-literal">true</span>;
+  }
+  <span class="hljs-comment">// JSON with import/export statements (user wants JS mode)</span>
+  <span class="hljs-keyword">if</span> (content.<span class="hljs-title function_">includes</span>(<span class="hljs-string">'import '</span>) || content.<span class="hljs-title function_">includes</span>(<span class="hljs-string">'export '</span>)) {
+    <span class="hljs-keyword">return</span> <span class="hljs-literal">true</span>;
+  }
+  <span class="hljs-keyword">return</span> <span class="hljs-literal">false</span>;
+}
+
+<span class="hljs-comment">/**
+ * Generate the render function code for ECharts
+ */</span>
+<span class="hljs-keyword">function</span> <span class="hljs-title function_">generateRenderCode</span>(<span class="hljs-params"><span class="hljs-attr">options</span>: {
+  containerId: <span class="hljs-built_in">string</span>;
+  height: <span class="hljs-built_in">string</span>;
+  theme: <span class="hljs-built_in">string</span>;
+  renderer: <span class="hljs-built_in">string</span>;
+  dataCode: <span class="hljs-built_in">string</span>;
+  isModule: <span class="hljs-built_in">boolean</span>;
+  moduleId?: <span class="hljs-built_in">string</span>;
+}</span>): <span class="hljs-built_in">string</span> {
+  <span class="hljs-keyword">const</span> { height, theme, renderer, dataCode, isModule, moduleId } = options;
+
+  <span class="hljs-keyword">const</span> initCode = isModule
+    ? <span class="hljs-string">`import('<span class="hljs-subst">${moduleId}</span>').then((module) => {
+        try {
+          initChart(module.default);
+        } catch (err) {
+          showError(err);
+        }
+      }).catch(showError);`</span>
+    : <span class="hljs-string">`try {
+        const chartOption = <span class="hljs-subst">${dataCode}</span>;
+        initChart(chartOption);
+      } catch (err) {
+        showError(err);
+      }`</span>;
+
+  <span class="hljs-keyword">return</span> <span class="hljs-string">`
+import * as echarts from 'echarts';
+
+// Track chart instances for cleanup
+const chartRegistry = new Map();
+
+// Export render function - exporter will call this with container ID
+export default function render(containerId) {
+  const container = document.getElementById(containerId);
+  if (!container) {
+    console.error('[ECharts] Container not found:', containerId);
+    return;
+  }
+
+  // Style the container
+  container.className = 'echarts-wrapper';
+  container.style.cssText = 'position: relative; width: 100%; height: <span class="hljs-subst">${height}</span>;';
+
+  // Create inner container for chart
+  const chartContainer = document.createElement('div');
+  chartContainer.style.cssText = 'width: 100%; height: 100%;';
+  container.appendChild(chartContainer);
+
+  function showError(err) {
+    console.error('[ECharts] Failed to render chart:', err);
+    container.innerHTML = '&#x3C;div style="color: red; padding: 1rem; border: 1px solid red;">Error rendering chart: ' + (err.message || err) + '&#x3C;/div>';
+  }
+
+  function initChart(chartOption) {
+    // Dispose existing chart if any (for HMR)
+    if (chartRegistry.has(containerId)) {
+      chartRegistry.get(containerId).dispose();
+    }
+
+    // Initialize ECharts
+    const chart = echarts.init(chartContainer, '<span class="hljs-subst">${theme}</span>', {
+      renderer: '<span class="hljs-subst">${renderer}</span>',
+    });
+
+    // Set option
+    chart.setOption(chartOption);
+
+    // Handle resize
+    const resizeObserver = new ResizeObserver(() => {
+      chart.resize();
+    });
+    resizeObserver.observe(container);
+
+    // Also handle window resize for containers that don't trigger ResizeObserver
+    const handleResize = () => chart.resize();
+    window.addEventListener('resize', handleResize);
+
+    // Store for cleanup
+    chartRegistry.set(containerId, chart);
+
+    // Cleanup on navigation (for SPA)
+    const cleanup = () => {
+      resizeObserver.disconnect();
+      window.removeEventListener('resize', handleResize);
+      chart.dispose();
+      chartRegistry.delete(containerId);
+    };
+
+    // Watch for container removal (works with most SPA routers)
+    const observer = new MutationObserver((mutations) => {
+      for (const mutation of mutations) {
+        for (const removed of mutation.removedNodes) {
+          if (removed === container || (removed instanceof Element &#x26;&#x26; removed.contains(container))) {
+            cleanup();
+            observer.disconnect();
+            return;
+          }
+        }
+      }
+    });
+
+    if (container.parentElement) {
+      observer.observe(container.parentElement, { childList: true, subtree: true });
+    }
+  }
+
+  <span class="hljs-subst">${initCode}</span>
+}
+`</span>;
+}
+
+<span class="hljs-comment">/**
+ * ECharts block plugin for org-press
+ *
+ * Supports both JSON (inline data) and JavaScript (imports) modes
+ *
+ * Preview API compatible:
+ * - :use echarts -> renders interactive chart
+ * - :use echarts | sourceOnly -> shows source code only
+ * - :use echarts | withSourceCode -> shows both code and chart
+ */</span>
+<span class="hljs-keyword">export</span> <span class="hljs-keyword">const</span> <span class="hljs-attr">echartsPlugin</span>: <span class="hljs-title class_">BlockPlugin</span> = {
+  <span class="hljs-attr">name</span>: <span class="hljs-string">'echarts'</span>,
+  <span class="hljs-attr">defaultExtension</span>: <span class="hljs-string">'js'</span>,
+
+  <span class="hljs-comment">/**
+   * Transform returns code that renders the ECharts chart
+   * - JSON mode: embeds data directly
+   * - JS mode: imports data from a separate virtual module (supports imports)
+   */</span>
+  <span class="hljs-keyword">async</span> <span class="hljs-title function_">transform</span>(<span class="hljs-attr">block</span>: <span class="hljs-title class_">CodeBlock</span>, <span class="hljs-attr">context</span>: <span class="hljs-title class_">TransformContext</span>): <span class="hljs-title class_">Promise</span>&#x3C;<span class="hljs-title class_">TransformResult</span>> {
+    <span class="hljs-comment">// Create stable ID for this block using utility</span>
+    <span class="hljs-keyword">const</span> stableId = <span class="hljs-title function_">createBlockId</span>(context.<span class="hljs-property">orgFilePath</span>, context.<span class="hljs-property">blockIndex</span>);
+
+    <span class="hljs-comment">// Parse block parameters</span>
+    <span class="hljs-keyword">const</span> params = <span class="hljs-title function_">parseBlockParameters</span>(block.<span class="hljs-property">meta</span> || <span class="hljs-string">""</span>);
+
+    <span class="hljs-comment">// Check for mode from :use parameter (e.g., :use echarts | sourceOnly)</span>
+    <span class="hljs-keyword">const</span> useValue = params.<span class="hljs-property">use</span> || <span class="hljs-string">'echarts'</span>;
+    <span class="hljs-keyword">const</span> useParts = useValue.<span class="hljs-title function_">split</span>(<span class="hljs-string">'|'</span>).<span class="hljs-title function_">map</span>(<span class="hljs-function">(<span class="hljs-params"><span class="hljs-attr">s</span>: <span class="hljs-built_in">string</span></span>) =></span> s.<span class="hljs-title function_">trim</span>());
+    <span class="hljs-keyword">const</span> mode = useParts.<span class="hljs-property">length</span> > <span class="hljs-number">1</span> ? useParts[<span class="hljs-number">1</span>] : <span class="hljs-string">'preview'</span>;
+
+    <span class="hljs-comment">// Handle sourceOnly mode - just return the source code</span>
+    <span class="hljs-keyword">if</span> (mode === <span class="hljs-string">'sourceOnly'</span>) {
+      <span class="hljs-keyword">return</span> {
+        <span class="hljs-attr">code</span>: <span class="hljs-string">`// ECharts configuration source (display only)\nexport default <span class="hljs-subst">${<span class="hljs-built_in">JSON</span>.stringify(block.value)}</span>;`</span>,
+      };
+    }
+
+    <span class="hljs-comment">// Get parameters with defaults</span>
+    <span class="hljs-keyword">const</span> height = params.<span class="hljs-property">height</span> || <span class="hljs-string">'400px'</span>;
+    <span class="hljs-keyword">const</span> theme = params.<span class="hljs-property">theme</span> || <span class="hljs-string">'light'</span>;
+    <span class="hljs-keyword">const</span> renderer = params.<span class="hljs-property">renderer</span> || <span class="hljs-string">'canvas'</span>;
+
+    <span class="hljs-comment">// Check if this is JavaScript mode (has imports)</span>
+    <span class="hljs-keyword">const</span> isJsMode = <span class="hljs-title function_">isJavaScriptBlock</span>(block.<span class="hljs-property">value</span>, block.<span class="hljs-property">language</span>);
+
+    <span class="hljs-keyword">if</span> (isJsMode) {
+      <span class="hljs-comment">// JavaScript mode: import data from a virtual module</span>
+      <span class="hljs-comment">// The virtual-blocks plugin will serve the user's code as a module</span>
+      <span class="hljs-keyword">const</span> dataModuleId = params.<span class="hljs-property">name</span>
+        ? <span class="hljs-string">`virtual:org-press:block:echarts-data:<span class="hljs-subst">${context.orgFilePath}</span>:NAME:<span class="hljs-subst">${params.name}</span>`</span>
+        : <span class="hljs-string">`virtual:org-press:block:echarts-data:<span class="hljs-subst">${context.orgFilePath}</span>:<span class="hljs-subst">${context.blockIndex}</span>`</span>;
+
+      <span class="hljs-keyword">return</span> {
+        <span class="hljs-attr">code</span>: <span class="hljs-title function_">generateRenderCode</span>({
+          <span class="hljs-attr">containerId</span>: stableId,
+          height,
+          theme,
+          renderer,
+          <span class="hljs-attr">dataCode</span>: <span class="hljs-string">''</span>,
+          <span class="hljs-attr">isModule</span>: <span class="hljs-literal">true</span>,
+          <span class="hljs-attr">moduleId</span>: dataModuleId,
+        }),
+      };
+    } <span class="hljs-keyword">else</span> {
+      <span class="hljs-comment">// JSON mode: embed data directly</span>
+      <span class="hljs-keyword">return</span> {
+        <span class="hljs-attr">code</span>: <span class="hljs-title function_">generateRenderCode</span>({
+          <span class="hljs-attr">containerId</span>: stableId,
+          height,
+          theme,
+          renderer,
+          <span class="hljs-attr">dataCode</span>: block.<span class="hljs-property">value</span>,
+          <span class="hljs-attr">isModule</span>: <span class="hljs-literal">false</span>,
+        }),
+      };
+    }
+  },
+};
+
+<span class="hljs-comment">// Default export for convenience</span>
+<span class="hljs-keyword">export</span> <span class="hljs-keyword">default</span> echartsPlugin;
+</code></pre></details>
+<h1 id="examples">Examples</h1><h2 id="line-chart">Line Chart</h2><p>A simple line chart showing weekly data:
+</p><div class="org-tabs" data-tabs-id="tabs-ntx76c9">
+  <div class="org-tabs-header">
+    <button class="org-tab active" data-tab="result" type="button">Result</button>
+    <button class="org-tab" data-tab="source" type="button">Source</button>
+  </div>
+  <div class="org-tabs-content">
+    <div class="org-tab-panel active" data-panel="result">
+      <div id="org-block-1-result" data-org-block="block-content-plugins-echarts-org-1" class="org-block-result"></div>
+    </div>
+    <div class="org-tab-panel" data-panel="source">
+      <pre class="org-source-pre"><code class="hljs language-json"><span class="hljs-punctuation">{</span>
+  <span class="hljs-attr">"title"</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">{</span> <span class="hljs-attr">"text"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"Weekly Sales"</span> <span class="hljs-punctuation">}</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">"tooltip"</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">{</span> <span class="hljs-attr">"trigger"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"axis"</span> <span class="hljs-punctuation">}</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">"xAxis"</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">{</span>
+    <span class="hljs-attr">"type"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"category"</span><span class="hljs-punctuation">,</span>
+    <span class="hljs-attr">"data"</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">[</span><span class="hljs-string">"Mon"</span><span class="hljs-punctuation">,</span> <span class="hljs-string">"Tue"</span><span class="hljs-punctuation">,</span> <span class="hljs-string">"Wed"</span><span class="hljs-punctuation">,</span> <span class="hljs-string">"Thu"</span><span class="hljs-punctuation">,</span> <span class="hljs-string">"Fri"</span><span class="hljs-punctuation">,</span> <span class="hljs-string">"Sat"</span><span class="hljs-punctuation">,</span> <span class="hljs-string">"Sun"</span><span class="hljs-punctuation">]</span>
+  <span class="hljs-punctuation">}</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">"yAxis"</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">{</span> <span class="hljs-attr">"type"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"value"</span> <span class="hljs-punctuation">}</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">"series"</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">[</span><span class="hljs-punctuation">{</span>
+    <span class="hljs-attr">"name"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"Sales"</span><span class="hljs-punctuation">,</span>
+    <span class="hljs-attr">"type"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"line"</span><span class="hljs-punctuation">,</span>
+    <span class="hljs-attr">"smooth"</span><span class="hljs-punctuation">:</span> <span class="hljs-literal"><span class="hljs-keyword">true</span></span><span class="hljs-punctuation">,</span>
+    <span class="hljs-attr">"data"</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">[</span><span class="hljs-number">150</span><span class="hljs-punctuation">,</span> <span class="hljs-number">230</span><span class="hljs-punctuation">,</span> <span class="hljs-number">224</span><span class="hljs-punctuation">,</span> <span class="hljs-number">218</span><span class="hljs-punctuation">,</span> <span class="hljs-number">135</span><span class="hljs-punctuation">,</span> <span class="hljs-number">147</span><span class="hljs-punctuation">,</span> <span class="hljs-number">260</span><span class="hljs-punctuation">]</span>
+  <span class="hljs-punctuation">}</span><span class="hljs-punctuation">]</span>
+<span class="hljs-punctuation">}</span>
+</code></pre>
+    </div>
+  </div>
+</div>
+<script type="module">
+(function() {
+  const container = document.querySelector('[data-tabs-id="tabs-ntx76c9"]');
+  if (!container) return;
+  const tabs = container.querySelectorAll('.org-tab');
+  const panels = container.querySelectorAll('.org-tab-panel');
+  tabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      const target = tab.dataset.tab;
+      tabs.forEach(t => t.classList.toggle('active', t.dataset.tab === target));
+      panels.forEach(p => p.classList.toggle('active', p.dataset.panel === target));
+    });
+  });
+})();
+</script><h2 id="bar-chart-with-multiple-series">Bar Chart with Multiple Series</h2><p>Comparing data across years with grouped bars:
+</p><div class="org-tabs" data-tabs-id="tabs-dz1xxj8">
+  <div class="org-tabs-header">
+    <button class="org-tab active" data-tab="result" type="button">Result</button>
+    <button class="org-tab" data-tab="source" type="button">Source</button>
+  </div>
+  <div class="org-tabs-content">
+    <div class="org-tab-panel active" data-panel="result">
+      <div id="org-block-2-result" data-org-block="block-content-plugins-echarts-org-2" class="org-block-result"></div>
+    </div>
+    <div class="org-tab-panel" data-panel="source">
+      <pre class="org-source-pre"><code class="hljs language-json"><span class="hljs-punctuation">{</span>
+  <span class="hljs-attr">"title"</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">{</span> <span class="hljs-attr">"text"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"Quarterly Revenue"</span> <span class="hljs-punctuation">}</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">"legend"</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">{</span> <span class="hljs-attr">"data"</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">[</span><span class="hljs-string">"2023"</span><span class="hljs-punctuation">,</span> <span class="hljs-string">"2024"</span><span class="hljs-punctuation">]</span> <span class="hljs-punctuation">}</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">"xAxis"</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">{</span>
+    <span class="hljs-attr">"type"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"category"</span><span class="hljs-punctuation">,</span>
+    <span class="hljs-attr">"data"</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">[</span><span class="hljs-string">"Q1"</span><span class="hljs-punctuation">,</span> <span class="hljs-string">"Q2"</span><span class="hljs-punctuation">,</span> <span class="hljs-string">"Q3"</span><span class="hljs-punctuation">,</span> <span class="hljs-string">"Q4"</span><span class="hljs-punctuation">]</span>
+  <span class="hljs-punctuation">}</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">"yAxis"</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">{</span> <span class="hljs-attr">"type"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"value"</span><span class="hljs-punctuation">,</span> <span class="hljs-attr">"name"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"Revenue ($K)"</span> <span class="hljs-punctuation">}</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">"series"</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">[</span>
+    <span class="hljs-punctuation">{</span> <span class="hljs-attr">"name"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"2023"</span><span class="hljs-punctuation">,</span> <span class="hljs-attr">"type"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"bar"</span><span class="hljs-punctuation">,</span> <span class="hljs-attr">"data"</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">[</span><span class="hljs-number">320</span><span class="hljs-punctuation">,</span> <span class="hljs-number">332</span><span class="hljs-punctuation">,</span> <span class="hljs-number">301</span><span class="hljs-punctuation">,</span> <span class="hljs-number">334</span><span class="hljs-punctuation">]</span> <span class="hljs-punctuation">}</span><span class="hljs-punctuation">,</span>
+    <span class="hljs-punctuation">{</span> <span class="hljs-attr">"name"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"2024"</span><span class="hljs-punctuation">,</span> <span class="hljs-attr">"type"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"bar"</span><span class="hljs-punctuation">,</span> <span class="hljs-attr">"data"</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">[</span><span class="hljs-number">420</span><span class="hljs-punctuation">,</span> <span class="hljs-number">482</span><span class="hljs-punctuation">,</span> <span class="hljs-number">391</span><span class="hljs-punctuation">,</span> <span class="hljs-number">484</span><span class="hljs-punctuation">]</span> <span class="hljs-punctuation">}</span>
+  <span class="hljs-punctuation">]</span>
+<span class="hljs-punctuation">}</span>
+</code></pre>
+    </div>
+  </div>
+</div>
+<script type="module">
+(function() {
+  const container = document.querySelector('[data-tabs-id="tabs-dz1xxj8"]');
+  if (!container) return;
+  const tabs = container.querySelectorAll('.org-tab');
+  const panels = container.querySelectorAll('.org-tab-panel');
+  tabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      const target = tab.dataset.tab;
+      tabs.forEach(t => t.classList.toggle('active', t.dataset.tab === target));
+      panels.forEach(p => p.classList.toggle('active', p.dataset.panel === target));
+    });
+  });
+})();
+</script><h2 id="pie-chart">Pie Chart</h2><p>Distribution of traffic sources:
+</p><div class="org-tabs" data-tabs-id="tabs-hgvr73d">
+  <div class="org-tabs-header">
+    <button class="org-tab active" data-tab="result" type="button">Result</button>
+    <button class="org-tab" data-tab="source" type="button">Source</button>
+  </div>
+  <div class="org-tabs-content">
+    <div class="org-tab-panel active" data-panel="result">
+      <div id="org-block-3-result" data-org-block="block-content-plugins-echarts-org-3" class="org-block-result"></div>
+    </div>
+    <div class="org-tab-panel" data-panel="source">
+      <pre class="org-source-pre"><code class="hljs language-json"><span class="hljs-punctuation">{</span>
+  <span class="hljs-attr">"title"</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">{</span> <span class="hljs-attr">"text"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"Traffic Sources"</span><span class="hljs-punctuation">,</span> <span class="hljs-attr">"left"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"center"</span> <span class="hljs-punctuation">}</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">"tooltip"</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">{</span> <span class="hljs-attr">"trigger"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"item"</span> <span class="hljs-punctuation">}</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">"legend"</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">{</span> <span class="hljs-attr">"orient"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"vertical"</span><span class="hljs-punctuation">,</span> <span class="hljs-attr">"left"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"left"</span> <span class="hljs-punctuation">}</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">"series"</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">[</span><span class="hljs-punctuation">{</span>
+    <span class="hljs-attr">"name"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"Source"</span><span class="hljs-punctuation">,</span>
+    <span class="hljs-attr">"type"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"pie"</span><span class="hljs-punctuation">,</span>
+    <span class="hljs-attr">"radius"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"50%"</span><span class="hljs-punctuation">,</span>
+    <span class="hljs-attr">"data"</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">[</span>
+      <span class="hljs-punctuation">{</span> <span class="hljs-attr">"value"</span><span class="hljs-punctuation">:</span> <span class="hljs-number">1048</span><span class="hljs-punctuation">,</span> <span class="hljs-attr">"name"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"Search Engine"</span> <span class="hljs-punctuation">}</span><span class="hljs-punctuation">,</span>
+      <span class="hljs-punctuation">{</span> <span class="hljs-attr">"value"</span><span class="hljs-punctuation">:</span> <span class="hljs-number">735</span><span class="hljs-punctuation">,</span> <span class="hljs-attr">"name"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"Direct"</span> <span class="hljs-punctuation">}</span><span class="hljs-punctuation">,</span>
+      <span class="hljs-punctuation">{</span> <span class="hljs-attr">"value"</span><span class="hljs-punctuation">:</span> <span class="hljs-number">580</span><span class="hljs-punctuation">,</span> <span class="hljs-attr">"name"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"Email"</span> <span class="hljs-punctuation">}</span><span class="hljs-punctuation">,</span>
+      <span class="hljs-punctuation">{</span> <span class="hljs-attr">"value"</span><span class="hljs-punctuation">:</span> <span class="hljs-number">484</span><span class="hljs-punctuation">,</span> <span class="hljs-attr">"name"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"Social Media"</span> <span class="hljs-punctuation">}</span><span class="hljs-punctuation">,</span>
+      <span class="hljs-punctuation">{</span> <span class="hljs-attr">"value"</span><span class="hljs-punctuation">:</span> <span class="hljs-number">300</span><span class="hljs-punctuation">,</span> <span class="hljs-attr">"name"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"Other"</span> <span class="hljs-punctuation">}</span>
+    <span class="hljs-punctuation">]</span>
+  <span class="hljs-punctuation">}</span><span class="hljs-punctuation">]</span>
+<span class="hljs-punctuation">}</span>
+</code></pre>
+    </div>
+  </div>
+</div>
+<script type="module">
+(function() {
+  const container = document.querySelector('[data-tabs-id="tabs-hgvr73d"]');
+  if (!container) return;
+  const tabs = container.querySelectorAll('.org-tab');
+  const panels = container.querySelectorAll('.org-tab-panel');
+  tabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      const target = tab.dataset.tab;
+      tabs.forEach(t => t.classList.toggle('active', t.dataset.tab === target));
+      panels.forEach(p => p.classList.toggle('active', p.dataset.panel === target));
+    });
+  });
+})();
+</script><h2 id="area-chart">Area Chart</h2><p>A chart with filled area under the line:
+</p><div class="org-tabs" data-tabs-id="tabs-7d7fw6c">
+  <div class="org-tabs-header">
+    <button class="org-tab active" data-tab="result" type="button">Result</button>
+    <button class="org-tab" data-tab="source" type="button">Source</button>
+  </div>
+  <div class="org-tabs-content">
+    <div class="org-tab-panel active" data-panel="result">
+      <div id="org-block-4-result" data-org-block="block-content-plugins-echarts-org-4" class="org-block-result"></div>
+    </div>
+    <div class="org-tab-panel" data-panel="source">
+      <pre class="org-source-pre"><code class="hljs language-json"><span class="hljs-punctuation">{</span>
+  <span class="hljs-attr">"title"</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">{</span> <span class="hljs-attr">"text"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"Monthly Performance"</span> <span class="hljs-punctuation">}</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">"tooltip"</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">{</span> <span class="hljs-attr">"trigger"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"axis"</span> <span class="hljs-punctuation">}</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">"xAxis"</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">{</span>
+    <span class="hljs-attr">"type"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"category"</span><span class="hljs-punctuation">,</span>
+    <span class="hljs-attr">"boundaryGap"</span><span class="hljs-punctuation">:</span> <span class="hljs-literal"><span class="hljs-keyword">false</span></span><span class="hljs-punctuation">,</span>
+    <span class="hljs-attr">"data"</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">[</span><span class="hljs-string">"Jan"</span><span class="hljs-punctuation">,</span> <span class="hljs-string">"Feb"</span><span class="hljs-punctuation">,</span> <span class="hljs-string">"Mar"</span><span class="hljs-punctuation">,</span> <span class="hljs-string">"Apr"</span><span class="hljs-punctuation">,</span> <span class="hljs-string">"May"</span><span class="hljs-punctuation">,</span> <span class="hljs-string">"Jun"</span><span class="hljs-punctuation">,</span> <span class="hljs-string">"Jul"</span><span class="hljs-punctuation">,</span> <span class="hljs-string">"Aug"</span><span class="hljs-punctuation">,</span> <span class="hljs-string">"Sep"</span><span class="hljs-punctuation">,</span> <span class="hljs-string">"Oct"</span><span class="hljs-punctuation">,</span> <span class="hljs-string">"Nov"</span><span class="hljs-punctuation">,</span> <span class="hljs-string">"Dec"</span><span class="hljs-punctuation">]</span>
+  <span class="hljs-punctuation">}</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">"yAxis"</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">{</span> <span class="hljs-attr">"type"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"value"</span> <span class="hljs-punctuation">}</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">"series"</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">[</span><span class="hljs-punctuation">{</span>
+    <span class="hljs-attr">"name"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"Revenue"</span><span class="hljs-punctuation">,</span>
+    <span class="hljs-attr">"type"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"line"</span><span class="hljs-punctuation">,</span>
+    <span class="hljs-attr">"data"</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">[</span><span class="hljs-number">150</span><span class="hljs-punctuation">,</span> <span class="hljs-number">232</span><span class="hljs-punctuation">,</span> <span class="hljs-number">201</span><span class="hljs-punctuation">,</span> <span class="hljs-number">354</span><span class="hljs-punctuation">,</span> <span class="hljs-number">290</span><span class="hljs-punctuation">,</span> <span class="hljs-number">330</span><span class="hljs-punctuation">,</span> <span class="hljs-number">410</span><span class="hljs-punctuation">,</span> <span class="hljs-number">382</span><span class="hljs-punctuation">,</span> <span class="hljs-number">401</span><span class="hljs-punctuation">,</span> <span class="hljs-number">434</span><span class="hljs-punctuation">,</span> <span class="hljs-number">490</span><span class="hljs-punctuation">,</span> <span class="hljs-number">530</span><span class="hljs-punctuation">]</span><span class="hljs-punctuation">,</span>
+    <span class="hljs-attr">"areaStyle"</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">{</span> <span class="hljs-attr">"opacity"</span><span class="hljs-punctuation">:</span> <span class="hljs-number">0.3</span> <span class="hljs-punctuation">}</span>
+  <span class="hljs-punctuation">}</span><span class="hljs-punctuation">]</span>
+<span class="hljs-punctuation">}</span>
+</code></pre>
+    </div>
+  </div>
+</div>
+<script type="module">
+(function() {
+  const container = document.querySelector('[data-tabs-id="tabs-7d7fw6c"]');
+  if (!container) return;
+  const tabs = container.querySelectorAll('.org-tab');
+  const panels = container.querySelectorAll('.org-tab-panel');
+  tabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      const target = tab.dataset.tab;
+      tabs.forEach(t => t.classList.toggle('active', t.dataset.tab === target));
+      panels.forEach(p => p.classList.toggle('active', p.dataset.panel === target));
+    });
+  });
+})();
+</script><h2 id="dark-theme">Dark Theme</h2><p>Using the dark theme parameter:
+</p><div class="org-tabs" data-tabs-id="tabs-dq9qpzy">
+  <div class="org-tabs-header">
+    <button class="org-tab active" data-tab="result" type="button">Result</button>
+    <button class="org-tab" data-tab="source" type="button">Source</button>
+  </div>
+  <div class="org-tabs-content">
+    <div class="org-tab-panel active" data-panel="result">
+      <div id="org-block-5-result" data-org-block="block-content-plugins-echarts-org-5" class="org-block-result"></div>
+    </div>
+    <div class="org-tab-panel" data-panel="source">
+      <pre class="org-source-pre"><code class="hljs language-json"><span class="hljs-punctuation">{</span>
+  <span class="hljs-attr">"backgroundColor"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"#100c2a"</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">"title"</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">{</span> <span class="hljs-attr">"text"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"Dark Theme Chart"</span><span class="hljs-punctuation">,</span> <span class="hljs-attr">"textStyle"</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">{</span> <span class="hljs-attr">"color"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"#fff"</span> <span class="hljs-punctuation">}</span> <span class="hljs-punctuation">}</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">"tooltip"</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">{</span> <span class="hljs-attr">"trigger"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"axis"</span> <span class="hljs-punctuation">}</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">"xAxis"</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">{</span>
+    <span class="hljs-attr">"type"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"category"</span><span class="hljs-punctuation">,</span>
+    <span class="hljs-attr">"data"</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">[</span><span class="hljs-string">"Mon"</span><span class="hljs-punctuation">,</span> <span class="hljs-string">"Tue"</span><span class="hljs-punctuation">,</span> <span class="hljs-string">"Wed"</span><span class="hljs-punctuation">,</span> <span class="hljs-string">"Thu"</span><span class="hljs-punctuation">,</span> <span class="hljs-string">"Fri"</span><span class="hljs-punctuation">]</span><span class="hljs-punctuation">,</span>
+    <span class="hljs-attr">"axisLine"</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">{</span> <span class="hljs-attr">"lineStyle"</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">{</span> <span class="hljs-attr">"color"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"#fff"</span> <span class="hljs-punctuation">}</span> <span class="hljs-punctuation">}</span>
+  <span class="hljs-punctuation">}</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">"yAxis"</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">{</span>
+    <span class="hljs-attr">"type"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"value"</span><span class="hljs-punctuation">,</span>
+    <span class="hljs-attr">"axisLine"</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">{</span> <span class="hljs-attr">"lineStyle"</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">{</span> <span class="hljs-attr">"color"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"#fff"</span> <span class="hljs-punctuation">}</span> <span class="hljs-punctuation">}</span><span class="hljs-punctuation">,</span>
+    <span class="hljs-attr">"splitLine"</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">{</span> <span class="hljs-attr">"lineStyle"</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">{</span> <span class="hljs-attr">"color"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"#333"</span> <span class="hljs-punctuation">}</span> <span class="hljs-punctuation">}</span>
+  <span class="hljs-punctuation">}</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">"series"</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">[</span><span class="hljs-punctuation">{</span>
+    <span class="hljs-attr">"type"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"bar"</span><span class="hljs-punctuation">,</span>
+    <span class="hljs-attr">"data"</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">[</span><span class="hljs-number">120</span><span class="hljs-punctuation">,</span> <span class="hljs-number">200</span><span class="hljs-punctuation">,</span> <span class="hljs-number">150</span><span class="hljs-punctuation">,</span> <span class="hljs-number">80</span><span class="hljs-punctuation">,</span> <span class="hljs-number">70</span><span class="hljs-punctuation">]</span><span class="hljs-punctuation">,</span>
+    <span class="hljs-attr">"itemStyle"</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">{</span>
+      <span class="hljs-attr">"color"</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">{</span>
+        <span class="hljs-attr">"type"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"linear"</span><span class="hljs-punctuation">,</span>
+        <span class="hljs-attr">"x"</span><span class="hljs-punctuation">:</span> <span class="hljs-number">0</span><span class="hljs-punctuation">,</span> <span class="hljs-attr">"y"</span><span class="hljs-punctuation">:</span> <span class="hljs-number">0</span><span class="hljs-punctuation">,</span> <span class="hljs-attr">"x2"</span><span class="hljs-punctuation">:</span> <span class="hljs-number">0</span><span class="hljs-punctuation">,</span> <span class="hljs-attr">"y2"</span><span class="hljs-punctuation">:</span> <span class="hljs-number">1</span><span class="hljs-punctuation">,</span>
+        <span class="hljs-attr">"colorStops"</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">[</span>
+          <span class="hljs-punctuation">{</span> <span class="hljs-attr">"offset"</span><span class="hljs-punctuation">:</span> <span class="hljs-number">0</span><span class="hljs-punctuation">,</span> <span class="hljs-attr">"color"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"#83bff6"</span> <span class="hljs-punctuation">}</span><span class="hljs-punctuation">,</span>
+          <span class="hljs-punctuation">{</span> <span class="hljs-attr">"offset"</span><span class="hljs-punctuation">:</span> <span class="hljs-number">1</span><span class="hljs-punctuation">,</span> <span class="hljs-attr">"color"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"#188df0"</span> <span class="hljs-punctuation">}</span>
+        <span class="hljs-punctuation">]</span>
+      <span class="hljs-punctuation">}</span>
+    <span class="hljs-punctuation">}</span>
+  <span class="hljs-punctuation">}</span><span class="hljs-punctuation">]</span>
+<span class="hljs-punctuation">}</span>
+</code></pre>
+    </div>
+  </div>
+</div>
+<script type="module">
+(function() {
+  const container = document.querySelector('[data-tabs-id="tabs-dq9qpzy"]');
+  if (!container) return;
+  const tabs = container.querySelectorAll('.org-tab');
+  const panels = container.querySelectorAll('.org-tab-panel');
+  tabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      const target = tab.dataset.tab;
+      tabs.forEach(t => t.classList.toggle('active', t.dataset.tab === target));
+      panels.forEach(p => p.classList.toggle('active', p.dataset.panel === target));
+    });
+  });
+})();
+</script><h1 id="api-reference">API Reference</h1><h2 id="blockplugin-properties">BlockPlugin Properties</h2><table><thead><tr><th>Property</th><th>Type</th><th>Description</th></tr></thead><tbody><tr><td><code class="inline-verbatim">name</code></td><td><code class="inline-verbatim">string</code></td><td>Plugin identifier: "echarts"</td></tr><tr><td><code class="inline-verbatim">defaultExtension</code></td><td><code class="inline-verbatim">string</code></td><td>File extension for virtual modules: "js"</td></tr><tr><td><code class="inline-verbatim">transform</code></td><td><code class="inline-verbatim">function</code></td><td>Transforms block to executable code</td></tr></tbody></table><h2 id="block-parameters">Block Parameters</h2><table><thead><tr><th>Parameter</th><th>Type</th><th>Default</th><th>Description</th></tr></thead><tbody><tr><td><code class="inline-verbatim">:height</code></td><td><code class="inline-verbatim">string</code></td><td>"400px"</td><td>Chart container height</td></tr><tr><td><code class="inline-verbatim">:theme</code></td><td><code class="inline-verbatim">string</code></td><td>"light"</td><td>ECharts theme ("light" or "dark")</td></tr><tr><td><code class="inline-verbatim">:renderer</code></td><td><code class="inline-verbatim">string</code></td><td>"canvas"</td><td>Rendering mode ("canvas" or "svg")</td></tr></tbody></table><h2 id="echarts-option-reference">ECharts Option Reference</h2><p>The block content is an ECharts option object. See the full documentation at:
+<a href="https://echarts.apache.org/en/option.html">https://echarts.apache.org/en/option.html</a></p><p>Common properties:
+</p><ul><li><code class="inline-verbatim">title</code> - Chart title configuration
+</li><li><code class="inline-verbatim">legend</code> - Legend component
+</li><li><code class="inline-verbatim">tooltip</code> - Tooltip configuration
+</li><li><code class="inline-verbatim">xAxis</code> / <code class="inline-verbatim">yAxis</code> - Axis configuration
+</li><li><code class="inline-verbatim">series</code> - Data series (line, bar, pie, etc.)
+</li><li><code class="inline-verbatim">grid</code> - Grid layout
+</li></ul><h1 id="see-also">See Also</h1><ul><li><a href="https://echarts.apache.org/">Apache ECharts</a> - Official ECharts documentation
+</li><li><a href="/plugins/creating-plugins.html">Creating Plugins</a> - How to create org-press plugins
+</li><li><a href="/plugins/index.html">All Plugins</a> - Available org-press plugins
+</li></ul></div></div></article></main><aside class="toc"><div class="toc-content"><h4 class="toc-title">On this page</h4><nav class="toc-nav" aria-label="Table of contents"><ul class="toc-list"><li class="toc-item "><a href="#features" class="toc-link">Features</a></li><li class="toc-item "><a href="#installation" class="toc-link">Installation</a></li><li class="toc-item "><a href="#usage" class="toc-link">Usage</a></li><li class="toc-item toc-item-nested"><a href="#json-mode-simple" class="toc-link">JSON Mode (Simple)</a></li><li class="toc-item toc-item-nested"><a href="#javascript-mode-dynamic" class="toc-link">JavaScript Mode (Dynamic)</a></li><li class="toc-item toc-item-nested"><a href="#parameters" class="toc-link">Parameters</a></li><li class="toc-item "><a href="#line-chart" class="toc-link">Line Chart</a></li><li class="toc-item "><a href="#bar-chart-with-multiple-series" class="toc-link">Bar Chart with Multiple Series</a></li><li class="toc-item "><a href="#pie-chart" class="toc-link">Pie Chart</a></li><li class="toc-item "><a href="#area-chart" class="toc-link">Area Chart</a></li><li class="toc-item "><a href="#dark-theme" class="toc-link">Dark Theme</a></li><li class="toc-item "><a href="#blockplugin-properties" class="toc-link">BlockPlugin Properties</a></li><li class="toc-item "><a href="#block-parameters" class="toc-link">Block Parameters</a></li><li class="toc-item "><a href="#echarts-option-reference" class="toc-link">ECharts Option Reference</a></li></ul></nav></div></aside></div><footer class="site-footer"><div class="footer-content"><div class="footer-grid"><div class="footer-column"><h4>Guide</h4><ul><li><a href="/guide/index.html">What is Org-Press?</a></li><li><a href="/guide/getting-started.html">Getting Started</a></li><li><a href="/guide/features.html">Features</a></li><li><a href="/guide/cli.html">CLI Reference</a></li><li><a href="/guide/building.html">Building</a></li></ul></div><div class="footer-column"><h4>Config</h4><ul><li><a href="/config/index.html">Overview</a></li><li><a href="/config/shared-options.html">Shared Options</a></li><li><a href="/config/build-options.html">Build Options</a></li><li><a href="/config/server-options.html">Server Options</a></li></ul></div><div class="footer-column"><h4>Plugins</h4><ul><li><a href="/plugins/index.html">Overview</a></li><li><a href="/plugins/excalidraw.html">Excalidraw</a></li><li><a href="/plugins/jscad.html">JSCAD</a></li><li><a href="/plugins/creating-plugins.html">Creating Plugins</a></li></ul></div><div class="footer-column"><h4>API</h4><ul><li><a href="/api/index.html">Overview</a></li><li><a href="/api/plugin-api.html">Plugin API</a></li><li><a href="/api/javascript-api.html">JavaScript API</a></li></ul></div><div class="footer-column"><h4>Resources</h4><ul><li><a href="/examples/index.html">Examples</a></li><li><a href="https://github.com/org-press/org-press" target="_blank" rel="noopener">GitHub</a></li><li><a href="https://github.com/org-press/org-press/releases" target="_blank" rel="noopener">Releases</a></li></ul></div></div><div class="footer-bottom"><p class="footer-copyright">Released under the GPL-2.0 License.</p><p class="footer-credit">Built with <a href="https://github.com/org-press/org-press">org-press</a></p></div></div></footer></div><script src="https://analytics.ideable.dev/api/script.js" data-site-id="5dc60eeeac5d" defer=""></script><script type="module" src="/assets/hydrate-content-plugins-echarts-Cxw88cNq.js"></script></body></html>

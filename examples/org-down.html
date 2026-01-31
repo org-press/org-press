@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charSet="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/><title>Org-Mode Syntax Reference | org-press</title><script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script><script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/highlight.min.js"></script><link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/styles/github.min.css" media="(prefers-color-scheme: light)"/><link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/styles/github-dark.min.css" media="(prefers-color-scheme: dark)"/><script>
+          // Register org-mode language for highlight.js
+          if (typeof hljs !== 'undefined') {
+            hljs.registerLanguage('org', function(hljs) {
+              return {
+                name: 'Org',
+                aliases: ['org', 'org-mode', 'orgmode'],
+                case_insensitive: true,
+                contains: [
+                  // Headlines
+                  {
+                    className: 'section',
+                    begin: /^\*+\s/,
+                    end: /$/,
+                    contains: [
+                      { className: 'keyword', begin: /\b(TODO|DONE|WAITING|CANCELLED|NEXT|HOLD)\b/ }
+                    ]
+                  },
+                  // Keywords (#+KEYWORD:)
+                  {
+                    className: 'meta',
+                    begin: /^#\+[A-Za-z_]+:/,
+                    end: /$/,
+                    contains: [{ className: 'string', begin: /\s/, end: /$/ }]
+                  },
+                  // Begin/end blocks
+                  { className: 'keyword', begin: /^#\+(begin|end)_[a-z]+/i, relevance: 10 },
+                  // Property drawers
+                  { className: 'attribute', begin: /^:\w+:/, end: /$/ },
+                  // Links [[url][description]]
+                  {
+                    className: 'link',
+                    begin: /\[\[/,
+                    end: /\]\]/,
+                    contains: [{ className: 'string', begin: /\]\[/, end: /(?=\]\])/ }]
+                  },
+                  // Comments (lines starting with #, but not #+)
+                  { className: 'comment', begin: /^#[^+]/, end: /$/ },
+                  // Timestamps
+                  { className: 'number', begin: /<\d{4}-\d{2}-\d{2}/, end: />/ },
+                  // Tags :tag1:tag2:
+                  { className: 'tag', begin: /\s:[a-zA-Z0-9_@#%:]+:\s*$/ }
+                ]
+              };
+            });
+            // Run highlighting after DOM is ready
+            document.addEventListener('DOMContentLoaded', function() {
+              hljs.highlightAll();
+            });
+          }
+        </script><script>
+          (function() {
+            // Set current path as data attribute for CSS styling
+            document.documentElement.dataset.path = window.location.pathname;
+
+            // Mobile menu toggle using event delegation
+            document.addEventListener('click', function(e) {
+              var button = e.target.closest('.mobile-menu-button');
+              if (button) {
+                e.stopPropagation();
+                document.body.classList.toggle('mobile-menu-open');
+                return;
+              }
+              // Close menu when clicking a link inside the menu
+              var menuLink = e.target.closest('.mobile-menu a');
+              if (menuLink) {
+                document.body.classList.remove('mobile-menu-open');
+                return;
+              }
+              // Close menu when clicking outside
+              if (document.body.classList.contains('mobile-menu-open')) {
+                var menu = document.querySelector('.mobile-menu');
+                if (menu && !menu.contains(e.target)) {
+                  document.body.classList.remove('mobile-menu-open');
+                }
+              }
+            });
+
+            // Highlight current page in navigation
+            document.addEventListener('DOMContentLoaded', function() {
+              var path = window.location.pathname;
+              // Highlight sidebar links
+              document.querySelectorAll('.sidebar-link').forEach(function(link) {
+                if (link.getAttribute('href') === path) {
+                  link.classList.add('active');
+                  link.closest('.sidebar-item')?.classList.add('active');
+                }
+              });
+              // Highlight top nav links
+              document.querySelectorAll('.top-nav-link').forEach(function(link) {
+                var href = link.getAttribute('href');
+                var match = link.dataset.match;
+                if (path === href || (match && path.startsWith(match))) {
+                  link.classList.add('active');
+                }
+              });
+            });
+          })();
+        </script><link rel="stylesheet" href="/assets/theme-DsForQV0.css"/><script type="module" src="/assets/entry-client-l0sNRNKZ.js"></script></head><body><div class="docs-layout"><header class="top-nav"><div class="top-nav-container"><a href="/index.html" class="top-nav-logo"><span class="logo-text">Org-Press</span></a><nav class="top-nav-links"><a href="/guide/index.html" class="top-nav-link " data-match="^\/(guide(\/|$)|getting-started|index\.html$)">Guide</a><a href="/config/index.html" class="top-nav-link " data-match="^\/config(\/|$)">Config</a><a href="/plugins/index.html" class="top-nav-link " data-match="^\/plugins(\/|$)">Plugins</a><a href="/api/index.html" class="top-nav-link " data-match="^\/api(\/|$)">API</a></nav><div class="top-nav-social"><a href="https://github.com/org-press/org-press/blob/main/docs/content/examples/org-down.org?plain=1" class="top-nav-source-link" target="_blank" rel="noopener noreferrer" title="View page source on GitHub">:view-source</a><a href="https://github.com/org-press/org-press" class="top-nav-social-link" target="_blank" rel="noopener noreferrer" aria-label="GitHub"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"></path></svg></a></div><button class="mobile-menu-button" aria-label="Toggle navigation menu" aria-expanded="false"><span class="hamburger-line"></span><span class="hamburger-line"></span><span class="hamburger-line"></span></button></div></header><div class="mobile-menu"><nav class="mobile-menu-nav"><div class="mobile-menu-section"><a href="/guide/index.html" class="mobile-menu-section-title ">Guide</a><ul class="mobile-menu-list"><li><a href="/guide/index.html" class="mobile-menu-link ">What is Org-Press?</a></li><li><a href="/guide/getting-started.html" class="mobile-menu-link ">Getting Started</a></li><li><a href="/guide/why-org-press.html" class="mobile-menu-link ">Why Org-Press?</a></li><li><a href="/guide/features.html" class="mobile-menu-link ">Features</a></li><li><a href="/guide/rendering-modes.html" class="mobile-menu-link ">Rendering Modes</a></li><li><a href="/guide/cli.html" class="mobile-menu-link ">CLI Reference</a></li><li><a href="/guide/using-plugins.html" class="mobile-menu-link ">Using Plugins</a></li><li><a href="/guide/block-imports.html" class="mobile-menu-link ">Block Imports</a></li><li><a href="/guide/static-assets.html" class="mobile-menu-link ">Static Assets</a></li><li><a href="/guide/building.html" class="mobile-menu-link ">Building for Production</a></li><li><a href="/guide/deploying.html" class="mobile-menu-link ">Deploying</a></li><li><a href="/guide/troubleshooting.html" class="mobile-menu-link ">Troubleshooting</a></li></ul></div><div class="mobile-menu-section"><a href="/config/index.html" class="mobile-menu-section-title ">Config</a><ul class="mobile-menu-list"><li><a href="/config/index.html" class="mobile-menu-link ">Overview</a></li><li><a href="/config/shared-options.html" class="mobile-menu-link ">Shared Options</a></li><li><a href="/config/build-options.html" class="mobile-menu-link ">Build Options</a></li><li><a href="/config/server-options.html" class="mobile-menu-link ">Server Options</a></li><li><a href="/config/plugin-options.html" class="mobile-menu-link ">Plugin Options</a></li></ul></div><div class="mobile-menu-section"><a href="/plugins/index.html" class="mobile-menu-section-title ">Plugins</a><ul class="mobile-menu-list"><li><a href="/plugins/index.html" class="mobile-menu-link ">Overview</a></li><li class="mobile-menu-group"><span class="mobile-menu-group-title">Official Plugins</span><ul class="mobile-menu-sublist"><li><a href="/plugins/react.html" class="mobile-menu-link ">React</a></li><li><a href="/plugins/echarts.html" class="mobile-menu-link ">ECharts</a></li><li><a href="/plugins/excalidraw.html" class="mobile-menu-link ">Excalidraw</a></li><li><a href="/plugins/jscad.html" class="mobile-menu-link ">JSCAD</a></li><li><a href="/plugins/test.html" class="mobile-menu-link ">Test</a></li></ul></li><li><a href="/plugins/creating-plugins.html" class="mobile-menu-link ">Creating Plugins</a></li></ul></div><div class="mobile-menu-section"><a href="/api/index.html" class="mobile-menu-section-title ">API</a><ul class="mobile-menu-list"><li><a href="/api/index.html" class="mobile-menu-link ">Overview</a></li><li><a href="/api/plugin-api.html" class="mobile-menu-link ">Plugin API</a></li><li><a href="/api/javascript-api.html" class="mobile-menu-link ">JavaScript API</a></li><li><a href="/api/hmr-api.html" class="mobile-menu-link ">HMR API</a></li><li><a href="/api/cli-plugins.html" class="mobile-menu-link ">CLI Plugins</a></li></ul></div></nav><div class="mobile-menu-footer"><a href="https://github.com/org-press/org-press" class="mobile-menu-link" target="_blank" rel="noopener noreferrer">GitHub</a></div></div><div class="alpha-banner"><span class="alpha-banner-icon">⚠️</span><span class="alpha-banner-text"><strong>Early Alpha</strong> — Org-press is experimental. Perfect for hackers and tinkerers, not ready for production. Documentation may be incomplete or inaccurate.</span></div><div class="docs-container"><aside class="sidebar"><div class="sidebar-content"><nav class="sidebar-nav" aria-label="Section navigation"><div class="sidebar-section"><h3 class="sidebar-section-title">Guide</h3><ul class="sidebar-list"><li class="sidebar-item "><a href="/guide/index.html" class="sidebar-link ">What is Org-Press?</a></li><li class="sidebar-item "><a href="/guide/getting-started.html" class="sidebar-link ">Getting Started</a></li><li class="sidebar-item "><a href="/guide/why-org-press.html" class="sidebar-link ">Why Org-Press?</a></li><li class="sidebar-item "><a href="/guide/features.html" class="sidebar-link ">Features</a></li><li class="sidebar-item "><a href="/guide/rendering-modes.html" class="sidebar-link ">Rendering Modes</a></li><li class="sidebar-item "><a href="/guide/cli.html" class="sidebar-link ">CLI Reference</a></li><li class="sidebar-item "><a href="/guide/using-plugins.html" class="sidebar-link ">Using Plugins</a></li><li class="sidebar-item "><a href="/guide/block-imports.html" class="sidebar-link ">Block Imports</a></li><li class="sidebar-item "><a href="/guide/static-assets.html" class="sidebar-link ">Static Assets</a></li><li class="sidebar-item "><a href="/guide/building.html" class="sidebar-link ">Building for Production</a></li><li class="sidebar-item "><a href="/guide/deploying.html" class="sidebar-link ">Deploying</a></li><li class="sidebar-item "><a href="/guide/troubleshooting.html" class="sidebar-link ">Troubleshooting</a></li></ul></div></nav></div></aside><main class="docs-content"><article class="docs-article"><div class="docs-body"><div><h1 id="introduction">Introduction</h1><p>This page provides a comprehensive reference for org-mode syntax and how it renders in Org-Press. Org-mode is a markup language similar to Markdown but with more powerful features for literate programming, task management, and document structuring.
+</p><h2 id="why-org-mode">Why Org-Mode?</h2><ul><li><strong>Hierarchical structure</strong> with unlimited heading levels
+</li><li><strong>Literate programming</strong> support with <code class="inline-verbatim">:tangle</code> and code execution
+</li><li><strong>Rich metadata</strong> support via properties and drawers
+</li><li><strong>Powerful linking</strong> system for internal and external references
+</li><li><strong>Table support</strong> with calculations and formulas
+</li><li><strong>Extensible</strong> with custom block types and exporters
+</li></ul><h1 id="document-structure">Document Structure</h1><h2 id="document-metadata">Document Metadata</h2><p>Org files begin with metadata keywords:
+</p><pre><code>#+TITLE: Document Title
+#+AUTHOR: Author Name
+#+DATE: 2025-12-09
+#+DESCRIPTION: Brief description
+#+KEYWORDS: keyword1, keyword2
+#+LANGUAGE: en
+#+LAYOUT: default
+</code></pre>
+<h2 id="headings-hierarchy">Headings Hierarchy</h2><p>Headings are created with asterisks:
+</p><p>#+begin<sub>export</sub> html
+&#x3C;pre>&#x3C;code>* Level 1 Heading
+</p><h2 id="level-2-heading">Level 2 Heading</h2><h3 id="level-3-heading">Level 3 Heading</h3><h4 id="level-4-heading">Level 4 Heading</h4><h5 id="level-5-heading">Level 5 Heading</h5><h6 id="level-6-heading">Level 6 Heading</h6><p>&#x3C;/code>&#x3C;/pre>
+#+end<sub>export</sub></p><p>Each heading can have:
+</p><ul><li>TODO states (TODO, DONE, HOLD, etc.)
+</li><li>Tags (<code class="inline-verbatim">:tag1:tag2:</code>)
+</li><li>Properties (in a <code class="inline-verbatim">:PROPERTIES:</code> drawer)
+</li><li>Priority ([#A], [#B], [#C])
+</li></ul><h2 id="heading-with-all-features">Heading with All Features</h2><pre><code>** TODO [#A] Important Task :work:urgent:
+SCHEDULED: &#x3C;2025-12-10>
+:PROPERTIES:
+:ID: unique-task-id
+:CUSTOM_ID: my-task
+:END:
+
+Task description goes here.
+</code></pre>
+<h1 id="text-markup">Text Markup</h1><h2 id="inline-formatting">Inline Formatting</h2><table><thead><tr><th>Syntax</th><th>Effect</th><th>Example</th></tr></thead><tbody><tr><td><code class="inline-verbatim">*text*</code></td><td><strong>Bold</strong></td><td><strong>bold text</strong></td></tr><tr><td><code class="inline-verbatim">/text/</code></td><td><em>Italic</em></td><td><em>italic text</em></td></tr><tr><td><code class="inline-verbatim">_text_</code></td><td><span class="underline" style="text-decoration: underline;">Underline</span></td><td><span class="underline" style="text-decoration: underline;">underlined text</span></td></tr><tr><td><code class="inline-verbatim">+text+</code></td><td><del>Strikethrough</del></td><td><del>strikethrough</del></td></tr><tr><td>~text~=</td><td><code class="inline-verbatim">Code</code></td><td><code class="inline-verbatim">inline code</code></td></tr><tr><td><code class="inline-verbatim">~text~</code></td><td><code class="inline-code">Verbatim</code></td><td><code class="inline-code">verbatim text</code></td></tr><tr><td><code class="inline-verbatim">sub_script</code></td><td>Subscript</td><td>H<sub>2</sub>O</td></tr><tr><td><code class="inline-verbatim">super^script</code></td><td>Superscript</td><td>x<sup>2</sup></td></tr></tbody></table><h2 id="special-symbols">Special Symbols</h2><table><thead><tr><th>Input</th><th>Output</th><th>Description</th></tr></thead><tbody><tr><td><code class="inline-verbatim">---</code></td><td>---</td><td>Em dash</td></tr><tr><td><code class="inline-verbatim">--</code></td><td>--</td><td>En dash</td></tr><tr><td><code class="inline-verbatim">...</code></td><td>...</td><td>Ellipsis</td></tr><tr><td><code class="inline-verbatim">-></code></td><td>-></td><td>Right arrow</td></tr><tr><td><code class="inline-verbatim">&#x3C;-</code></td><td>&#x3C;-</td><td>Left arrow</td></tr><tr><td><code class="inline-verbatim">=>=</code></td><td>=></td><td>Double arrow</td></tr><tr><td><code class="inline-verbatim">(c)</code></td><td>(c)</td><td>Copyright</td></tr><tr><td><code class="inline-verbatim">(r)</code></td><td>(r)</td><td>Registered</td></tr><tr><td><code class="inline-verbatim">(tm)</code></td><td>(tm)</td><td>Trademark</td></tr></tbody></table><h2 id="line-breaks-and-paragraphs">Line Breaks and Paragraphs</h2><ul><li>Single newline: Continues same paragraph
+</li><li>Double newline: Creates new paragraph
+</li><li><code class="inline-verbatim">\\</code> at end of line: Forces line break
+</li></ul><pre><code>This is one paragraph.
+Still same paragraph.
+
+This is a new paragraph.\\
+This is a new line in same paragraph.
+</code></pre>
+<h1 id="lists">Lists</h1><h2 id="unordered-lists">Unordered Lists</h2><p>Bullet lists use <code class="inline-verbatim">-</code>, <code class="inline-verbatim">+</code>, or <code class="inline-verbatim">*</code> at line start:
+</p><pre><code>- Item 1
+- Item 2
+  - Nested item 2.1
+  - Nested item 2.2
+- Item 3
+</code></pre>
+<h2 id="ordered-lists">Ordered Lists</h2><p>Numbered lists use <code class="inline-verbatim">1.</code>, <code class="inline-verbatim">1)</code>, <code class="inline-verbatim">a.</code>, or <code class="inline-verbatim">a)</code>:
+</p><pre><code>1. First item
+2. Second item
+   1. Sub-item A
+   2. Sub-item B
+3. Third item
+</code></pre>
+<h2 id="checkbox-lists">Checkbox Lists</h2><p>Task lists with checkboxes:
+</p><pre><code>- [ ] Unchecked item
+- [-] Partially checked (indeterminate)
+- [X] Checked item
+</code></pre>
+<h2 id="description-lists">Description Lists</h2><p>Definition lists use <code class="inline-verbatim">::</code> separator:
+</p><pre><code>- Term :: Definition of the term
+- Another term :: Its definition
+                  can span multiple lines
+</code></pre>
+<h1 id="links">Links</h1><h2 id="link-syntax">Link Syntax</h2><p>General link format: <code class="inline-verbatim">[[target][description]]</code></p><h2 id="internal-links">Internal Links</h2><pre><code>[[*Heading Name][Link to Heading]]
+[[#custom-id][Link to Custom ID]]
+[[file:other-file.org][Link to Other File]]
+[[file:other-file.org::*Heading][Link to Heading in Other File]]
+</code></pre>
+<h2 id="external-links">External Links</h2><pre><code>[[https://example.com][Website Link]]
+[[mailto:user@example.com][Email Link]]
+[[file:/path/to/file.pdf][PDF Link]]
+</code></pre>
+<h2 id="bare-urls">Bare URLs</h2><p>Plain URLs are auto-linked:
+</p><ul><li><a href="https://example.com">https://example.com</a></li><li>user@example.com
+</li></ul><h2 id="image-links">Image Links</h2><pre><code>[[file:image.png]]
+[[https://example.com/image.jpg][Image Description]]
+</code></pre>
+<h1 id="tables">Tables</h1><h2 id="basic-table-syntax">Basic Table Syntax</h2><p>Tables use <code class="inline-verbatim">|</code> for columns and <code class="inline-verbatim">|-</code> for separator rows:
+</p><pre><code>| Header 1 | Header 2 | Header 3 |
+|----------+----------+----------|
+| Cell 1.1 | Cell 1.2 | Cell 1.3 |
+| Cell 2.1 | Cell 2.2 | Cell 2.3 |
+</code></pre>
+<h2 id="table-alignment">Table Alignment</h2><p>Use <code class="inline-verbatim">&#x3C;c></code>, <code class="inline-verbatim">&#x3C;l></code>, or <code class="inline-verbatim">&#x3C;r></code> for column alignment:
+</p><pre><code>|    <c>    |    <l>    |    <r>    |
+| Centered  | Left      |     Right |
+|-----------+-----------+-----------|
+| Data      | Data      | Data      |
+</r></l></c></code></pre>
+<h2 id="table-formulas">Table Formulas</h2><p>Org tables support spreadsheet-like formulas:
+</p><pre><code>| Item   | Quantity | Price | Total |
+|--------+----------+-------+-------|
+| Apples |        3 |  1.50 |  4.50 |
+| Oranges|        2 |  2.00 |  4.00 |
+|--------+----------+-------+-------|
+| Total  |          |       |  8.50 |
+#+TBLFM: $4=$2*$3::@>$4=vsum(@2..@-1)
+</code></pre>
+<h1 id="source-code-blocks">Source Code Blocks</h1><h2 id="basic-syntax">Basic Syntax</h2><pre><code>#+begin_src language
+code goes here
+#+end_src
+</code></pre>
+<h2 id="block-parameters">Block Parameters</h2><p>Common parameters:
+</p><table><thead><tr><th>Parameter</th><th>Effect</th></tr></thead><tbody><tr><td><code class="inline-verbatim">:use sourceOnly</code></td><td>Show only code (no execution)</td></tr><tr><td><code class="inline-verbatim">:use dom</code></td><td>Show execution results (default)</td></tr><tr><td>=:use dom</td><td>withSourceCode=</td><td>Show code and results</td></tr><tr><td><code class="inline-verbatim">:use silent</code></td><td>Execute but hide output</td></tr><tr><td><code class="inline-verbatim">:use server</code></td><td>Execute on server during build</td></tr><tr><td><code class="inline-verbatim">:tangle file</code></td><td>Extract code to external file</td></tr></tbody></table><h2 id="named-blocks">Named Blocks</h2><p>Blocks can have names for referencing:
+</p><pre><code>#+NAME: block-name
+#+begin_src javascript
+// code here
+#+end_src
+</code></pre>
+<h2 id="block-import">Block Import</h2><p>Import named blocks from other files:
+</p><pre><code>#+begin_src javascript
+import func from "file.org?name=block-name";
+#+end_src
+</code></pre>
+<h1 id="special-blocks">Special Blocks</h1><h2 id="quote-blocks">Quote Blocks</h2><pre><code>#+begin_quote
+This is a quoted passage.
+It can span multiple lines.
+#+end_quote
+</code></pre>
+<h2 id="example-blocks">Example Blocks</h2><p>Verbatim text without formatting:
+</p><pre><code>#+begin_example
+Plain text here
+No formatting applied
+#+end_example
+</code></pre>
+<h2 id="verse-blocks">Verse Blocks</h2><p>For poetry with line breaks preserved:
+</p><pre><code>#+begin_verse
+Roses are red,
+Violets are blue,
+Org-mode is great,
+And so are you!
+#+end_verse
+</code></pre>
+<h2 id="center-blocks">Center Blocks</h2><p>Centered content:
+</p><pre><code>#+begin_center
+Centered text
+#+end_center
+</code></pre>
+<h2 id="custom-blocks">Custom Blocks</h2><p>You can define custom blocks:
+</p><pre><code>#+begin_custom_block_name
+Content inside custom block
+#+end_custom_block_name
+</code></pre>
+<h1 id="drawers">Drawers</h1><h2 id="syntax">Syntax</h2><p>Drawers store metadata and collapsible content:
+</p><pre><code>:DRAWER_NAME:
+Content inside drawer
+:END:
+</code></pre>
+<h2 id="properties-drawer">Properties Drawer</h2><p>Special drawer for metadata:
+</p><pre><code>:PROPERTIES:
+:ID: unique-id
+:CUSTOM_ID: custom-id
+:CREATED: [2025-12-09]
+:CATEGORY: category-name
+:END:
+</code></pre>
+<h2 id="ai-conversation-drawer">AI Conversation Drawer</h2><p>In Org-Press, <code class="inline-verbatim">:AI:</code> drawers render with 🤖 emoji:
+</p><pre><code>:AI:
+User: Question here
+Assistant: Answer here
+:END:
+</code></pre>
+<p><strong><strong>Important:</strong></strong> Drawers must be under a heading, not at document root level.
+</p><h1 id="comments">Comments</h1><h2 id="line-comments">Line Comments</h2><p>Lines starting with <code class="inline-verbatim">#</code> are comments:
+</p><pre><code># This is a comment
+# It won't be exported
+</code></pre>
+<h2 id="block-comments">Block Comments</h2><p>Multi-line comments:
+</p><pre><code>#+begin_comment
+Everything in here
+is a comment
+#+end_comment
+</code></pre>
+<h2 id="inline-comments">Inline Comments</h2><p>Inline comments (not exported):
+</p><pre><code>Some text @@comment:hidden comment@@ more text
+</code></pre>
+<h1 id="macros-and-includes">Macros and Includes</h1><h2 id="define-macros">Define Macros</h2><pre><code>#+MACRO: name replacement text $1 $2
+</code></pre>
+<p>Use macro:
+</p><pre><code>{{{name(arg1, arg2)}}}
+</code></pre>
+<h2 id="include-files">Include Files</h2><p>Include content from other files:
+</p><pre><code>#+INCLUDE: "file.org"
+#+INCLUDE: "file.org" src javascript
+#+INCLUDE: "file.org" :lines "1-10"
+#+INCLUDE: "file.org" :only-contents t
+</code></pre>
+<h1 id="export-settings">Export Settings</h1><h2 id="global-export-options">Global Export Options</h2><pre><code>#+OPTIONS: toc:nil num:nil
+#+OPTIONS: timestamp:nil author:nil
+#+OPTIONS: ^:nil  (disable subscript/superscript)
+</code></pre>
+<h2 id="per-heading-export">Per-Heading Export</h2><p>Tags affect export:
+</p><p>#+begin<sub>export</sub> html
+&#x3C;pre>&#x3C;code>** This heading will not be exported :noexport:
+</p><h2 id="this-and-all-children-exported-to-separate-file-exportfilename">This and all children exported to separate file   <span class="tags"><span class="tag tag-export_file_name">export_file_name</span></span></h2><p>&#x3C;/code>&#x3C;/pre>
+#+end<sub>export</sub></p><h1 id="advanced-org-press-features">Advanced Org-Press Features</h1><h2 id="layout-selection">Layout Selection</h2><p>Choose page layout via #+LAYOUT keyword:
+</p><pre><code>#+LAYOUT: default
+#+LAYOUT: kanban
+#+LAYOUT: custom-layout-name
+</code></pre>
+<h2 id="block-plugins">Block Plugins</h2><p>Org-Press supports plugins for specialized rendering:
+</p><h3 id="jscad-3d-cad">JSCad (3D CAD)</h3><pre><code>#+begin_src javascript :use jscad
+import { cube } from "@jscad/modeling/primitives";
+export default [cube({ size: 10 })];
+#+end_src
+</code></pre>
+<h3 id="excalidraw-diagrams">Excalidraw (Diagrams)</h3><pre><code>#+begin_src json :use excalidraw
+{"elements": [...]}
+#+end_src
+</code></pre>
+<h2 id="rendering-modes">Rendering Modes</h2><p>Customize code/result presentation:
+</p><pre><code>#+begin_src javascript :use dom | withSourceCode
+// Show both code and results
+#+end_src
+
+#+begin_src javascript :use sourceOnly
+// Show code only, no execution
+#+end_src
+</code></pre>
+<h2 id="server-side-execution">Server-Side Execution</h2><p>Execute code during build:
+</p><pre><code>#+begin_src javascript :use server
+// This runs on server during build
+const fs = require('fs');
+return fs.readdirSync('./content').join(', ');
+#+end_src
+</code></pre>
+<h2 id="code-tangling">Code Tangling</h2><p>Extract code to external files:
+</p><pre><code>#+begin_src javascript :tangle src/generated.js
+// This code will be written to src/generated.js
+export function hello() {
+  return "Hello from tangled code!";
+}
+#+end_src
+</code></pre>
+<h1 id="tips-and-best-practices">Tips and Best Practices</h1><h2 id="organization">Organization</h2><ul><li>Use hierarchical headings for clear structure
+</li><li>Add IDs to headings for stable links
+</li><li>Use tags to categorize content
+</li><li>Store metadata in PROPERTIES drawers
+</li></ul><h2 id="literate-programming">Literate Programming</h2><ul><li>Name reusable code blocks with <code class="inline-verbatim">#+NAME:</code></li><li>Use <code class="inline-verbatim">:tangle</code> to generate source files from documentation
+</li><li>Use <code class="inline-verbatim">:use server</code> for dynamic content generated at build time
+</li><li>Use <code class="inline-verbatim">:use dom | withSourceCode</code> for interactive examples
+</li></ul><h2 id="performance">Performance</h2><ul><li>Use <code class="inline-verbatim">:use sourceOnly</code> for display-only blocks (no execution)
+</li><li>Server execution runs once at build time (faster than browser)
+</li><li>Cache expensive computations in named blocks
+</li></ul><h2 id="maintainability">Maintainability</h2><ul><li>Keep each org file focused on one topic
+</li><li>Use <code class="inline-verbatim">#+INCLUDE:</code> to reuse content
+</li><li>Define commonly-used text as macros
+</li><li>Add comments to explain complex structures
+</li></ul><h1 id="reference">Reference</h1><h2 id="complete-example-file">Complete Example File</h2><div class="example">,#+TITLE: Example Document
+,#+DATE: 2025-12-09
+,#+LAYOUT: default
+
+,* Introduction
+
+This document demonstrates org-mode syntax.
+
+,** Features
+
+- *Bold* and /italic/ text
+- [[https://example.com][Links]]
+- Tables and lists
+
+,** Code Example
+
+,#+NAME: hello-world
+,#+begin_src javascript :use dom | withSourceCode
+function greet(name) {
+  return `Hello, ${name}!`;
+}
+
+greet("World");
+,#+end_src
+
+,** Properties
+:PROPERTIES:
+:ID: doc-example
+:CREATED: [2025-12-09]
+:END:
+
+,* Conclusion
+
+See [[file:../index.org][documentation home]] for more examples.
+</div><h2 id="see-also">See Also</h2><ul><li><a href="/examples/index.html">Comprehensive Rendering Examples</a></li><li><a href="/plugins/index.html">Block Plugins Reference</a></li><li><a href="/config/index.html">Configuration Guide</a></li><li><a href="https://orgmode.org/manual/">Official Org-Mode Manual</a></li></ul></div></div></article></main><aside class="toc"><div class="toc-content"><h4 class="toc-title">On this page</h4><nav class="toc-nav" aria-label="Table of contents"><ul class="toc-list"><li class="toc-item "><a href="#why-org-mode" class="toc-link">Why Org-Mode?</a></li><li class="toc-item "><a href="#document-metadata" class="toc-link">Document Metadata</a></li><li class="toc-item "><a href="#headings-hierarchy" class="toc-link">Headings Hierarchy</a></li><li class="toc-item "><a href="#level-2-heading" class="toc-link">Level 2 Heading</a></li><li class="toc-item toc-item-nested"><a href="#level-3-heading" class="toc-link">Level 3 Heading</a></li><li class="toc-item "><a href="#heading-with-all-features" class="toc-link">Heading with All Features</a></li><li class="toc-item "><a href="#inline-formatting" class="toc-link">Inline Formatting</a></li><li class="toc-item "><a href="#special-symbols" class="toc-link">Special Symbols</a></li><li class="toc-item "><a href="#line-breaks-and-paragraphs" class="toc-link">Line Breaks and Paragraphs</a></li><li class="toc-item "><a href="#unordered-lists" class="toc-link">Unordered Lists</a></li><li class="toc-item "><a href="#ordered-lists" class="toc-link">Ordered Lists</a></li><li class="toc-item "><a href="#checkbox-lists" class="toc-link">Checkbox Lists</a></li><li class="toc-item "><a href="#description-lists" class="toc-link">Description Lists</a></li><li class="toc-item "><a href="#link-syntax" class="toc-link">Link Syntax</a></li><li class="toc-item "><a href="#internal-links" class="toc-link">Internal Links</a></li><li class="toc-item "><a href="#external-links" class="toc-link">External Links</a></li><li class="toc-item "><a href="#bare-urls" class="toc-link">Bare URLs</a></li><li class="toc-item "><a href="#image-links" class="toc-link">Image Links</a></li><li class="toc-item "><a href="#basic-table-syntax" class="toc-link">Basic Table Syntax</a></li><li class="toc-item "><a href="#table-alignment" class="toc-link">Table Alignment</a></li><li class="toc-item "><a href="#table-formulas" class="toc-link">Table Formulas</a></li><li class="toc-item "><a href="#basic-syntax" class="toc-link">Basic Syntax</a></li><li class="toc-item "><a href="#block-parameters" class="toc-link">Block Parameters</a></li><li class="toc-item "><a href="#named-blocks" class="toc-link">Named Blocks</a></li><li class="toc-item "><a href="#block-import" class="toc-link">Block Import</a></li><li class="toc-item "><a href="#quote-blocks" class="toc-link">Quote Blocks</a></li><li class="toc-item "><a href="#example-blocks" class="toc-link">Example Blocks</a></li><li class="toc-item "><a href="#verse-blocks" class="toc-link">Verse Blocks</a></li><li class="toc-item "><a href="#center-blocks" class="toc-link">Center Blocks</a></li><li class="toc-item "><a href="#custom-blocks" class="toc-link">Custom Blocks</a></li><li class="toc-item "><a href="#syntax" class="toc-link">Syntax</a></li><li class="toc-item "><a href="#properties-drawer" class="toc-link">Properties Drawer</a></li><li class="toc-item "><a href="#ai-conversation-drawer" class="toc-link">AI Conversation Drawer</a></li><li class="toc-item "><a href="#line-comments" class="toc-link">Line Comments</a></li><li class="toc-item "><a href="#block-comments" class="toc-link">Block Comments</a></li><li class="toc-item "><a href="#inline-comments" class="toc-link">Inline Comments</a></li><li class="toc-item "><a href="#define-macros" class="toc-link">Define Macros</a></li><li class="toc-item "><a href="#include-files" class="toc-link">Include Files</a></li><li class="toc-item "><a href="#global-export-options" class="toc-link">Global Export Options</a></li><li class="toc-item "><a href="#per-heading-export" class="toc-link">Per-Heading Export</a></li><li class="toc-item "><a href="#this-and-all-children-exported-to-separate-file-exportfilename" class="toc-link">This and all children exported to separate file   export_file_name</a></li><li class="toc-item "><a href="#layout-selection" class="toc-link">Layout Selection</a></li><li class="toc-item "><a href="#block-plugins" class="toc-link">Block Plugins</a></li><li class="toc-item toc-item-nested"><a href="#jscad-3d-cad" class="toc-link">JSCad (3D CAD)</a></li><li class="toc-item toc-item-nested"><a href="#excalidraw-diagrams" class="toc-link">Excalidraw (Diagrams)</a></li><li class="toc-item "><a href="#rendering-modes" class="toc-link">Rendering Modes</a></li><li class="toc-item "><a href="#server-side-execution" class="toc-link">Server-Side Execution</a></li><li class="toc-item "><a href="#code-tangling" class="toc-link">Code Tangling</a></li><li class="toc-item "><a href="#organization" class="toc-link">Organization</a></li><li class="toc-item "><a href="#literate-programming" class="toc-link">Literate Programming</a></li><li class="toc-item "><a href="#performance" class="toc-link">Performance</a></li><li class="toc-item "><a href="#maintainability" class="toc-link">Maintainability</a></li><li class="toc-item "><a href="#complete-example-file" class="toc-link">Complete Example File</a></li><li class="toc-item "><a href="#see-also" class="toc-link">See Also</a></li></ul></nav></div></aside></div><footer class="site-footer"><div class="footer-content"><div class="footer-grid"><div class="footer-column"><h4>Guide</h4><ul><li><a href="/guide/index.html">What is Org-Press?</a></li><li><a href="/guide/getting-started.html">Getting Started</a></li><li><a href="/guide/features.html">Features</a></li><li><a href="/guide/cli.html">CLI Reference</a></li><li><a href="/guide/building.html">Building</a></li></ul></div><div class="footer-column"><h4>Config</h4><ul><li><a href="/config/index.html">Overview</a></li><li><a href="/config/shared-options.html">Shared Options</a></li><li><a href="/config/build-options.html">Build Options</a></li><li><a href="/config/server-options.html">Server Options</a></li></ul></div><div class="footer-column"><h4>Plugins</h4><ul><li><a href="/plugins/index.html">Overview</a></li><li><a href="/plugins/excalidraw.html">Excalidraw</a></li><li><a href="/plugins/jscad.html">JSCAD</a></li><li><a href="/plugins/creating-plugins.html">Creating Plugins</a></li></ul></div><div class="footer-column"><h4>API</h4><ul><li><a href="/api/index.html">Overview</a></li><li><a href="/api/plugin-api.html">Plugin API</a></li><li><a href="/api/javascript-api.html">JavaScript API</a></li></ul></div><div class="footer-column"><h4>Resources</h4><ul><li><a href="/examples/index.html">Examples</a></li><li><a href="https://github.com/org-press/org-press" target="_blank" rel="noopener">GitHub</a></li><li><a href="https://github.com/org-press/org-press/releases" target="_blank" rel="noopener">Releases</a></li></ul></div></div><div class="footer-bottom"><p class="footer-copyright">Released under the GPL-2.0 License.</p><p class="footer-credit">Built with <a href="https://github.com/org-press/org-press">org-press</a></p></div></div></footer></div><script src="https://analytics.ideable.dev/api/script.js" data-site-id="5dc60eeeac5d" defer=""></script></body></html>

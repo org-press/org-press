@@ -1,0 +1,1 @@
+import{s as r}from"./index-CErLYBU5.js";import"./_commonjsHelpers-Cpj98o6Y.js";const{cube:e,sphere:a}=r.primitives,{union:n,subtract:c,intersect:i}=r.booleans,{translate:s}=r.transforms,t=e({size:15}),o=s([5,5,5],a({radius:8})),l=[s([-30,0,0],n(t,o)),s([0,0,0],c(t,o)),s([30,0,0],i(t,o))];export{l as default};

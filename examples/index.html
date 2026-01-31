@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charSet="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/><title>Org-Mode Rendering Examples | org-press</title><script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script><script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/highlight.min.js"></script><link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/styles/github.min.css" media="(prefers-color-scheme: light)"/><link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/styles/github-dark.min.css" media="(prefers-color-scheme: dark)"/><script>
+          // Register org-mode language for highlight.js
+          if (typeof hljs !== 'undefined') {
+            hljs.registerLanguage('org', function(hljs) {
+              return {
+                name: 'Org',
+                aliases: ['org', 'org-mode', 'orgmode'],
+                case_insensitive: true,
+                contains: [
+                  // Headlines
+                  {
+                    className: 'section',
+                    begin: /^\*+\s/,
+                    end: /$/,
+                    contains: [
+                      { className: 'keyword', begin: /\b(TODO|DONE|WAITING|CANCELLED|NEXT|HOLD)\b/ }
+                    ]
+                  },
+                  // Keywords (#+KEYWORD:)
+                  {
+                    className: 'meta',
+                    begin: /^#\+[A-Za-z_]+:/,
+                    end: /$/,
+                    contains: [{ className: 'string', begin: /\s/, end: /$/ }]
+                  },
+                  // Begin/end blocks
+                  { className: 'keyword', begin: /^#\+(begin|end)_[a-z]+/i, relevance: 10 },
+                  // Property drawers
+                  { className: 'attribute', begin: /^:\w+:/, end: /$/ },
+                  // Links [[url][description]]
+                  {
+                    className: 'link',
+                    begin: /\[\[/,
+                    end: /\]\]/,
+                    contains: [{ className: 'string', begin: /\]\[/, end: /(?=\]\])/ }]
+                  },
+                  // Comments (lines starting with #, but not #+)
+                  { className: 'comment', begin: /^#[^+]/, end: /$/ },
+                  // Timestamps
+                  { className: 'number', begin: /<\d{4}-\d{2}-\d{2}/, end: />/ },
+                  // Tags :tag1:tag2:
+                  { className: 'tag', begin: /\s:[a-zA-Z0-9_@#%:]+:\s*$/ }
+                ]
+              };
+            });
+            // Run highlighting after DOM is ready
+            document.addEventListener('DOMContentLoaded', function() {
+              hljs.highlightAll();
+            });
+          }
+        </script><script>
+          (function() {
+            // Set current path as data attribute for CSS styling
+            document.documentElement.dataset.path = window.location.pathname;
+
+            // Mobile menu toggle using event delegation
+            document.addEventListener('click', function(e) {
+              var button = e.target.closest('.mobile-menu-button');
+              if (button) {
+                e.stopPropagation();
+                document.body.classList.toggle('mobile-menu-open');
+                return;
+              }
+              // Close menu when clicking a link inside the menu
+              var menuLink = e.target.closest('.mobile-menu a');
+              if (menuLink) {
+                document.body.classList.remove('mobile-menu-open');
+                return;
+              }
+              // Close menu when clicking outside
+              if (document.body.classList.contains('mobile-menu-open')) {
+                var menu = document.querySelector('.mobile-menu');
+                if (menu && !menu.contains(e.target)) {
+                  document.body.classList.remove('mobile-menu-open');
+                }
+              }
+            });
+
+            // Highlight current page in navigation
+            document.addEventListener('DOMContentLoaded', function() {
+              var path = window.location.pathname;
+              // Highlight sidebar links
+              document.querySelectorAll('.sidebar-link').forEach(function(link) {
+                if (link.getAttribute('href') === path) {
+                  link.classList.add('active');
+                  link.closest('.sidebar-item')?.classList.add('active');
+                }
+              });
+              // Highlight top nav links
+              document.querySelectorAll('.top-nav-link').forEach(function(link) {
+                var href = link.getAttribute('href');
+                var match = link.dataset.match;
+                if (path === href || (match && path.startsWith(match))) {
+                  link.classList.add('active');
+                }
+              });
+            });
+          })();
+        </script><link rel="stylesheet" href="/assets/theme-DsForQV0.css"/><script type="module" src="/assets/entry-client-l0sNRNKZ.js"></script><link rel="stylesheet" href="/assets/percentages-YKFLWNK2-B2XZkhZL.css"/></head><body><div class="docs-layout"><header class="top-nav"><div class="top-nav-container"><a href="/index.html" class="top-nav-logo"><span class="logo-text">Org-Press</span></a><nav class="top-nav-links"><a href="/guide/index.html" class="top-nav-link " data-match="^\/(guide(\/|$)|getting-started|index\.html$)">Guide</a><a href="/config/index.html" class="top-nav-link " data-match="^\/config(\/|$)">Config</a><a href="/plugins/index.html" class="top-nav-link " data-match="^\/plugins(\/|$)">Plugins</a><a href="/api/index.html" class="top-nav-link " data-match="^\/api(\/|$)">API</a></nav><div class="top-nav-social"><a href="https://github.com/org-press/org-press/blob/main/docs/content/examples/index.org?plain=1" class="top-nav-source-link" target="_blank" rel="noopener noreferrer" title="View page source on GitHub">:view-source</a><a href="https://github.com/org-press/org-press" class="top-nav-social-link" target="_blank" rel="noopener noreferrer" aria-label="GitHub"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"></path></svg></a></div><button class="mobile-menu-button" aria-label="Toggle navigation menu" aria-expanded="false"><span class="hamburger-line"></span><span class="hamburger-line"></span><span class="hamburger-line"></span></button></div></header><div class="mobile-menu"><nav class="mobile-menu-nav"><div class="mobile-menu-section"><a href="/guide/index.html" class="mobile-menu-section-title ">Guide</a><ul class="mobile-menu-list"><li><a href="/guide/index.html" class="mobile-menu-link ">What is Org-Press?</a></li><li><a href="/guide/getting-started.html" class="mobile-menu-link ">Getting Started</a></li><li><a href="/guide/why-org-press.html" class="mobile-menu-link ">Why Org-Press?</a></li><li><a href="/guide/features.html" class="mobile-menu-link ">Features</a></li><li><a href="/guide/rendering-modes.html" class="mobile-menu-link ">Rendering Modes</a></li><li><a href="/guide/cli.html" class="mobile-menu-link ">CLI Reference</a></li><li><a href="/guide/using-plugins.html" class="mobile-menu-link ">Using Plugins</a></li><li><a href="/guide/block-imports.html" class="mobile-menu-link ">Block Imports</a></li><li><a href="/guide/static-assets.html" class="mobile-menu-link ">Static Assets</a></li><li><a href="/guide/building.html" class="mobile-menu-link ">Building for Production</a></li><li><a href="/guide/deploying.html" class="mobile-menu-link ">Deploying</a></li><li><a href="/guide/troubleshooting.html" class="mobile-menu-link ">Troubleshooting</a></li></ul></div><div class="mobile-menu-section"><a href="/config/index.html" class="mobile-menu-section-title ">Config</a><ul class="mobile-menu-list"><li><a href="/config/index.html" class="mobile-menu-link ">Overview</a></li><li><a href="/config/shared-options.html" class="mobile-menu-link ">Shared Options</a></li><li><a href="/config/build-options.html" class="mobile-menu-link ">Build Options</a></li><li><a href="/config/server-options.html" class="mobile-menu-link ">Server Options</a></li><li><a href="/config/plugin-options.html" class="mobile-menu-link ">Plugin Options</a></li></ul></div><div class="mobile-menu-section"><a href="/plugins/index.html" class="mobile-menu-section-title ">Plugins</a><ul class="mobile-menu-list"><li><a href="/plugins/index.html" class="mobile-menu-link ">Overview</a></li><li class="mobile-menu-group"><span class="mobile-menu-group-title">Official Plugins</span><ul class="mobile-menu-sublist"><li><a href="/plugins/react.html" class="mobile-menu-link ">React</a></li><li><a href="/plugins/echarts.html" class="mobile-menu-link ">ECharts</a></li><li><a href="/plugins/excalidraw.html" class="mobile-menu-link ">Excalidraw</a></li><li><a href="/plugins/jscad.html" class="mobile-menu-link ">JSCAD</a></li><li><a href="/plugins/test.html" class="mobile-menu-link ">Test</a></li></ul></li><li><a href="/plugins/creating-plugins.html" class="mobile-menu-link ">Creating Plugins</a></li></ul></div><div class="mobile-menu-section"><a href="/api/index.html" class="mobile-menu-section-title ">API</a><ul class="mobile-menu-list"><li><a href="/api/index.html" class="mobile-menu-link ">Overview</a></li><li><a href="/api/plugin-api.html" class="mobile-menu-link ">Plugin API</a></li><li><a href="/api/javascript-api.html" class="mobile-menu-link ">JavaScript API</a></li><li><a href="/api/hmr-api.html" class="mobile-menu-link ">HMR API</a></li><li><a href="/api/cli-plugins.html" class="mobile-menu-link ">CLI Plugins</a></li></ul></div></nav><div class="mobile-menu-footer"><a href="https://github.com/org-press/org-press" class="mobile-menu-link" target="_blank" rel="noopener noreferrer">GitHub</a></div></div><div class="alpha-banner"><span class="alpha-banner-icon">⚠️</span><span class="alpha-banner-text"><strong>Early Alpha</strong> — Org-press is experimental. Perfect for hackers and tinkerers, not ready for production. Documentation may be incomplete or inaccurate.</span></div><div class="docs-container"><aside class="sidebar"><div class="sidebar-content"><nav class="sidebar-nav" aria-label="Section navigation"><div class="sidebar-section"><h3 class="sidebar-section-title">Guide</h3><ul class="sidebar-list"><li class="sidebar-item "><a href="/guide/index.html" class="sidebar-link ">What is Org-Press?</a></li><li class="sidebar-item "><a href="/guide/getting-started.html" class="sidebar-link ">Getting Started</a></li><li class="sidebar-item "><a href="/guide/why-org-press.html" class="sidebar-link ">Why Org-Press?</a></li><li class="sidebar-item "><a href="/guide/features.html" class="sidebar-link ">Features</a></li><li class="sidebar-item "><a href="/guide/rendering-modes.html" class="sidebar-link ">Rendering Modes</a></li><li class="sidebar-item "><a href="/guide/cli.html" class="sidebar-link ">CLI Reference</a></li><li class="sidebar-item "><a href="/guide/using-plugins.html" class="sidebar-link ">Using Plugins</a></li><li class="sidebar-item "><a href="/guide/block-imports.html" class="sidebar-link ">Block Imports</a></li><li class="sidebar-item "><a href="/guide/static-assets.html" class="sidebar-link ">Static Assets</a></li><li class="sidebar-item "><a href="/guide/building.html" class="sidebar-link ">Building for Production</a></li><li class="sidebar-item "><a href="/guide/deploying.html" class="sidebar-link ">Deploying</a></li><li class="sidebar-item "><a href="/guide/troubleshooting.html" class="sidebar-link ">Troubleshooting</a></li></ul></div></nav></div></aside><main class="docs-content"><article class="docs-article"><div class="docs-body"><div><h1 id="introduction">Introduction</h1><p>This page provides comprehensive examples of how Org-Press renders various org-mode syntax elements. Each example shows both the org-mode source and its rendered output.
+</p><h2 id="what-youll-learn">What You'll Learn</h2><ul><li>Headings and document structure
+</li><li>Text formatting (bold, italic, code, etc.)
+</li><li>Links and references
+</li><li>Lists (ordered, unordered, checkboxes)
+</li><li>Tables
+</li><li>Source code blocks with syntax highlighting
+</li><li>Drawers and special blocks
+</li><li>Export options and parameters
+</li><li>Quote blocks and examples
+</li><li>Rendering modes (dom, sourceOnly, etc.)
+</li></ul><h1 id="text-formatting">Text Formatting</h1><h2 id="basic-formatting">Basic Formatting</h2><ul><li><strong>Bold text</strong> using <code class="inline-verbatim">*asterisks*</code></li><li><em>Italic text</em> using <code class="inline-verbatim">/slashes/</code></li><li>_Underlined text* using <code class="inline-verbatim">_underscores_</code></li><li><del>Strikethrough</del> using <code class="inline-verbatim">+plus signs+</code></li><li><code class="inline-verbatim">Inline code</code> using <code class="inline-verbatim">equals signs</code></li><li><code class="inline-code">Verbatim text</code> using <code class="inline-verbatim">tildes</code></li></ul><h2 id="combined-formatting">Combined Formatting</h2><p>You can combine formatting: <strong><em>bold italic</em></strong>, <code class="inline-verbatim">*bold code*</code>, and <span class="underline" style="text-decoration: underline;"><em>underlined italic</em></span>.
+</p><h2 id="special-characters">Special Characters</h2><ul><li>Em dash: ---
+</li><li>Ellipsis: ...
+</li><li>Copyright: (c)
+</li><li>Registered: (r)
+</li><li>Trademark: (tm)
+</li></ul><h1 id="headings-and-structure">Headings and Structure</h1><p>Org-mode supports hierarchical headings from <code class="inline-verbatim">*</code> (level 1) to <code class="inline-verbatim">******</code> (level 6).
+</p><h2 id="level-2-heading">Level 2 Heading</h2><h3 id="level-3-heading">Level 3 Heading</h3><h4 id="level-4-heading">Level 4 Heading</h4><h5 id="level-5-heading">Level 5 Heading</h5><h6 id="level-6-heading">Level 6 Heading</h6><p>Each heading automatically gets an anchor ID for deep linking.
+</p><h1 id="lists">Lists</h1><h2 id="unordered-lists">Unordered Lists</h2><p>Basic bullet list:
+</p><ul><li>First item
+</li><li>Second item
+<ul><li>Nested item
+</li><li>Another nested item
+</li></ul></li><li>Third item
+</li></ul><h2 id="ordered-lists">Ordered Lists</h2><p>Numbered list:
+</p><ol><li>First step
+</li><li>Second step
+<ol><li>Sub-step A
+</li><li>Sub-step B
+</li></ol></li><li>Third step
+</li></ol><h2 id="checklist-items">Checklist Items</h2><p>Task list:
+</p><ul><li>Todo item
+</li><li>In progress item
+</li><li>Completed item
+<ul><li>Nested completed
+</li><li>Nested todo
+</li></ul></li></ul><h2 id="description-lists">Description Lists</h2><dl><dt>Term 1</dt><dd><p>Definition of term 1
+</p></dd><dt>Term 2</dt><dd><p>Definition of term 2
+           with multiple lines
+</p></dd><dt>Term 3</dt><dd><p>Definition of term 3
+</p></dd></dl><h1 id="links">Links</h1><h2 id="internal-links">Internal Links</h2><p>Link to another page: <a href="/guide/getting-started.html">Getting Started</a></p><p>Link to a heading on this page: <a href="#text-formatting">Text Formatting section</a></p><h2 id="external-links">External Links</h2><p>Link to website: <a href="https://orgmode.html">Org-Mode Official Site</a></p><p>Plain URL: <a href="https://example.com">https://example.com</a></p><p>Email: <a href="mailto:user@example.com">mailto:user@example.com</a></p><h2 id="link-with-description">Link with Description</h2><p><a href="https://github.com">GitHub - Where the world builds software</a></p><h1 id="tables">Tables</h1><h2 id="simple-table">Simple Table</h2><table><thead><tr><th>Name</th><th>Age</th><th>City</th></tr></thead><tbody><tr><td>Alice</td><td>30</td><td>San Francisco</td></tr><tr><td>Bob</td><td>25</td><td>New York</td></tr><tr><td>Charlie</td><td>35</td><td>London</td></tr></tbody></table><h2 id="table-with-alignment">Table with Alignment</h2><table><thead><tr><th>Left</th><th>Center</th><th>Right</th></tr></thead><tbody><tr><td>A</td><td>B</td><td>C</td></tr><tr><td>AAA</td><td>BBB</td><td>CCC</td></tr></tbody></table><h2 id="complex-table">Complex Table</h2><table><thead><tr><th>Feature</th><th>Supported</th><th>Priority</th></tr></thead><tbody><tr><td>Text formatting</td><td>Yes</td><td>High</td></tr><tr><td>Code blocks</td><td>Yes</td><td>High</td></tr><tr><td>Tables</td><td>Yes</td><td>Medium</td></tr><tr><td>Diagrams</td><td>Yes</td><td>Low</td></tr></tbody></table><h1 id="source-code-blocks">Source Code Blocks</h1><h2 id="basic-code-block">Basic Code Block</h2><div id="org-block-0-result" data-org-block="block-content-examples-index-org-0" class="org-block-result"></div><h2 id="code-block-with-typescript">Code Block with TypeScript</h2><div id="org-block-1-result" data-org-block="block-content-examples-index-org-1" class="org-block-result"></div><h2 id="multiple-languages">Multiple Languages</h2><p>Python:
+</p><pre class="src-block"><code class="hljs language-python"><span class="hljs-keyword">def</span> <span class="hljs-title function_">fibonacci</span>(<span class="hljs-params">n</span>):
+    <span class="hljs-keyword">if</span> n &#x3C;= <span class="hljs-number">1</span>:
+        <span class="hljs-keyword">return</span> n
+    <span class="hljs-keyword">return</span> fibonacci(n-<span class="hljs-number">1</span>) + fibonacci(n-<span class="hljs-number">2</span>)
+
+<span class="hljs-built_in">print</span>(fibonacci(<span class="hljs-number">10</span>))
+</code></pre><p>Rust:
+</p><pre class="src-block"><code class="hljs language-rust"><span class="hljs-keyword">fn</span> <span class="hljs-title function_">main</span>() {
+    <span class="hljs-keyword">let</span> <span class="hljs-variable">numbers</span> = <span class="hljs-built_in">vec!</span>[<span class="hljs-number">1</span>, <span class="hljs-number">2</span>, <span class="hljs-number">3</span>, <span class="hljs-number">4</span>, <span class="hljs-number">5</span>];
+    <span class="hljs-keyword">let</span> <span class="hljs-variable">sum</span>: <span class="hljs-type">i32</span> = numbers.<span class="hljs-title function_ invoke__">iter</span>().<span class="hljs-title function_ invoke__">sum</span>();
+    <span class="hljs-built_in">println!</span>(<span class="hljs-string">"Sum: {}"</span>, sum);
+}
+</code></pre><p>CSS:
+</p><style data-org-block="block-content-examples-index-org-4">.container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 2rem;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+</style><h1 id="rendering-modes">Rendering Modes</h1><h2 id="use-sourceonly-display-only"><code class="inline-verbatim">:use sourceOnly</code> (display only)</h2><p>Shows only the code, doesn't execute:
+</p><pre class="src-block"><code class="hljs language-javascript"><span class="hljs-comment">// This code is displayed but not executed</span>
+<span class="hljs-variable language_">console</span>.<span class="hljs-title function_">log</span>(<span class="hljs-string">"Only visible as code"</span>);
+</code></pre><h2 id="use-dom-default"><code class="inline-verbatim">:use dom</code> (default)</h2><p>Executes code and shows the result:
+</p><div id="org-block-6-result" data-org-block="block-content-examples-index-org-6" class="org-block-result"></div><h2 id="use-dom-withsourcecode"><code class="inline-verbatim">:use dom | withSourceCode</code></h2><p>Shows both code and result:
+</p><pre class="src-block"><code class="hljs language-javascript"><span class="hljs-string">"Both code and result are visible"</span>
+</code></pre><div id="org-block-7-result" data-org-block="block-content-examples-index-org-7" class="org-block-result"></div>
+<div class="org-source-code">
+        <div class="org-source-label">Source</div>
+        <pre><code class="hljs language-javascript"><span class="hljs-string">"Both code and result are visible"</span>
+</code></pre>
+      </div><h2 id="use-silent"><code class="inline-verbatim">:use silent</code></h2><p>Block executes but output is hidden (useful for setup code):
+</p><h1 id="server-side-execution">Server-Side Execution</h1><h2 id="use-server"><code class="inline-verbatim">:use server</code></h2><p>By default, code executes in the browser. Use <code class="inline-verbatim">:use server</code> to execute code on the server during build:
+</p>Built at 2026-01-31T13:52:14.061Z<h1 id="rendering-mode-examples">Rendering Mode Examples</h1><p>The Modes API in Org-Press allows customizing how code and results are displayed together using the <code class="inline-verbatim">:use</code> parameter with pipe syntax.
+</p><h2 id="basic-dom-mode">Basic DOM Mode</h2><p>Show both code and result using the pipe syntax:
+</p><pre class="src-block"><code class="hljs language-javascript"><span class="hljs-keyword">function</span> <span class="hljs-title function_">add</span>(<span class="hljs-params">a, b</span>) {
+  <span class="hljs-keyword">return</span> a + b;
+}
+
+<span class="hljs-title function_">add</span>(<span class="hljs-number">2</span>, <span class="hljs-number">3</span>); <span class="hljs-comment">// Returns 5</span>
+</code></pre><div id="org-block-10-result" data-org-block="block-content-examples-index-org-10" class="org-block-result"></div>
+<div class="org-source-code">
+        <div class="org-source-label">Source</div>
+        <pre><code class="hljs language-javascript"><span class="hljs-keyword">function</span> <span class="hljs-title function_">add</span>(<span class="hljs-params">a, b</span>) {
+  <span class="hljs-keyword">return</span> a + b;
+}
+
+<span class="hljs-title function_">add</span>(<span class="hljs-number">2</span>, <span class="hljs-number">3</span>); <span class="hljs-comment">// Returns 5</span>
+</code></pre>
+      </div><h2 id="source-code-only">Source Code Only</h2><p>Use <code class="inline-verbatim">:use sourceOnly</code> to show only the code without execution:
+</p><pre class="src-block"><code class="hljs language-javascript"><span class="hljs-keyword">const</span> <span class="hljs-title function_">factorial</span> = (<span class="hljs-params">n</span>) => n &#x3C;= <span class="hljs-number">1</span> ? <span class="hljs-number">1</span> : n * <span class="hljs-title function_">factorial</span>(n - <span class="hljs-number">1</span>);
+<span class="hljs-title function_">factorial</span>(<span class="hljs-number">5</span>); <span class="hljs-comment">// Returns 120</span>
+</code></pre><h1 id="drawers">Drawers</h1><p>Drawers are collapsible sections that can store metadata or content.
+</p><p><strong><strong>Note:</strong></strong> Drawers must be within a headline context (not at document root level).
+</p><h2 id="properties-drawer">Properties Drawer</h2><p>Properties are typically used for metadata:
+</p><h3 id="example-with-properties">Example with Properties</h3><p>This heading has properties in a drawer.
+</p><h2 id="ai-conversation-drawer">AI Conversation Drawer</h2><p>Special <code class="inline-verbatim">:AI:</code> drawer for recording AI conversations (renders with 🤖 emoji):
+</p><h3 id="conversation-log">Conversation Log</h3><h1 id="quote-blocks">Quote Blocks</h1><blockquote><p>This is a quote block. It is typically used for quotations from external sources.
+</p><p>> Nested quotes can be added within the block.
+</p></blockquote><h1 id="example-blocks">Example Blocks</h1><div class="example">This is an example block.
+Text here is displayed verbatim with monospace font.
+No special formatting is applied.
+</div><h1 id="named-blocks">Named Blocks</h1><p>Blocks can have names for referencing:
+</p><div id="org-block-12-result" data-org-block="block-content-examples-index-org-12" class="org-block-result"></div><p>You can reference named blocks in other blocks or import them:
+</p><pre class="src-block"><code class="hljs language-javascript"><span class="hljs-keyword">import</span> utils <span class="hljs-keyword">from</span> <span class="hljs-string">"file.org?name=utility-functions"</span>;
+
+<span class="hljs-variable language_">console</span>.<span class="hljs-title function_">log</span>(utils.<span class="hljs-title function_">capitalize</span>(<span class="hljs-string">"hello"</span>)); <span class="hljs-comment">// "Hello"</span>
+</code></pre><p>For a comprehensive guide on block imports with many examples, see the <a href="/examples/block-imports.html">Block Imports Guide</a>.
+</p><h1 id="advanced-features">Advanced Features</h1><h2 id="tangle-parameter">Tangle Parameter</h2><p>The <code class="inline-verbatim">:tangle</code> parameter extracts code to external files:
+</p><pre class="src-block"><code class="hljs language-javascript"><span class="hljs-comment">// This code will be written to src/generated.js during build</span>
+<span class="hljs-keyword">export</span> <span class="hljs-keyword">function</span> <span class="hljs-title function_">example</span>(<span class="hljs-params"></span>) {
+  <span class="hljs-keyword">return</span> <span class="hljs-string">"tangled code"</span>;
+}
+</code></pre><h2 id="block-plugins">Block Plugins</h2><p>Org-Press supports custom block plugins for specialized rendering:
+</p><h3 id="jscad-3d-models">JSCad (3D Models)</h3><div id="org-block-15-result" data-org-block="block-content-examples-index-org-15" class="org-block-result"></div><h3 id="excalidraw-diagrams">Excalidraw (Diagrams)</h3><div id="org-block-16-result" data-org-block="block-content-examples-index-org-16" class="org-block-result"></div><h1 id="summary">Summary</h1><p>This page demonstrates the comprehensive org-mode rendering capabilities of Org-Press:
+</p><ul><li>✅ Full org-mode syntax support
+</li><li>✅ Multiple rendering modes (dom, sourceOnly, silent)
+</li><li>✅ Server and browser runtime execution
+</li><li>✅ Modes API for custom presentations
+</li><li>✅ Drawers with special handling (AI conversations)
+</li><li>✅ Block plugins for specialized content
+</li><li>✅ Named blocks and code import system
+</li><li>✅ Literate programming with :tangle
+</li></ul><h2 id="next-steps">Next Steps</h2><ul><li><a href="/examples/block-imports.html">Block Imports Guide</a> - Learn how to import and reuse code blocks across files
+</li><li><a href="/examples/org-down.html">Org-Mode Syntax Reference</a> - Complete syntax guide
+</li><li><a href="/plugins/index.html">Learn about Block Plugins</a></li><li><a href="/plugins/creating-plugins.html">Create custom Block Plugins</a></li><li><a href="/config/index.html">Configure your Org-Press site</a></li></ul></div></div></article></main><aside class="toc"><div class="toc-content"><h4 class="toc-title">On this page</h4><nav class="toc-nav" aria-label="Table of contents"><ul class="toc-list"><li class="toc-item "><a href="#what-youll-learn" class="toc-link">What You&#x27;ll Learn</a></li><li class="toc-item "><a href="#basic-formatting" class="toc-link">Basic Formatting</a></li><li class="toc-item "><a href="#combined-formatting" class="toc-link">Combined Formatting</a></li><li class="toc-item "><a href="#special-characters" class="toc-link">Special Characters</a></li><li class="toc-item "><a href="#level-2-heading" class="toc-link">Level 2 Heading</a></li><li class="toc-item toc-item-nested"><a href="#level-3-heading" class="toc-link">Level 3 Heading</a></li><li class="toc-item "><a href="#unordered-lists" class="toc-link">Unordered Lists</a></li><li class="toc-item "><a href="#ordered-lists" class="toc-link">Ordered Lists</a></li><li class="toc-item "><a href="#checklist-items" class="toc-link">Checklist Items</a></li><li class="toc-item "><a href="#description-lists" class="toc-link">Description Lists</a></li><li class="toc-item "><a href="#internal-links" class="toc-link">Internal Links</a></li><li class="toc-item "><a href="#external-links" class="toc-link">External Links</a></li><li class="toc-item "><a href="#link-with-description" class="toc-link">Link with Description</a></li><li class="toc-item "><a href="#simple-table" class="toc-link">Simple Table</a></li><li class="toc-item "><a href="#table-with-alignment" class="toc-link">Table with Alignment</a></li><li class="toc-item "><a href="#complex-table" class="toc-link">Complex Table</a></li><li class="toc-item "><a href="#basic-code-block" class="toc-link">Basic Code Block</a></li><li class="toc-item "><a href="#code-block-with-typescript" class="toc-link">Code Block with TypeScript</a></li><li class="toc-item "><a href="#multiple-languages" class="toc-link">Multiple Languages</a></li><li class="toc-item "><a href="#use-sourceonly-display-only" class="toc-link">:use sourceOnly (display only)</a></li><li class="toc-item "><a href="#use-dom-default" class="toc-link">:use dom (default)</a></li><li class="toc-item "><a href="#use-dom-withsourcecode" class="toc-link">:use dom | withSourceCode</a></li><li class="toc-item "><a href="#use-silent" class="toc-link">:use silent</a></li><li class="toc-item "><a href="#use-server" class="toc-link">:use server</a></li><li class="toc-item "><a href="#basic-dom-mode" class="toc-link">Basic DOM Mode</a></li><li class="toc-item "><a href="#source-code-only" class="toc-link">Source Code Only</a></li><li class="toc-item "><a href="#properties-drawer" class="toc-link">Properties Drawer</a></li><li class="toc-item toc-item-nested"><a href="#example-with-properties" class="toc-link">Example with Properties</a></li><li class="toc-item "><a href="#ai-conversation-drawer" class="toc-link">AI Conversation Drawer</a></li><li class="toc-item toc-item-nested"><a href="#conversation-log" class="toc-link">Conversation Log</a></li><li class="toc-item "><a href="#tangle-parameter" class="toc-link">Tangle Parameter</a></li><li class="toc-item "><a href="#block-plugins" class="toc-link">Block Plugins</a></li><li class="toc-item toc-item-nested"><a href="#jscad-3d-models" class="toc-link">JSCad (3D Models)</a></li><li class="toc-item toc-item-nested"><a href="#excalidraw-diagrams" class="toc-link">Excalidraw (Diagrams)</a></li><li class="toc-item "><a href="#next-steps" class="toc-link">Next Steps</a></li></ul></nav></div></aside></div><footer class="site-footer"><div class="footer-content"><div class="footer-grid"><div class="footer-column"><h4>Guide</h4><ul><li><a href="/guide/index.html">What is Org-Press?</a></li><li><a href="/guide/getting-started.html">Getting Started</a></li><li><a href="/guide/features.html">Features</a></li><li><a href="/guide/cli.html">CLI Reference</a></li><li><a href="/guide/building.html">Building</a></li></ul></div><div class="footer-column"><h4>Config</h4><ul><li><a href="/config/index.html">Overview</a></li><li><a href="/config/shared-options.html">Shared Options</a></li><li><a href="/config/build-options.html">Build Options</a></li><li><a href="/config/server-options.html">Server Options</a></li></ul></div><div class="footer-column"><h4>Plugins</h4><ul><li><a href="/plugins/index.html">Overview</a></li><li><a href="/plugins/excalidraw.html">Excalidraw</a></li><li><a href="/plugins/jscad.html">JSCAD</a></li><li><a href="/plugins/creating-plugins.html">Creating Plugins</a></li></ul></div><div class="footer-column"><h4>API</h4><ul><li><a href="/api/index.html">Overview</a></li><li><a href="/api/plugin-api.html">Plugin API</a></li><li><a href="/api/javascript-api.html">JavaScript API</a></li></ul></div><div class="footer-column"><h4>Resources</h4><ul><li><a href="/examples/index.html">Examples</a></li><li><a href="https://github.com/org-press/org-press" target="_blank" rel="noopener">GitHub</a></li><li><a href="https://github.com/org-press/org-press/releases" target="_blank" rel="noopener">Releases</a></li></ul></div></div><div class="footer-bottom"><p class="footer-copyright">Released under the GPL-2.0 License.</p><p class="footer-credit">Built with <a href="https://github.com/org-press/org-press">org-press</a></p></div></div></footer></div><script src="https://analytics.ideable.dev/api/script.js" data-site-id="5dc60eeeac5d" defer=""></script><script type="module" src="/assets/hydrate-content-examples-index-BoW3lIaI.js"></script></body></html>

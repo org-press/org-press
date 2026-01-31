@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charSet="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/><title>Why Org-Press? | org-press</title><meta name="description" content="The case for org-mode as a documentation format"/><script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script><script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/highlight.min.js"></script><link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/styles/github.min.css" media="(prefers-color-scheme: light)"/><link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/styles/github-dark.min.css" media="(prefers-color-scheme: dark)"/><script>
+          // Register org-mode language for highlight.js
+          if (typeof hljs !== 'undefined') {
+            hljs.registerLanguage('org', function(hljs) {
+              return {
+                name: 'Org',
+                aliases: ['org', 'org-mode', 'orgmode'],
+                case_insensitive: true,
+                contains: [
+                  // Headlines
+                  {
+                    className: 'section',
+                    begin: /^\*+\s/,
+                    end: /$/,
+                    contains: [
+                      { className: 'keyword', begin: /\b(TODO|DONE|WAITING|CANCELLED|NEXT|HOLD)\b/ }
+                    ]
+                  },
+                  // Keywords (#+KEYWORD:)
+                  {
+                    className: 'meta',
+                    begin: /^#\+[A-Za-z_]+:/,
+                    end: /$/,
+                    contains: [{ className: 'string', begin: /\s/, end: /$/ }]
+                  },
+                  // Begin/end blocks
+                  { className: 'keyword', begin: /^#\+(begin|end)_[a-z]+/i, relevance: 10 },
+                  // Property drawers
+                  { className: 'attribute', begin: /^:\w+:/, end: /$/ },
+                  // Links [[url][description]]
+                  {
+                    className: 'link',
+                    begin: /\[\[/,
+                    end: /\]\]/,
+                    contains: [{ className: 'string', begin: /\]\[/, end: /(?=\]\])/ }]
+                  },
+                  // Comments (lines starting with #, but not #+)
+                  { className: 'comment', begin: /^#[^+]/, end: /$/ },
+                  // Timestamps
+                  { className: 'number', begin: /<\d{4}-\d{2}-\d{2}/, end: />/ },
+                  // Tags :tag1:tag2:
+                  { className: 'tag', begin: /\s:[a-zA-Z0-9_@#%:]+:\s*$/ }
+                ]
+              };
+            });
+            // Run highlighting after DOM is ready
+            document.addEventListener('DOMContentLoaded', function() {
+              hljs.highlightAll();
+            });
+          }
+        </script><script>
+          (function() {
+            // Set current path as data attribute for CSS styling
+            document.documentElement.dataset.path = window.location.pathname;
+
+            // Mobile menu toggle using event delegation
+            document.addEventListener('click', function(e) {
+              var button = e.target.closest('.mobile-menu-button');
+              if (button) {
+                e.stopPropagation();
+                document.body.classList.toggle('mobile-menu-open');
+                return;
+              }
+              // Close menu when clicking a link inside the menu
+              var menuLink = e.target.closest('.mobile-menu a');
+              if (menuLink) {
+                document.body.classList.remove('mobile-menu-open');
+                return;
+              }
+              // Close menu when clicking outside
+              if (document.body.classList.contains('mobile-menu-open')) {
+                var menu = document.querySelector('.mobile-menu');
+                if (menu && !menu.contains(e.target)) {
+                  document.body.classList.remove('mobile-menu-open');
+                }
+              }
+            });
+
+            // Highlight current page in navigation
+            document.addEventListener('DOMContentLoaded', function() {
+              var path = window.location.pathname;
+              // Highlight sidebar links
+              document.querySelectorAll('.sidebar-link').forEach(function(link) {
+                if (link.getAttribute('href') === path) {
+                  link.classList.add('active');
+                  link.closest('.sidebar-item')?.classList.add('active');
+                }
+              });
+              // Highlight top nav links
+              document.querySelectorAll('.top-nav-link').forEach(function(link) {
+                var href = link.getAttribute('href');
+                var match = link.dataset.match;
+                if (path === href || (match && path.startsWith(match))) {
+                  link.classList.add('active');
+                }
+              });
+            });
+          })();
+        </script><link rel="stylesheet" href="/assets/theme-DsForQV0.css"/><script type="module" src="/assets/entry-client-l0sNRNKZ.js"></script></head><body><div class="docs-layout"><header class="top-nav"><div class="top-nav-container"><a href="/index.html" class="top-nav-logo"><span class="logo-text">Org-Press</span></a><nav class="top-nav-links"><a href="/guide/index.html" class="top-nav-link active" data-match="^\/(guide(\/|$)|getting-started|index\.html$)">Guide</a><a href="/config/index.html" class="top-nav-link " data-match="^\/config(\/|$)">Config</a><a href="/plugins/index.html" class="top-nav-link " data-match="^\/plugins(\/|$)">Plugins</a><a href="/api/index.html" class="top-nav-link " data-match="^\/api(\/|$)">API</a></nav><div class="top-nav-social"><a href="https://github.com/org-press/org-press/blob/main/docs/content/guide/why-org-press.org?plain=1" class="top-nav-source-link" target="_blank" rel="noopener noreferrer" title="View page source on GitHub">:view-source</a><a href="https://github.com/org-press/org-press" class="top-nav-social-link" target="_blank" rel="noopener noreferrer" aria-label="GitHub"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"></path></svg></a></div><button class="mobile-menu-button" aria-label="Toggle navigation menu" aria-expanded="false"><span class="hamburger-line"></span><span class="hamburger-line"></span><span class="hamburger-line"></span></button></div></header><div class="mobile-menu"><nav class="mobile-menu-nav"><div class="mobile-menu-section"><a href="/guide/index.html" class="mobile-menu-section-title active">Guide</a><ul class="mobile-menu-list"><li><a href="/guide/index.html" class="mobile-menu-link ">What is Org-Press?</a></li><li><a href="/guide/getting-started.html" class="mobile-menu-link ">Getting Started</a></li><li><a href="/guide/why-org-press.html" class="mobile-menu-link ">Why Org-Press?</a></li><li><a href="/guide/features.html" class="mobile-menu-link ">Features</a></li><li><a href="/guide/rendering-modes.html" class="mobile-menu-link ">Rendering Modes</a></li><li><a href="/guide/cli.html" class="mobile-menu-link ">CLI Reference</a></li><li><a href="/guide/using-plugins.html" class="mobile-menu-link ">Using Plugins</a></li><li><a href="/guide/block-imports.html" class="mobile-menu-link ">Block Imports</a></li><li><a href="/guide/static-assets.html" class="mobile-menu-link ">Static Assets</a></li><li><a href="/guide/building.html" class="mobile-menu-link ">Building for Production</a></li><li><a href="/guide/deploying.html" class="mobile-menu-link ">Deploying</a></li><li><a href="/guide/troubleshooting.html" class="mobile-menu-link ">Troubleshooting</a></li></ul></div><div class="mobile-menu-section"><a href="/config/index.html" class="mobile-menu-section-title ">Config</a><ul class="mobile-menu-list"><li><a href="/config/index.html" class="mobile-menu-link ">Overview</a></li><li><a href="/config/shared-options.html" class="mobile-menu-link ">Shared Options</a></li><li><a href="/config/build-options.html" class="mobile-menu-link ">Build Options</a></li><li><a href="/config/server-options.html" class="mobile-menu-link ">Server Options</a></li><li><a href="/config/plugin-options.html" class="mobile-menu-link ">Plugin Options</a></li></ul></div><div class="mobile-menu-section"><a href="/plugins/index.html" class="mobile-menu-section-title ">Plugins</a><ul class="mobile-menu-list"><li><a href="/plugins/index.html" class="mobile-menu-link ">Overview</a></li><li class="mobile-menu-group"><span class="mobile-menu-group-title">Official Plugins</span><ul class="mobile-menu-sublist"><li><a href="/plugins/react.html" class="mobile-menu-link ">React</a></li><li><a href="/plugins/echarts.html" class="mobile-menu-link ">ECharts</a></li><li><a href="/plugins/excalidraw.html" class="mobile-menu-link ">Excalidraw</a></li><li><a href="/plugins/jscad.html" class="mobile-menu-link ">JSCAD</a></li><li><a href="/plugins/test.html" class="mobile-menu-link ">Test</a></li></ul></li><li><a href="/plugins/creating-plugins.html" class="mobile-menu-link ">Creating Plugins</a></li></ul></div><div class="mobile-menu-section"><a href="/api/index.html" class="mobile-menu-section-title ">API</a><ul class="mobile-menu-list"><li><a href="/api/index.html" class="mobile-menu-link ">Overview</a></li><li><a href="/api/plugin-api.html" class="mobile-menu-link ">Plugin API</a></li><li><a href="/api/javascript-api.html" class="mobile-menu-link ">JavaScript API</a></li><li><a href="/api/hmr-api.html" class="mobile-menu-link ">HMR API</a></li><li><a href="/api/cli-plugins.html" class="mobile-menu-link ">CLI Plugins</a></li></ul></div></nav><div class="mobile-menu-footer"><a href="https://github.com/org-press/org-press" class="mobile-menu-link" target="_blank" rel="noopener noreferrer">GitHub</a></div></div><div class="alpha-banner"><span class="alpha-banner-icon">⚠️</span><span class="alpha-banner-text"><strong>Early Alpha</strong> — Org-press is experimental. Perfect for hackers and tinkerers, not ready for production. Documentation may be incomplete or inaccurate.</span></div><div class="docs-container"><aside class="sidebar"><div class="sidebar-content"><nav class="sidebar-nav" aria-label="Section navigation"><div class="sidebar-section"><h3 class="sidebar-section-title">Guide</h3><ul class="sidebar-list"><li class="sidebar-item "><a href="/guide/index.html" class="sidebar-link ">What is Org-Press?</a></li><li class="sidebar-item "><a href="/guide/getting-started.html" class="sidebar-link ">Getting Started</a></li><li class="sidebar-item "><a href="/guide/why-org-press.html" class="sidebar-link ">Why Org-Press?</a></li><li class="sidebar-item "><a href="/guide/features.html" class="sidebar-link ">Features</a></li><li class="sidebar-item "><a href="/guide/rendering-modes.html" class="sidebar-link ">Rendering Modes</a></li><li class="sidebar-item "><a href="/guide/cli.html" class="sidebar-link ">CLI Reference</a></li><li class="sidebar-item "><a href="/guide/using-plugins.html" class="sidebar-link ">Using Plugins</a></li><li class="sidebar-item "><a href="/guide/block-imports.html" class="sidebar-link ">Block Imports</a></li><li class="sidebar-item "><a href="/guide/static-assets.html" class="sidebar-link ">Static Assets</a></li><li class="sidebar-item "><a href="/guide/building.html" class="sidebar-link ">Building for Production</a></li><li class="sidebar-item "><a href="/guide/deploying.html" class="sidebar-link ">Deploying</a></li><li class="sidebar-item "><a href="/guide/troubleshooting.html" class="sidebar-link ">Troubleshooting</a></li></ul></div></nav></div></aside><main class="docs-content"><article class="docs-article"><div class="docs-body"><div><h1 id="why-org-press">Why Org-Press?</h1><p>There are many static site generators. Here's why org-press might be right for you.
+</p><h2 id="the-problem-with-documentation">The Problem with Documentation</h2><p>Most documentation tools share these issues:
+</p><ol><li><strong>Code examples rot</strong> - Copy-pasted output becomes stale
+</li><li><strong>No code reuse</strong> - Same snippet duplicated across files
+</li><li><strong>Separate test suites</strong> - Examples and tests are disconnected
+</li><li><strong>Limited metadata</strong> - Markdown requires extensions for basics
+</li></ol><p>Org-press solves these by making documentation executable and composable.
+</p><h2 id="executable-examples">Executable Examples</h2><p>In traditional documentation, you write code and manually copy the output:
+</p><pre class="src-block"><code class="hljs language-markdown"><span class="hljs-code">```javascript
+const sum = [1, 2, 3].reduce((a, b) => a + b);
+// Output: 6
+```</span>
+</code></pre><p>The problem? That <code class="inline-verbatim">// Output: 6</code> was typed by a human. It might be wrong. It might become wrong after refactoring.
+</p><p>In org-press, the code runs:
+</p><pre><code>#+begin_src javascript :use dom | withSourceCode
+const sum = [1, 2, 3].reduce((a, b) => a + b);
+sum;
+#+end_src</code></pre>
+<p>The output is always current. Always correct.
+</p><h2 id="code-reuse-across-files">Code Reuse Across Files</h2><p>Markdown doesn't support importing code between files. You either duplicate code or maintain external files.
+</p><p>Org-press supports cross-file imports:
+</p><pre><code>// In validation.org
+#+NAME: validators
+#+begin_src typescript
+export function isEmail(s: string): boolean {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s);
+}
+#+end_src
+
+// In api.org - use the same validators
+import { isEmail } from './validation.org?name=validators';
+</code></pre>
+<p>One source of truth. No copy-paste drift.
+</p><h2 id="comparisons">Comparisons</h2><h3 id="vs-markdown-based-tools-vitepress-docusaurus">vs Markdown-Based Tools (VitePress, Docusaurus)</h3><table><thead><tr><th>Feature</th><th>Markdown SSG</th><th>Org-Press</th></tr></thead><tbody><tr><td>Code execution</td><td>Plugin/extension</td><td>Built-in</td></tr><tr><td>Block naming</td><td>Not standard</td><td>Native (<code class="inline-verbatim">#+NAME:</code>)</td></tr><tr><td>Block parameters</td><td>Custom syntax</td><td>Standard (<code class="inline-verbatim">:use</code>, <code class="inline-verbatim">:tangle</code>)</td></tr><tr><td>Cross-file imports</td><td>Not supported</td><td>Native</td></tr><tr><td>IDE support</td><td>Varies</td><td>Full TypeScript</td></tr></tbody></table><p><strong>When to use Markdown</strong>: If your team already knows Markdown well and you don't need executable code.
+</p><p><strong>When to use Org-Press</strong>: If you want literate programming features without inventing custom syntax.
+</p><h3 id="vs-jupyter-notebooks">vs Jupyter Notebooks</h3><table><thead><tr><th>Feature</th><th>Jupyter</th><th>Org-Press</th></tr></thead><tbody><tr><td>Format</td><td>JSON</td><td>Plain text</td></tr><tr><td>Version control</td><td>Messy diffs</td><td>Clean diffs</td></tr><tr><td>Editor</td><td>Browser-based</td><td>Any editor</td></tr><tr><td>Tooling</td><td>Jupyter-specific</td><td>Standard (ESLint, Prettier)</td></tr><tr><td>Output</td><td>Inline cells</td><td>Web pages</td></tr></tbody></table><p><strong>When to use Jupyter</strong>: Data science exploration with inline visualizations.
+</p><p><strong>When to use Org-Press</strong>: Documentation websites, technical writing, literate libraries.
+</p><h3 id="vs-emacs-org-mode-hugojekyll">vs Emacs Org-Mode + Hugo/Jekyll</h3><table><thead><tr><th>Feature</th><th>Org + Hugo</th><th>Org-Press</th></tr></thead><tbody><tr><td>Emacs required</td><td>Yes (for execution)</td><td>No</td></tr><tr><td>Code execution</td><td>Via Babel</td><td>Native browser/Node</td></tr><tr><td>HMR</td><td>No</td><td>Yes</td></tr><tr><td>React/TSX</td><td>Complex setup</td><td>Built-in</td></tr><tr><td>TypeScript</td><td>Manual config</td><td>First-class</td></tr></tbody></table><p><strong>When to use Org + Hugo</strong>: If you're already in the Emacs ecosystem and want static HTML.
+</p><p><strong>When to use Org-Press</strong>: Modern web DX with Vite, HMR, and React without Emacs.
+</p><h3 id="vs-observablequarto">vs Observable/Quarto</h3><table><thead><tr><th>Feature</th><th>Observable</th><th>Org-Press</th></tr></thead><tbody><tr><td>Format</td><td>Custom cells</td><td>Standard org</td></tr><tr><td>Hosting</td><td>Observable.com</td><td>Any static host</td></tr><tr><td>Language</td><td>JavaScript</td><td>JS/TS/TSX + plugins</td></tr><tr><td>Privacy</td><td>Cloud-based</td><td>Self-hosted</td></tr></tbody></table><p><strong>When to use Observable</strong>: Data visualization with collaborative editing.
+</p><p><strong>When to use Org-Press</strong>: Self-hosted documentation with full control.
+</p><h2 id="the-org-mode-advantage">The Org-Mode Advantage</h2><p>Org-mode has decades of design refinement for literate programming:
+</p><h3 id="native-block-naming">Native Block Naming</h3><pre><code>#+NAME: calculateTax
+#+begin_src typescript
+export function calculateTax(amount: number, rate: number): number {
+  return amount * rate;
+}
+#+end_src</code></pre>
+<p>No custom syntax needed. It's part of the format.
+</p><h3 id="standard-parameters">Standard Parameters</h3><pre><code>#+begin_src typescript :use server
+// Block behavior controlled by standard parameters
+#+end_src</code></pre>
+<p>Parameters like <code class="inline-verbatim">:use</code>, <code class="inline-verbatim">:tangle</code> control block behavior.
+</p><h3 id="hierarchical-structure">Hierarchical Structure</h3><p>Org's outline structure (<code class="inline-verbatim">*</code>, <code class="inline-verbatim">**</code>, <code class="inline-verbatim">***</code>) creates natural document hierarchy without relying on heading syntax.
+</p><h2 id="when-to-choose-org-press">When to Choose Org-Press</h2><p><strong>Choose org-press if you want:</strong></p><ul><li>Documentation where examples actually run
+</li><li>Code that can be imported across files
+</li><li>Standard tooling (ESLint, Prettier, TypeScript)
+</li><li>Modern web development experience (Vite, HMR)
+</li><li>Plain text files that work with any editor
+</li></ul><p><strong>Consider alternatives if you:</strong></p><ul><li>Need team familiarity with Markdown (use VitePress)
+</li><li>Do interactive data exploration (use Jupyter)
+</li><li>Want Observable's collaborative features (use Observable)
+</li><li>Are fully embedded in Emacs (use Org + Hugo)
+</li></ul><h2 id="getting-started">Getting Started</h2><p>Ready to try org-press?
+</p><ul><li><a href="/guide/getting-started.html">Getting Started</a> - Create your first project
+</li><li><a href="/guide/features.html">Features</a> - See what's possible
+</li></ul></div></div></article></main><aside class="toc"><div class="toc-content"><h4 class="toc-title">On this page</h4><nav class="toc-nav" aria-label="Table of contents"><ul class="toc-list"><li class="toc-item "><a href="#the-problem-with-documentation" class="toc-link">The Problem with Documentation</a></li><li class="toc-item "><a href="#executable-examples" class="toc-link">Executable Examples</a></li><li class="toc-item "><a href="#code-reuse-across-files" class="toc-link">Code Reuse Across Files</a></li><li class="toc-item "><a href="#comparisons" class="toc-link">Comparisons</a></li><li class="toc-item toc-item-nested"><a href="#vs-markdown-based-tools-vitepress-docusaurus" class="toc-link">vs Markdown-Based Tools (VitePress, Docusaurus)</a></li><li class="toc-item toc-item-nested"><a href="#vs-jupyter-notebooks" class="toc-link">vs Jupyter Notebooks</a></li><li class="toc-item toc-item-nested"><a href="#vs-emacs-org-mode-hugojekyll" class="toc-link">vs Emacs Org-Mode + Hugo/Jekyll</a></li><li class="toc-item toc-item-nested"><a href="#vs-observablequarto" class="toc-link">vs Observable/Quarto</a></li><li class="toc-item "><a href="#the-org-mode-advantage" class="toc-link">The Org-Mode Advantage</a></li><li class="toc-item toc-item-nested"><a href="#native-block-naming" class="toc-link">Native Block Naming</a></li><li class="toc-item toc-item-nested"><a href="#standard-parameters" class="toc-link">Standard Parameters</a></li><li class="toc-item toc-item-nested"><a href="#hierarchical-structure" class="toc-link">Hierarchical Structure</a></li><li class="toc-item "><a href="#when-to-choose-org-press" class="toc-link">When to Choose Org-Press</a></li><li class="toc-item "><a href="#getting-started" class="toc-link">Getting Started</a></li></ul></nav></div></aside></div><footer class="site-footer"><div class="footer-content"><div class="footer-grid"><div class="footer-column"><h4>Guide</h4><ul><li><a href="/guide/index.html">What is Org-Press?</a></li><li><a href="/guide/getting-started.html">Getting Started</a></li><li><a href="/guide/features.html">Features</a></li><li><a href="/guide/cli.html">CLI Reference</a></li><li><a href="/guide/building.html">Building</a></li></ul></div><div class="footer-column"><h4>Config</h4><ul><li><a href="/config/index.html">Overview</a></li><li><a href="/config/shared-options.html">Shared Options</a></li><li><a href="/config/build-options.html">Build Options</a></li><li><a href="/config/server-options.html">Server Options</a></li></ul></div><div class="footer-column"><h4>Plugins</h4><ul><li><a href="/plugins/index.html">Overview</a></li><li><a href="/plugins/excalidraw.html">Excalidraw</a></li><li><a href="/plugins/jscad.html">JSCAD</a></li><li><a href="/plugins/creating-plugins.html">Creating Plugins</a></li></ul></div><div class="footer-column"><h4>API</h4><ul><li><a href="/api/index.html">Overview</a></li><li><a href="/api/plugin-api.html">Plugin API</a></li><li><a href="/api/javascript-api.html">JavaScript API</a></li></ul></div><div class="footer-column"><h4>Resources</h4><ul><li><a href="/examples/index.html">Examples</a></li><li><a href="https://github.com/org-press/org-press" target="_blank" rel="noopener">GitHub</a></li><li><a href="https://github.com/org-press/org-press/releases" target="_blank" rel="noopener">Releases</a></li></ul></div></div><div class="footer-bottom"><p class="footer-copyright">Released under the GPL-2.0 License.</p><p class="footer-credit">Built with <a href="https://github.com/org-press/org-press">org-press</a></p></div></div></footer></div><script src="https://analytics.ideable.dev/api/script.js" data-site-id="5dc60eeeac5d" defer=""></script></body></html>
