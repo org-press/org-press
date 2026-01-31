@@ -1,0 +1,22 @@
+{
+  "name": "org-press-monorepo",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "pnpm --filter org-press build && pnpm -r --filter '!org-press' build",
+    "test": "pnpm -r test",
+    "test:ci": "pnpm -r test:ci",
+    "lint": "pnpm -r lint",
+    "dev": "pnpm --filter @org-press/docs dev",
+    "clean": "pnpm -r clean",
+    "check-links": "node scripts/check-links.js"
+  },
+  "devDependencies": {
+    "typescript": "~5.7.3"
+  },
+  "engines": {
+    "node": ">=22.0.0",
+    "pnpm": ">=9.0.0"
+  },
+  "packageManager": "pnpm@9.15.0"
+}

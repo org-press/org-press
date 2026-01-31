@@ -1,0 +1,14 @@
+{
+  "name": "@org-press/example-single-file",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Zero-config single-file org-press example with hashbang support",
+  "type": "module",
+  "scripts": {
+    "dev": "orgp dev document.org",
+    "build": "orgp build document.org"
+  },
+  "dependencies": {
+    "org-press": "workspace:*"
+  }
+}

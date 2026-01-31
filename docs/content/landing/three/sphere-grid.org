@@ -1,0 +1,767 @@
+#+TITLE: Sphere Grid Background
+#+DESCRIPTION: Three.js instanced sphere grid background
+
+* Sphere Grid Background
+
+Core Three.js setup for the landing page background with instanced spheres.
+
+#+NAME: sphere-grid
+#+begin_src typescript
+/**
+ * 3D Sphere Grid Background
+ *
+ * Features:
+ * - Instanced mesh for performance (40x30 = 1200 spheres)
+ * - Mouse-driven camera rotation
+ * - Multiple formation modes
+ * - Text display using bitmap font
+ */
+
+import * as THREE from 'three';
+import { getCharPatterns } from './char-patterns.org?name=char-patterns';
+import { easeOutCubic, easeInOutSine } from './animation.org?name=animation';
+import {
+  Formation,
+  SphereState,
+  WordGroup,
+  Ripple,
+  CubeMapping,
+  CubeState,
+  GlobeMapping,
+  PrismMapping,
+  WarpStar,
+  generateCubeMappings,
+  generateGlobeMappings,
+  generatePrismMappings,
+  generateWarpStars,
+  resetWarpStar,
+} from './formations.org?name=formations';
+
+export interface SphereGridOptions {
+  gridCols: number;
+  gridRows: number;
+  sphereRadius: number;
+  spacing: number;
+  backgroundColor: number;
+  sphereColor: number;
+}
+
+export interface SphereGridController {
+  canvas: HTMLCanvasElement;
+  setFormation: (formation: Formation, immediate?: boolean) => void;
+  getFormationProgress: () => number;
+  setPattern: (pattern: boolean[][]) => void;
+  setText: (text: string) => void;
+  dispose: () => void;
+}
+
+export function createSphereGridBackground(
+  container: HTMLElement,
+  options: Partial<SphereGridOptions> = {}
+): SphereGridController {
+  const {
+    gridCols = 40,
+    gridRows = 30,
+    sphereRadius = 0.3,
+    spacing = 1.2,
+    backgroundColor = 0x0a0a0f,
+    sphereColor = 0xffffff,
+  } = options;
+
+  // Scene setup
+  const scene = new THREE.Scene();
+  scene.background = new THREE.Color(backgroundColor);
+
+  // Camera
+  const camera = new THREE.PerspectiveCamera(50, 1, 0.1, 1000);
+  const cameraDistance = 50;
+  camera.position.set(0, 0, cameraDistance);
+  camera.lookAt(0, 0, 0);
+
+  // Renderer
+  const renderer = new THREE.WebGLRenderer({ antialias: true });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  container.appendChild(renderer.domElement);
+
+  // Style the canvas
+  renderer.domElement.style.position = 'fixed';
+  renderer.domElement.style.top = '0';
+  renderer.domElement.style.left = '0';
+  renderer.domElement.style.width = '100vw';
+  renderer.domElement.style.height = '100vh';
+  renderer.domElement.style.zIndex = '0';
+  renderer.domElement.style.pointerEvents = 'none';
+
+  // Create instanced mesh
+  const sphereGeometry = new THREE.SphereGeometry(sphereRadius, 8, 6);
+  const sphereMaterial = new THREE.MeshBasicMaterial({ color: sphereColor });
+
+  const totalSpheres = gridCols * gridRows;
+  const instancedMesh = new THREE.InstancedMesh(sphereGeometry, sphereMaterial, totalSpheres);
+
+  // Set up instance colors
+  const baseColor = new THREE.Color(sphereColor);
+  const instanceColors = new Float32Array(totalSpheres * 3);
+  for (let i = 0; i < totalSpheres; i++) {
+    instanceColors[i * 3] = baseColor.r;
+    instanceColors[i * 3 + 1] = baseColor.g;
+    instanceColors[i * 3 + 2] = baseColor.b;
+  }
+  instancedMesh.instanceColor = new THREE.InstancedBufferAttribute(instanceColors, 3);
+  scene.add(instancedMesh);
+
+  // Calculate grid dimensions
+  const visibleHeight = 2 * Math.tan((50 / 2) * Math.PI / 180) * cameraDistance;
+  const aspect = window.innerWidth / window.innerHeight;
+  const visibleWidth = visibleHeight * aspect;
+
+  const effectiveSpacing = Math.max(visibleWidth / gridCols, visibleHeight / gridRows) * 1.1;
+  const gridWidth = (gridCols - 1) * effectiveSpacing;
+  const gridHeight = (gridRows - 1) * effectiveSpacing;
+
+  // Formation config for generators
+  const formationConfig = {
+    gridCols,
+    gridRows,
+    effectiveSpacing,
+    gridWidth,
+    gridHeight,
+    visibleWidth,
+    visibleHeight,
+    totalSpheres,
+  };
+
+  // Generate formation mappings
+  const { sphereToCube, cubeStates, spheresPerCubeSide, sphereSpacingInCube } = generateCubeMappings(formationConfig);
+  const { sphereToGlobe, globeRadius } = generateGlobeMappings(formationConfig);
+  const { sphereToPrism } = generatePrismMappings(formationConfig);
+  const { warpStars, warpTunnelRadius, warpDepth, warpNearPlane } = generateWarpStars(formationConfig);
+
+  // Word groups for grid highlighting
+  const wordGroups: WordGroup[] = [];
+
+  // Sphere states
+  const sphereStates: SphereState[] = [];
+  const matrix = new THREE.Matrix4();
+
+  // Initialize spheres
+  let index = 0;
+  for (let row = 0; row < gridRows; row++) {
+    for (let col = 0; col < gridCols; col++) {
+      const targetX = col * effectiveSpacing - gridWidth / 2;
+      const targetY = row * effectiveSpacing - gridHeight / 2;
+
+      const distFromCenter = Math.sqrt(
+        Math.pow(col - gridCols / 2, 2) + Math.pow(row - gridRows / 2, 2)
+      );
+      const maxDist = Math.sqrt(Math.pow(gridCols / 2, 2) + Math.pow(gridRows / 2, 2));
+      const delay = (distFromCenter / maxDist) * 1.5;
+
+      sphereStates.push({
+        targetX,
+        targetY,
+        targetZ: 0,
+        targetScale: 0.15,
+        currentX: targetX,
+        currentY: targetY - visibleHeight * 1.5,
+        currentZ: 0,
+        currentScale: 0.15,
+        delay,
+        isCharacter: false,
+        wordGroup: -1,
+        baseZ: 0,
+        baseScale: 0.15,
+        highlightAmount: 0,
+        targetHighlight: 0,
+        highlightDelay: Math.random(),
+      });
+
+      matrix.makeTranslation(targetX, targetY - visibleHeight * 1.5, 0);
+      instancedMesh.setMatrixAt(index, matrix);
+      index++;
+    }
+  }
+  instancedMesh.instanceMatrix.needsUpdate = true;
+
+  // Mouse tracking
+  let mouseX = 0;
+  let mouseY = 0;
+  let targetMouseX = 0;
+  let targetMouseY = 0;
+  const rotationSmoothing = 0.05;
+  const maxRotation = 0.15;
+
+  const handleMouseMove = (e: MouseEvent) => {
+    targetMouseX = (e.clientX / window.innerWidth) * 2 - 1;
+    targetMouseY = (e.clientY / window.innerHeight) * 2 - 1;
+  };
+  window.addEventListener('mousemove', handleMouseMove, { passive: true });
+
+  // Handle resize
+  const handleResize = () => {
+    const width = window.innerWidth;
+    const height = window.innerHeight;
+    camera.aspect = width / height;
+    camera.updateProjectionMatrix();
+    renderer.setSize(width, height);
+  };
+  window.addEventListener('resize', handleResize);
+  handleResize();
+
+  // Formation state
+  let currentFormation: Formation = 'grid';
+  let formationProgress = 0;
+  let targetFormationProgress = 0;
+
+  // Ripple state
+  const activeRipples: Ripple[] = [];
+  let lastRippleTime = 0;
+  const rippleInterval = 2500;
+  const maxRipples = 3;
+
+  // Globe rotation
+  let globeRotation = 0;
+  const globeRotationSpeed = 0.0008;
+
+  // Prism rotation
+  let prismRotation = 0;
+  const prismRotationSpeed = 0.0005;
+
+  // Warp state
+  let warpIntensity = 0;
+
+  // Highlight settings
+  let lastHighlightTime = 0;
+  const highlightInterval = 1500;
+  const baseRiseDuration = 1200;
+  const baseHoldDuration = 800;
+  const baseFallDuration = 1200;
+  const durationVariance = 0.4;
+  const highlightZOffset = 5;
+  const highlightScaleMultiplier = 1.6;
+  const highlightDarkness = 0.35;
+  const maxSimultaneousHighlights = 3;
+  const darkColor = new THREE.Color(sphereColor).multiplyScalar(highlightDarkness);
+  const tempColor = new THREE.Color();
+
+  // Cube highlight
+  let lastCubeHighlightTime = 0;
+  const cubeHighlightInterval = 800;
+
+  // Animation loop
+  let animationId: number | null = null;
+  let startTime: number | null = null;
+  const entranceDuration = 2.0;
+
+  function animate(timestamp: number) {
+    animationId = requestAnimationFrame(animate);
+
+    if (startTime === null) startTime = timestamp;
+    const elapsed = (timestamp - startTime) / 1000;
+
+    // Smooth mouse tracking
+    mouseX += (targetMouseX - mouseX) * rotationSmoothing;
+    mouseY += (targetMouseY - mouseY) * rotationSmoothing;
+
+    // Smooth formation transition
+    const formationLerpSpeed = 0.04;
+    formationProgress += (targetFormationProgress - formationProgress) * formationLerpSpeed;
+
+    // Update ripples for pipeline mode
+    if (currentFormation === 'pipeline') {
+      if (timestamp - lastRippleTime > rippleInterval && activeRipples.length < maxRipples) {
+        lastRippleTime = timestamp;
+        activeRipples.push({
+          x: (Math.random() - 0.5) * visibleWidth * 0.8,
+          y: (Math.random() - 0.5) * visibleHeight * 0.8,
+          radius: 0,
+          maxRadius: Math.max(visibleWidth, visibleHeight) * 0.6,
+          strength: 1,
+          speed: 0.03 + Math.random() * 0.02,
+        });
+      }
+
+      for (let i = activeRipples.length - 1; i >= 0; i--) {
+        const ripple = activeRipples[i];
+        ripple.radius += ripple.speed;
+        ripple.strength = 1 - (ripple.radius / ripple.maxRadius);
+        if (ripple.radius > ripple.maxRadius) {
+          activeRipples.splice(i, 1);
+        }
+      }
+    }
+
+    // Update globe rotation
+    if (currentFormation === 'globe') {
+      globeRotation += globeRotationSpeed;
+    }
+
+    // Update prism rotation
+    if (currentFormation === 'prism') {
+      prismRotation += prismRotationSpeed;
+    }
+
+    // Update warp effect
+    if (currentFormation === 'warp') {
+      warpIntensity = Math.min(warpIntensity + 0.0005, 0.15);
+      const currentSpeed = 0.008 + warpIntensity * 0.06;
+
+      for (const star of warpStars) {
+        star.z += currentSpeed * star.speedMultiplier;
+        const zNorm = (star.z + warpDepth * 0.5) / warpDepth;
+        star.stretch = 1 + zNorm * warpIntensity * 2;
+        star.brightness = 0.4 + zNorm * 0.6;
+
+        if (star.z > warpNearPlane) {
+          resetWarpStar(star, warpTunnelRadius, warpDepth);
+        }
+      }
+    } else {
+      warpIntensity = Math.max(0, warpIntensity - 0.01);
+    }
+
+    // Grid mode highlights
+    if (formationProgress < 0.5) {
+      const currentHighlightCount = wordGroups.filter(g => g.isHighlighted).length;
+      if (timestamp - lastHighlightTime > highlightInterval &&
+          wordGroups.length > 0 &&
+          currentHighlightCount < maxSimultaneousHighlights) {
+        lastHighlightTime = timestamp;
+
+        const availableGroups = wordGroups.filter(g => !g.isHighlighted);
+        if (availableGroups.length > 0) {
+          const randomIdx = Math.floor(Math.random() * availableGroups.length);
+          const group = availableGroups[randomIdx];
+          group.isHighlighted = true;
+          group.highlightStartTime = timestamp;
+          group.highlightDuration = (baseRiseDuration + baseHoldDuration + baseFallDuration) *
+            (1 + (Math.random() - 0.5) * 2 * durationVariance);
+        }
+      }
+
+      for (const group of wordGroups) {
+        if (!group.isHighlighted) continue;
+
+        const groupElapsed = timestamp - group.highlightStartTime;
+        const totalDuration = group.highlightDuration;
+        const riseDuration = totalDuration * 0.35;
+        const holdDuration = totalDuration * 0.25;
+        const sphereStagger = totalDuration * 0.15;
+
+        if (groupElapsed > totalDuration + sphereStagger + 300) {
+          group.isHighlighted = false;
+          for (const idx of group.sphereIndices) {
+            sphereStates[idx].targetHighlight = 0;
+          }
+          continue;
+        }
+
+        for (const idx of group.sphereIndices) {
+          const state = sphereStates[idx];
+          const sphereDelay = state.highlightDelay * sphereStagger;
+          const sphereElapsed = groupElapsed - sphereDelay;
+
+          if (sphereElapsed < 0) {
+            state.targetHighlight = 0;
+          } else if (sphereElapsed < riseDuration + holdDuration) {
+            state.targetHighlight = 1;
+          } else {
+            state.targetHighlight = 0;
+          }
+        }
+      }
+    } else {
+      for (const group of wordGroups) {
+        group.isHighlighted = false;
+        for (const idx of group.sphereIndices) {
+          sphereStates[idx].targetHighlight = 0;
+        }
+      }
+    }
+
+    // Cube mode highlights
+    if (formationProgress > 0.5) {
+      const currentCubeHighlightCount = cubeStates.filter(s => s.isHighlighted).length;
+      if (timestamp - lastCubeHighlightTime > cubeHighlightInterval && currentCubeHighlightCount < 1) {
+        lastCubeHighlightTime = timestamp;
+
+        const availableCubes = cubeStates
+          .map((s, i) => ({ state: s, idx: i }))
+          .filter(s => !s.state.isHighlighted);
+
+        if (availableCubes.length > 0) {
+          const randomIdx = Math.floor(Math.random() * availableCubes.length);
+          const cube = availableCubes[randomIdx];
+          cube.state.isHighlighted = true;
+          cube.state.highlightStartTime = timestamp;
+          cube.state.highlightDuration = 4000 + Math.random() * 2000;
+        }
+      }
+
+      for (const cubeState of cubeStates) {
+        if (!cubeState.isHighlighted) continue;
+        if (timestamp - cubeState.highlightStartTime > cubeState.highlightDuration) {
+          cubeState.isHighlighted = false;
+        }
+      }
+    }
+
+    // Animate spheres
+    let colorsChanged = false;
+    const cubeScale = 1.2;
+    const cubeHighlightZOffset = 8;
+    const cubeHighlightScaleBoost = 0.6;
+
+    sphereStates.forEach((state, i) => {
+      const adjustedTime = Math.max(0, elapsed - state.delay);
+      const progress = Math.min(1, adjustedTime / entranceDuration);
+      const entranceEased = easeOutCubic(progress);
+
+      const cubeMapping = sphereToCube[i];
+      const cubeState = cubeMapping && cubeMapping.isInCube ? cubeStates[cubeMapping.cubeIdx] : null;
+
+      let cubeHighlightAmount = 0;
+      if (cubeState && cubeState.isHighlighted) {
+        const cubeElapsed = timestamp - cubeState.highlightStartTime;
+        const halfDuration = cubeState.highlightDuration / 2;
+        if (cubeElapsed < halfDuration) {
+          cubeHighlightAmount = easeInOutSine(cubeElapsed / halfDuration);
+        } else {
+          cubeHighlightAmount = easeInOutSine(1 - (cubeElapsed - halfDuration) / halfDuration);
+        }
+      }
+
+      // Grid position
+      const gridX = state.targetX;
+      const gridY = state.targetY;
+      const gridZ = state.baseZ;
+      const gridScale = state.baseScale;
+
+      // Formation-specific position
+      let formationX = gridX;
+      let formationY = gridY;
+      let formationZ = 0;
+      let formationScale = gridScale;
+
+      if (currentFormation === 'cube') {
+        if (cubeMapping && cubeMapping.isInCube) {
+          formationX = cubeMapping.cubeCenterX +
+            (cubeMapping.localX - (spheresPerCubeSide - 1) / 2) * sphereSpacingInCube;
+          formationY = cubeMapping.cubeCenterY +
+            (cubeMapping.localY - (spheresPerCubeSide - 1) / 2) * sphereSpacingInCube;
+          formationZ = (cubeMapping.localZ - (spheresPerCubeSide - 1) / 2) * sphereSpacingInCube +
+            cubeHighlightAmount * cubeHighlightZOffset;
+        }
+        formationScale = cubeScale * (1 + cubeHighlightAmount * cubeHighlightScaleBoost);
+      } else if (currentFormation === 'pipeline') {
+        formationX = gridX;
+        formationY = gridY;
+        formationZ = 0;
+        formationScale = 1.0;
+
+        let totalRippleEffect = 0;
+        for (const ripple of activeRipples) {
+          const dx = gridX - ripple.x;
+          const dy = gridY - ripple.y;
+          const distFromCenter = Math.sqrt(dx * dx + dy * dy);
+          const ringWidth = 2.5;
+          const distFromRing = Math.abs(distFromCenter - ripple.radius);
+
+          if (distFromRing < ringWidth) {
+            const rippleStrength = (1 - distFromRing / ringWidth) * ripple.strength;
+            totalRippleEffect = Math.max(totalRippleEffect, rippleStrength);
+          }
+        }
+
+        formationZ = totalRippleEffect * 4;
+        formationScale = 1.0 + totalRippleEffect * 0.5;
+      } else if (currentFormation === 'globe') {
+        const globeMapping = sphereToGlobe[i];
+
+        if (globeMapping && globeMapping.isOnGlobe) {
+          const rotatedTheta = globeMapping.theta + globeRotation;
+          formationX = globeRadius * Math.sin(globeMapping.phi) * Math.cos(rotatedTheta);
+          formationY = globeRadius * Math.cos(globeMapping.phi);
+          formationZ = globeRadius * Math.sin(globeMapping.phi) * Math.sin(rotatedTheta);
+          formationScale = 1.0;
+        } else {
+          formationX = gridX;
+          formationY = gridY;
+          formationZ = -50;
+          formationScale = 0.01;
+        }
+      } else if (currentFormation === 'prism') {
+        const prismMapping = sphereToPrism[i];
+
+        if (prismMapping && prismMapping.isOnPrism) {
+          const cosR = Math.cos(prismRotation);
+          const sinR = Math.sin(prismRotation);
+          formationX = prismMapping.x * cosR - prismMapping.z * sinR;
+          formationY = prismMapping.y;
+          formationZ = prismMapping.x * sinR + prismMapping.z * cosR;
+          formationScale = 1.2;
+        } else {
+          formationX = gridX;
+          formationY = gridY;
+          formationZ = -50;
+          formationScale = 0.01;
+        }
+      } else if (currentFormation === 'warp') {
+        const star = warpStars[i];
+
+        if (star && star.isActive) {
+          const zNorm = (star.z + warpDepth * 0.5) / warpDepth;
+          const perspectiveFactor = 0.3 + zNorm * 1.5;
+          formationX = star.baseX * perspectiveFactor;
+          formationY = star.baseY * perspectiveFactor;
+          formationZ = star.z;
+          formationScale = 0.6 + zNorm * 1.0;
+
+          instancedMesh.setColorAt(i, baseColor);
+          colorsChanged = true;
+        } else {
+          formationX = 0;
+          formationY = 0;
+          formationZ = -100;
+          formationScale = 0;
+        }
+      }
+
+      const formEased = easeInOutSine(formationProgress);
+
+      const targetX = gridX * (1 - formEased) + formationX * formEased;
+      const targetY = gridY * (1 - formEased) + formationY * formEased;
+      const targetScale = gridScale * (1 - formEased) + formationScale * formEased;
+
+      const gridHighlightEffect = state.highlightAmount * (1 - formEased);
+      const highlightEased = easeInOutSine(gridHighlightEffect);
+      const effectiveTargetZ = gridZ * (1 - formEased) + formationZ * formEased +
+        highlightEased * highlightZOffset;
+      const effectiveTargetScale = targetScale * (1 + highlightEased * (highlightScaleMultiplier - 1));
+
+      state.highlightAmount += (state.targetHighlight - state.highlightAmount) * 0.12;
+
+      const startY = state.targetY - visibleHeight * 1.5;
+      const entranceY = startY + (targetY - startY) * entranceEased;
+      const finalTargetY = formationProgress < 0.1 ? entranceY : targetY;
+
+      const lerpSpeed = 0.08;
+      state.currentX += (targetX - state.currentX) * lerpSpeed;
+      state.currentY += (finalTargetY - state.currentY) * lerpSpeed;
+      state.currentZ += (effectiveTargetZ - state.currentZ) * lerpSpeed;
+      state.currentScale += (effectiveTargetScale - state.currentScale) * lerpSpeed;
+
+      const totalHighlight = Math.max(gridHighlightEffect, cubeHighlightAmount * formEased);
+      if (totalHighlight > 0.01) {
+        tempColor.copy(baseColor).lerp(darkColor, totalHighlight);
+        instancedMesh.setColorAt(i, tempColor);
+        colorsChanged = true;
+      } else if (state.highlightAmount < 0.01 && cubeHighlightAmount < 0.01) {
+        instancedMesh.setColorAt(i, baseColor);
+        colorsChanged = true;
+      }
+
+      matrix.makeTranslation(state.currentX, state.currentY, state.currentZ);
+      matrix.scale(new THREE.Vector3(state.currentScale, state.currentScale, state.currentScale));
+      instancedMesh.setMatrixAt(i, matrix);
+    });
+
+    instancedMesh.instanceMatrix.needsUpdate = true;
+    if (colorsChanged && instancedMesh.instanceColor) {
+      instancedMesh.instanceColor.needsUpdate = true;
+    }
+
+    // Camera rotation
+    const rotationX = -mouseY * maxRotation;
+    const rotationY = -mouseX * maxRotation;
+
+    const camX = cameraDistance * Math.sin(rotationY) * Math.cos(rotationX);
+    const camY = cameraDistance * Math.sin(rotationX);
+    const camZ = cameraDistance * Math.cos(rotationY) * Math.cos(rotationX);
+
+    camera.position.set(camX, camY, camZ);
+    camera.lookAt(0, 0, 0);
+
+    renderer.render(scene, camera);
+  }
+
+  // Start animation
+  requestAnimationFrame(animate);
+
+  // Return controls
+  return {
+    canvas: renderer.domElement,
+
+    setFormation: (formation: Formation, immediate = false) => {
+      currentFormation = formation;
+      targetFormationProgress = formation === 'grid' ? 0 : 1;
+      if (immediate) {
+        formationProgress = targetFormationProgress;
+      }
+    },
+
+    getFormationProgress: () => formationProgress,
+
+    setPattern: (pattern: boolean[][]) => {
+      for (let row = 0; row < gridRows; row++) {
+        for (let col = 0; col < gridCols; col++) {
+          const index = row * gridCols + col;
+          const visible = pattern[gridRows - 1 - row]?.[col] ?? false;
+          const state = sphereStates[index];
+          if (state) {
+            state.targetScale = visible ? 1 : 0.15;
+            state.targetZ = visible ? 2 : 0;
+            state.isCharacter = visible;
+          }
+        }
+      }
+    },
+
+    setText: (text: string) => {
+      const charPatterns = getCharPatterns();
+      const charWidth = 5;
+      const charHeight = 7;
+      const charSpacingCells = 1;
+      const rowSpacing = 8;
+
+      const highlightableWords = ['ORG', 'PRESS'];
+      const fillerLetters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+
+      const letterPattern: boolean[][] = Array(gridRows).fill(null).map(() =>
+        Array(gridCols).fill(false)
+      );
+      const sphereWordGroup: number[][] = Array(gridRows).fill(null).map(() =>
+        Array(gridCols).fill(-1)
+      );
+
+      wordGroups.length = 0;
+      let wordGroupIndex = 0;
+
+      for (let rowStart = 0; rowStart < gridRows; rowStart += rowSpacing) {
+        let colPos = 0;
+
+        while (colPos < gridCols) {
+          const useHighlightableWord = Math.random() < 0.2;
+
+          if (useHighlightableWord) {
+            const word = highlightableWords[Math.floor(Math.random() * highlightableWords.length)];
+            const wordWidthCells = word.length * (charWidth + charSpacingCells) - charSpacingCells;
+
+            if (colPos + wordWidthCells > gridCols) break;
+
+            const group: WordGroup = {
+              word,
+              sphereIndices: [],
+              isHighlighted: false,
+              highlightStartTime: 0,
+              highlightDuration: 0,
+            };
+
+            let charCol = colPos;
+            for (const char of word) {
+              const pattern = charPatterns[char.toUpperCase()];
+              if (!pattern) {
+                charCol += charWidth + charSpacingCells;
+                continue;
+              }
+
+              for (let r = 0; r < charHeight; r++) {
+                for (let c = 0; c < charWidth; c++) {
+                  if (pattern[r]?.[c]) {
+                    const gridRow = rowStart + r;
+                    const gridCol = charCol + c;
+                    if (gridRow >= 0 && gridRow < gridRows && gridCol >= 0 && gridCol < gridCols) {
+                      letterPattern[gridRow][gridCol] = true;
+                      sphereWordGroup[gridRow][gridCol] = wordGroupIndex;
+                    }
+                  }
+                }
+              }
+              charCol += charWidth + charSpacingCells;
+            }
+
+            wordGroups.push(group);
+            wordGroupIndex++;
+            colPos += wordWidthCells + 2;
+          } else {
+            const numLetters = 2 + Math.floor(Math.random() * 4);
+
+            for (let i = 0; i < numLetters; i++) {
+              if (colPos + charWidth > gridCols) break;
+
+              const letter = fillerLetters[Math.floor(Math.random() * fillerLetters.length)];
+              const pattern = charPatterns[letter];
+              if (!pattern) {
+                colPos += charWidth + charSpacingCells;
+                continue;
+              }
+
+              for (let r = 0; r < charHeight; r++) {
+                for (let c = 0; c < charWidth; c++) {
+                  if (pattern[r]?.[c]) {
+                    const gridRow = rowStart + r;
+                    const gridCol = colPos + c;
+                    if (gridRow >= 0 && gridRow < gridRows && gridCol >= 0 && gridCol < gridCols) {
+                      letterPattern[gridRow][gridCol] = true;
+                    }
+                  }
+                }
+              }
+
+              colPos += charWidth + charSpacingCells;
+            }
+          }
+        }
+      }
+
+      const letterScale = 0.8;
+      const letterDepth = 0;
+      const emptyScale = 0.15;
+
+      for (let row = 0; row < gridRows; row++) {
+        for (let c = 0; c < gridCols; c++) {
+          const index = row * gridCols + c;
+          const state = sphereStates[index];
+          if (!state) continue;
+
+          const flippedRow = gridRows - 1 - row;
+          const isLetter = letterPattern[flippedRow]?.[c] ?? false;
+          const groupIdx = sphereWordGroup[flippedRow]?.[c] ?? -1;
+
+          if (isLetter) {
+            state.targetScale = letterScale;
+            state.baseScale = letterScale;
+            state.targetZ = letterDepth;
+            state.baseZ = letterDepth;
+            state.isCharacter = true;
+            state.wordGroup = groupIdx;
+            state.highlightDelay = Math.random();
+
+            if (groupIdx >= 0 && groupIdx < wordGroups.length) {
+              wordGroups[groupIdx].sphereIndices.push(index);
+            }
+          } else {
+            state.targetScale = emptyScale;
+            state.baseScale = emptyScale;
+            state.targetZ = 0;
+            state.baseZ = 0;
+            state.isCharacter = false;
+            state.wordGroup = -1;
+          }
+        }
+      }
+    },
+
+    dispose: () => {
+      if (animationId) cancelAnimationFrame(animationId);
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('resize', handleResize);
+      renderer.dispose();
+      sphereGeometry.dispose();
+      sphereMaterial.dispose();
+    },
+  };
+}
+
+export default createSphereGridBackground;
+#+end_src

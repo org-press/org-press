@@ -1,0 +1,367 @@
+import { describe, test, expect, vi, beforeEach, afterEach } from "vitest";
+import { render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { server } from "../../__test__/setup.ts";
+import { http, HttpResponse } from "msw";
+import { ExcalidrawWrapper } from "./excalidraw-wrapper.tsx";
+
+// Track the current elements for the mock
+let mockElements: any[] = [];
+let mockAppState: any = { viewBackgroundColor: "#ffffff" };
+let mockFiles: any = {};
+
+// Mock Excalidraw component since it requires a lot of setup
+vi.mock("@excalidraw/excalidraw", () => ({
+  Excalidraw: vi.fn(
+    ({ onChange, initialData, viewModeEnabled, excalidrawAPI }) => {
+      // Set up the ref API if provided
+      if (excalidrawAPI && typeof excalidrawAPI === "function") {
+        excalidrawAPI({
+          getSceneElements: () => mockElements,
+          getAppState: () => mockAppState,
+          getFiles: () => mockFiles,
+        });
+      }
+
+      // Initialize with initialData
+      if (initialData) {
+        mockElements = initialData.elements || [];
+        mockAppState = initialData.appState || { viewBackgroundColor: "#ffffff" };
+        mockFiles = initialData.files || {};
+      }
+
+      // Simulate Excalidraw component
+      return (
+        <div data-testid="excalidraw-mock">
+          <div>Excalidraw Canvas (mocked)</div>
+          <div>View Mode: {viewModeEnabled ? "enabled" : "disabled"}</div>
+          <button
+            onClick={() => {
+              // Update mock elements
+              mockElements = [
+                {
+                  type: "rectangle",
+                  id: "test-rect",
+                  x: 50,
+                  y: 50,
+                  width: 100,
+                  height: 100,
+                },
+              ];
+              // Trigger onChange
+              onChange?.(mockElements, mockAppState, mockFiles);
+            }}
+          >
+            Draw Rectangle
+          </button>
+        </div>
+      );
+    }
+  ),
+}));
+
+describe("ExcalidrawWrapper Component", () => {
+  const mockInitialData = {
+    type: "excalidraw" as const,
+    version: 2,
+    source: "https://excalidraw.com",
+    elements: [],
+    appState: {
+      viewBackgroundColor: "#ffffff",
+    },
+    files: {},
+  };
+
+  // Reset mock state before each test
+  beforeEach(() => {
+    mockElements = [];
+    mockAppState = { viewBackgroundColor: "#ffffff" };
+    mockFiles = {};
+
+    // Mock window.alert
+    vi.spyOn(window, "alert").mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  test("should render Excalidraw component", async () => {
+    render(
+      <ExcalidrawWrapper
+        initialData={mockInitialData}
+        mode="view"
+        filePath="/test/path.org"
+        blockId="test-block"
+      />
+    );
+
+    // Check that the mocked Excalidraw component is rendered
+    await waitFor(() => {
+      expect(screen.getByTestId("excalidraw-mock")).toBeInTheDocument();
+    });
+  });
+
+  test("should show edit button in view mode", async () => {
+    render(
+      <ExcalidrawWrapper
+        initialData={mockInitialData}
+        mode="view"
+        filePath="/test/path.org"
+        blockId="test-block"
+      />
+    );
+
+    // In view mode, should show edit button
+    await waitFor(() => {
+      const editButton = screen.getByRole("button", { name: /edit/i });
+      expect(editButton).toBeInTheDocument();
+    });
+  });
+
+  test("should show save button in edit mode", async () => {
+    render(
+      <ExcalidrawWrapper
+        initialData={mockInitialData}
+        mode="edit"
+        filePath="/test/path.org"
+        blockId="test-block"
+      />
+    );
+
+    // In edit mode, should show save button
+    await waitFor(() => {
+      const saveButton = screen.getByRole("button", { name: /save/i });
+      expect(saveButton).toBeInTheDocument();
+    });
+  });
+
+  test("should toggle between view and edit mode", async () => {
+    const user = userEvent.setup();
+
+    render(
+      <ExcalidrawWrapper
+        initialData={mockInitialData}
+        mode="view"
+        filePath="/test/path.org"
+        blockId="test-block"
+      />
+    );
+
+    // Initially in view mode
+    await waitFor(() => {
+      expect(screen.getByText(/View Mode: enabled/i)).toBeInTheDocument();
+    });
+
+    // Click edit button
+    const editButton = screen.getByRole("button", { name: /edit/i });
+    await user.click(editButton);
+
+    // Now in edit mode
+    await waitFor(() => {
+      expect(screen.getByText(/View Mode: disabled/i)).toBeInTheDocument();
+    });
+  });
+
+  test("should show fullscreen button", async () => {
+    render(
+      <ExcalidrawWrapper
+        initialData={mockInitialData}
+        mode="view"
+        filePath="/test/path.org"
+        blockId="test-block"
+      />
+    );
+
+    // Should have fullscreen button
+    await waitFor(() => {
+      const fullscreenButton = screen.getByRole("button", {
+        name: /fullscreen/i,
+      });
+      expect(fullscreenButton).toBeInTheDocument();
+    });
+  });
+
+  test("should call save API when save button is clicked", async () => {
+    const user = userEvent.setup();
+
+    // Set up a mock handler to track the request
+    let saveRequestBody: any = null;
+    server.use(
+      http.post("/api/save-excalidraw", async ({ request }) => {
+        saveRequestBody = await request.json();
+        return HttpResponse.json(
+          { success: true, message: "Diagram saved successfully" },
+          { status: 200 }
+        );
+      })
+    );
+
+    render(
+      <ExcalidrawWrapper
+        initialData={mockInitialData}
+        mode="edit"
+        filePath="/test/path.org"
+        blockId="test-block"
+      />
+    );
+
+    // Wait for component to fully mount
+    await waitFor(() => {
+      expect(screen.getByTestId("excalidraw-mock")).toBeInTheDocument();
+    });
+
+    // Make a change by clicking the mock draw button
+    const drawButton = screen.getByRole("button", { name: /draw rectangle/i });
+    await user.click(drawButton);
+
+    // Wait for the change to propagate
+    await new Promise((resolve) => setTimeout(resolve, 200));
+
+    // Click save button
+    const saveButton = screen.getByRole("button", { name: /save/i });
+    await user.click(saveButton);
+
+    // Wait for the API call to complete
+    await waitFor(
+      () => {
+        expect(saveRequestBody).not.toBeNull();
+      },
+      { timeout: 3000 }
+    );
+
+    // Verify the request body
+    expect(saveRequestBody).toMatchObject({
+      filePath: "/test/path.org",
+      blockId: "test-block",
+      data: expect.objectContaining({
+        elements: expect.arrayContaining([
+          expect.objectContaining({
+            type: "rectangle",
+            id: "test-rect",
+          }),
+        ]),
+      }),
+    });
+
+    // Should show success alert
+    await waitFor(() => {
+      expect(window.alert).toHaveBeenCalledWith("Diagram saved successfully!");
+    });
+  });
+
+  test("should handle save API errors gracefully", async () => {
+    const user = userEvent.setup();
+
+    // Mock a failed save request
+    server.use(
+      http.post("/api/save-excalidraw", () => {
+        return HttpResponse.json(
+          { success: false, error: "Failed to save" },
+          { status: 500 }
+        );
+      })
+    );
+
+    render(
+      <ExcalidrawWrapper
+        initialData={mockInitialData}
+        mode="edit"
+        filePath="/test/path.org"
+        blockId="test-block"
+      />
+    );
+
+    // Wait for component to fully mount
+    await waitFor(() => {
+      expect(screen.getByTestId("excalidraw-mock")).toBeInTheDocument();
+    });
+
+    // Make a change
+    const drawButton = screen.getByRole("button", { name: /draw rectangle/i });
+    await user.click(drawButton);
+
+    await new Promise((resolve) => setTimeout(resolve, 200));
+
+    // Click save button
+    const saveButton = screen.getByRole("button", { name: /save/i });
+    await user.click(saveButton);
+
+    // Should show error alert
+    await waitFor(
+      () => {
+        expect(window.alert).toHaveBeenCalledWith(
+          expect.stringMatching(/failed to save/i)
+        );
+      },
+      { timeout: 3000 }
+    );
+  });
+
+  test("should not show save button when filePath is not provided", async () => {
+    render(
+      <ExcalidrawWrapper
+        initialData={mockInitialData}
+        mode="edit"
+        // No filePath provided
+        blockId="test-block"
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId("excalidraw-mock")).toBeInTheDocument();
+    });
+
+    // Should not have save button
+    expect(screen.queryByRole("button", { name: /save/i })).not.toBeInTheDocument();
+  });
+
+  test("should render in read-only view mode when mode is view", async () => {
+    render(
+      <ExcalidrawWrapper
+        initialData={mockInitialData}
+        mode="view"
+        filePath="/test/path.org"
+        blockId="test-block"
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId("excalidraw-mock")).toBeInTheDocument();
+    });
+
+    // Should be in view mode (read-only)
+    expect(screen.getByText(/View Mode: enabled/i)).toBeInTheDocument();
+
+    // Should have edit toggle button (to switch to edit mode)
+    expect(screen.getByRole("button", { name: /edit/i })).toBeInTheDocument();
+
+    // Should NOT have save button in view mode
+    expect(screen.queryByRole("button", { name: /save/i })).not.toBeInTheDocument();
+  });
+
+  test("should not show save button in view mode even with filePath", async () => {
+    render(
+      <ExcalidrawWrapper
+        initialData={mockInitialData}
+        mode="view"
+        filePath="/test/path.org"
+        blockId="test-block"
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId("excalidraw-mock")).toBeInTheDocument();
+    });
+
+    // Should be in view mode
+    expect(screen.getByText(/View Mode: enabled/i)).toBeInTheDocument();
+
+    // Should NOT have save button (view mode is read-only)
+    expect(screen.queryByRole("button", { name: /save/i })).not.toBeInTheDocument();
+
+    // Should have edit button to allow switching to edit mode
+    expect(screen.getByRole("button", { name: /edit/i })).toBeInTheDocument();
+  });
+
+});

@@ -1,0 +1,87 @@
+#+TITLE: React Example
+#+DESCRIPTION: Demonstrating React components with custom layouts in org-press
+
+* Welcome to the React Example
+
+This example demonstrates how to use React components with org-press and a custom layout.
+
+** Features
+
+- Custom React layout with header, navigation, and footer
+- Interactive React components with state
+- React hooks examples
+- TypeScript support
+
+** Quick Counter Demo
+
+Here's a simple React counter component:
+
+#+begin_src tsx :use react
+import React, { useState } from 'react';
+
+export function render() {
+  const [count, setCount] = useState(0);
+
+  return (
+    <div className="react-demo">
+      <h3>React Counter</h3>
+      <p>Count: <strong>{count}</strong></p>
+      <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem' }}>
+        <button
+          onClick={() => setCount(c => c - 1)}
+          style={{
+            padding: '0.5rem 1rem',
+            background: '#ff6b6b',
+            color: 'white',
+            border: 'none',
+            borderRadius: '6px',
+            cursor: 'pointer',
+            fontSize: '1rem',
+          }}
+        >
+          Decrease
+        </button>
+        <button
+          onClick={() => setCount(c => c + 1)}
+          style={{
+            padding: '0.5rem 1rem',
+            background: '#4ecdc4',
+            color: 'white',
+            border: 'none',
+            borderRadius: '6px',
+            cursor: 'pointer',
+            fontSize: '1rem',
+          }}
+        >
+          Increase
+        </button>
+        <button
+          onClick={() => setCount(0)}
+          style={{
+            padding: '0.5rem 1rem',
+            background: '#667eea',
+            color: 'white',
+            border: 'none',
+            borderRadius: '6px',
+            cursor: 'pointer',
+            fontSize: '1rem',
+          }}
+        >
+          Reset
+        </button>
+      </div>
+    </div>
+  );
+}
+#+end_src
+
+** Navigation
+
+- [[/components][Interactive Components]] - More React component examples
+- [[/hooks][React Hooks]] - useState, useEffect, and custom hooks
+
+** Build Info
+
+#+begin_src javascript :use server
+return `This page was built at: ${new Date().toISOString()}`;
+#+end_src
