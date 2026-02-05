@@ -1,0 +1,224 @@
+#+TITLE: Zero-Config Mode
+#+DESCRIPTION: Run org-press without any configuration files
+
+* Zero-Config Mode
+
+org-press supports a zero-config mode where org files are self-contained, executable documents. No config files or package.json required for basic usage.
+
+** Quick Examples
+
+*** Single File
+
+#+begin_src bash
+# CLI invocation
+orgp dev myFile.org
+
+# Shebang invocation (make file executable first)
+chmod +x myFile.org
+./myFile.org dev
+#+end_src
+
+*** Directory
+
+#+begin_src bash
+# Process all org files in content/
+orgp dev content/
+
+# Build entire directory
+orgp build docs/
+#+end_src
+
+*** Glob Patterns
+
+#+begin_src bash
+# All org files recursively
+orgp build "**/*.org"
+
+# Specific directory pattern
+orgp dev "content/**/*.org"
+#+end_src
+
+** Shebang Support
+
+Add a shebang line to make org files directly executable:
+
+#+begin_export html
+<pre><code>#!/usr/bin/env orgp
+#+TITLE: My Document
+
+* Hello World
+
+Content here...
+</code></pre>
+#+end_export
+
+Then make the file executable and run it:
+
+#+begin_src bash
+chmod +x document.org
+./document.org dev      # Start dev server
+./document.org build    # Build to HTML
+#+end_src
+
+The shebang line is automatically stripped during parsing and won't appear in the output.
+
+** Inline Configuration
+
+For more control without external config files, add a config block directly in your org file:
+
+*** JSON Config
+
+#+begin_export html
+<pre><code>#+NAME: config
+#+begin_src json
+{
+  "outDir": "./build",
+  "base": "/docs/",
+  "cleanUrls": true
+}
+#+end_src
+</code></pre>
+#+end_export
+
+*** TypeScript Config
+
+#+begin_export html
+<pre><code>#+NAME: config
+#+begin_src typescript
+export default {
+  outDir: "./build",
+  base: "/docs/",
+  theme: {
+    name: "blog",
+    options: { sidebar: true }
+  }
+};
+#+end_src
+</code></pre>
+#+end_export
+
+The config block must have =#+NAME: config= and use either =json= or =typescript= as the language.
+
+** File-Based Routing
+
+Directory structure directly maps to URL structure:
+
+| File Path | URL |
+|-----------|-----|
+| =index.org= | =/= |
+| =about.org= | =/about= |
+| =guide/index.org= | =/guide= |
+| =guide/intro.org= | =/guide/intro= |
+| =blog/2024/post.org= | =/blog/2024/post= |
+
+*** Clean URLs
+
+By default, org-press uses clean URLs:
+- =about.org= becomes =about/index.html= served at =/about=
+
+Disable with =cleanUrls: false= to get =about.html= instead.
+
+** Default Configuration
+
+When running without a config file, org-press uses these defaults:
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| =contentDir= | =content= | Directory containing org files |
+| =outDir= | =dist/static= | Build output directory |
+| =base= | =/= | Base path for URLs |
+| =cacheDir= | =node_modules/.org-press-cache= | Cache directory |
+| =cleanUrls= | =true= | Use clean URL structure |
+
+** CLI Commands
+
+*** Development Server
+
+#+begin_src bash
+# Project mode (uses config file)
+orgp dev
+
+# Single file
+orgp dev page.org
+
+# Directory
+orgp dev content/
+
+# Glob pattern
+orgp dev "**/*.org"
+
+# With options
+orgp dev page.org --port 3000 --open
+#+end_src
+
+*** Build
+
+#+begin_src bash
+# Project mode
+orgp build
+
+# Single file
+orgp build page.org
+
+# Directory
+orgp build content/
+
+# Glob pattern
+orgp build "**/*.org"
+#+end_src
+
+*** Format, Lint, Type-Check
+
+These commands also accept file/directory/glob targets:
+
+#+begin_src bash
+# Format code blocks
+orgp fmt content/
+orgp fmt "**/*.org" --check
+
+# Lint code blocks
+orgp lint content/
+orgp lint page.org --fix
+
+# Type-check TypeScript blocks
+orgp type-check content/
+#+end_src
+
+** When to Use Zero-Config
+
+Zero-config mode is ideal for:
+
+- Quick prototypes and experiments
+- Single-page documents
+- Learning org-press
+- Simple blogs or documentation
+- Portable, self-contained documents
+
+Use a config file when you need:
+
+- Custom themes
+- Complex plugin configuration
+- Multi-environment builds
+- Team collaboration with shared settings
+
+** Installation
+
+*** Global Install
+
+#+begin_src bash
+npm install -g org-press
+orgp dev page.org
+#+end_src
+
+*** npx (No Install)
+
+#+begin_src bash
+npx org-press dev page.org
+#+end_src
+
+*** Project Dependency
+
+#+begin_src bash
+npm install org-press
+npx orgp dev page.org
+#+end_src

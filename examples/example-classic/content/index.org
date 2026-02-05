@@ -1,0 +1,65 @@
+#+TITLE: Classic Example
+#+DESCRIPTION: A classic org-press project with configuration
+
+* Welcome to Org-Press
+
+This is a classic org-press project with a configuration file.
+
+** Features
+
+- File-based routing
+- Configuration in =.org-press/config.ts=
+- Multiple content files
+
+** Interactive Counter
+
+This button demonstrates client-side JavaScript:
+
+#+begin_src javascript :use dom
+const button = document.createElement('button');
+button.textContent = 'Click me!';
+button.style.cssText = `
+  padding: 1rem 2rem;
+  font-size: 1.2rem;
+  background: #4ecdc4;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+`;
+
+let count = 0;
+button.onclick = () => {
+  count++;
+  button.textContent = `Clicked ${count} times`;
+  button.style.background = ['#ff6b6b', '#4ecdc4', '#ffe66d', '#95e1d3'][count % 4];
+};
+
+export function render() {
+  return button;
+}
+#+end_src
+
+** Server-Side Content
+
+This block runs at build time:
+
+#+begin_src javascript :use server
+return `Build time: ${new Date().toISOString()}`;
+#+end_src
+
+** Source Code Display
+
+Show source code without executing:
+
+#+begin_src typescript :use sourceOnly
+interface User {
+  id: number;
+  name: string;
+  email: string;
+}
+
+const getUser = async (id: number): Promise<User> => {
+  const response = await fetch(`/api/users/${id}`);
+  return response.json();
+};
+#+end_src

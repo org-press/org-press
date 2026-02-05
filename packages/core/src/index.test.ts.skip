@@ -1,0 +1,355 @@
+/**
+ * Public API Validation Tests
+ *
+ * Ensures all exports from org-press are accessible
+ * and properly typed.
+ */
+
+import { describe, it, expect } from "vitest";
+import * as OrgPress from "./index.ts";
+
+describe("Public API", () => {
+  describe("Vite Integration", () => {
+    it("should export orgPress function", () => {
+      expect(OrgPress.orgPress).toBeDefined();
+      expect(typeof OrgPress.orgPress).toBe("function");
+    });
+
+    it("should export createOrgPressPlugins", () => {
+      expect(OrgPress.createOrgPressPlugins).toBeDefined();
+      expect(typeof OrgPress.createOrgPressPlugins).toBe("function");
+    });
+
+    it("should export getOptimizeDepsConfig", () => {
+      expect(OrgPress.getOptimizeDepsConfig).toBeDefined();
+      expect(typeof OrgPress.getOptimizeDepsConfig).toBe("function");
+    });
+
+    it("should export createVirtualBlocksPlugin", () => {
+      expect(OrgPress.createVirtualBlocksPlugin).toBeDefined();
+      expect(typeof OrgPress.createVirtualBlocksPlugin).toBe("function");
+    });
+  });
+
+  describe("Build System", () => {
+    it("should export build function", () => {
+      expect(OrgPress.build).toBeDefined();
+      expect(typeof OrgPress.build).toBe("function");
+    });
+
+    it("should export discoverPages", () => {
+      expect(OrgPress.discoverPages).toBeDefined();
+      expect(typeof OrgPress.discoverPages).toBe("function");
+    });
+
+    it("should export renderPage", () => {
+      expect(OrgPress.renderPage).toBeDefined();
+      expect(typeof OrgPress.renderPage).toBe("function");
+    });
+
+    it("should export orgPathToHtmlPath", () => {
+      expect(OrgPress.orgPathToHtmlPath).toBeDefined();
+      expect(typeof OrgPress.orgPathToHtmlPath).toBe("function");
+    });
+  });
+
+  describe("Dev Server", () => {
+    it("should export createDevServerMiddleware", () => {
+      expect(OrgPress.createDevServerMiddleware).toBeDefined();
+      expect(typeof OrgPress.createDevServerMiddleware).toBe("function");
+    });
+  });
+
+  describe("Configuration", () => {
+    it("should export loadConfig", () => {
+      expect(OrgPress.loadConfig).toBeDefined();
+      expect(typeof OrgPress.loadConfig).toBe("function");
+    });
+
+    it("should export resolveConfig", () => {
+      expect(OrgPress.resolveConfig).toBeDefined();
+      expect(typeof OrgPress.resolveConfig).toBe("function");
+    });
+
+    it("should export invalidateConfigCache", () => {
+      expect(OrgPress.invalidateConfigCache).toBeDefined();
+      expect(typeof OrgPress.invalidateConfigCache).toBe("function");
+    });
+  });
+
+  describe("Plugin System", () => {
+    it("should export loadPlugins", () => {
+      expect(OrgPress.loadPlugins).toBeDefined();
+      expect(typeof OrgPress.loadPlugins).toBe("function");
+    });
+
+    it("should export findMatchingPlugin", () => {
+      expect(OrgPress.findMatchingPlugin).toBeDefined();
+      expect(typeof OrgPress.findMatchingPlugin).toBe("function");
+    });
+
+    it("should export invalidatePluginCache", () => {
+      expect(OrgPress.invalidatePluginCache).toBeDefined();
+      expect(typeof OrgPress.invalidatePluginCache).toBe("function");
+    });
+
+    it("should export built-in plugins", () => {
+      expect(OrgPress.builtinPlugins).toBeDefined();
+      expect(Array.isArray(OrgPress.builtinPlugins)).toBe(true);
+
+      expect(OrgPress.allBuiltinPlugins).toBeDefined();
+      expect(Array.isArray(OrgPress.allBuiltinPlugins)).toBe(true);
+
+      expect(OrgPress.cssPlugin).toBeDefined();
+      expect(OrgPress.cssInlinePlugin).toBeDefined();
+      expect(OrgPress.cssScopedPlugin).toBeDefined();
+      expect(OrgPress.javascriptPlugin).toBeDefined();
+      expect(OrgPress.javascriptDirectPlugin).toBeDefined();
+      expect(OrgPress.serverPlugin).toBeDefined();
+      expect(OrgPress.serverOnlyPlugin).toBeDefined();
+    });
+
+    it("should export plugin presets", () => {
+      expect(OrgPress.resolvePreset).toBeDefined();
+      expect(typeof OrgPress.resolvePreset).toBe("function");
+
+      expect(OrgPress.presets).toBeDefined();
+      expect(OrgPress.minimalPreset).toBeDefined();
+      expect(OrgPress.commonPreset).toBeDefined();
+      expect(OrgPress.fullPreset).toBeDefined();
+      expect(OrgPress.loadCommonPresetPlugins).toBeDefined();
+    });
+  });
+
+  describe("Plugin Utilities", () => {
+    it("should export createBlockId", () => {
+      expect(OrgPress.createBlockId).toBeDefined();
+      expect(typeof OrgPress.createBlockId).toBe("function");
+    });
+
+    it("should export rewriteOrgImports", () => {
+      expect(OrgPress.rewriteOrgImports).toBeDefined();
+      expect(typeof OrgPress.rewriteOrgImports).toBe("function");
+    });
+
+    it("should export parseBlockParameters", () => {
+      expect(OrgPress.parseBlockParameters).toBeDefined();
+      expect(typeof OrgPress.parseBlockParameters).toBe("function");
+    });
+
+    it("should export createVirtualModuleId", () => {
+      expect(OrgPress.createVirtualModuleId).toBeDefined();
+      expect(typeof OrgPress.createVirtualModuleId).toBe("function");
+    });
+
+    it("should export usesPlugin", () => {
+      expect(OrgPress.usesPlugin).toBeDefined();
+      expect(typeof OrgPress.usesPlugin).toBe("function");
+    });
+
+    it("should export getExportsMode", () => {
+      expect(OrgPress.getExportsMode).toBeDefined();
+      expect(typeof OrgPress.getExportsMode).toBe("function");
+    });
+  });
+
+  describe("Wrapper System", () => {
+    it("should export wrapper functions", () => {
+      expect(OrgPress.applyWrappers).toBeDefined();
+      expect(typeof OrgPress.applyWrappers).toBe("function");
+
+      expect(OrgPress.createWrapper).toBeDefined();
+      expect(typeof OrgPress.createWrapper).toBe("function");
+    });
+
+    it("should export wrapper creators", () => {
+      expect(OrgPress.createTabsWrapper).toBeDefined();
+      expect(typeof OrgPress.createTabsWrapper).toBe("function");
+    });
+  });
+
+  describe("Parser Layer", () => {
+    it("should export parseOrgContent", () => {
+      expect(OrgPress.parseOrgContent).toBeDefined();
+      expect(typeof OrgPress.parseOrgContent).toBe("function");
+    });
+
+    it("should export processCodeBlocks", () => {
+      expect(OrgPress.processCodeBlocks).toBeDefined();
+      expect(typeof OrgPress.processCodeBlocks).toBe("function");
+    });
+
+    it("should export extractMetadata", () => {
+      expect(OrgPress.extractMetadata).toBeDefined();
+      expect(typeof OrgPress.extractMetadata).toBe("function");
+    });
+
+    it("should export parseCodeBlockParameters", () => {
+      expect(OrgPress.parseCodeBlockParameters).toBeDefined();
+      expect(typeof OrgPress.parseCodeBlockParameters).toBe("function");
+    });
+
+    it("should export executeServerBlock", () => {
+      expect(OrgPress.executeServerBlock).toBeDefined();
+      expect(typeof OrgPress.executeServerBlock).toBe("function");
+    });
+  });
+
+  describe("Render Layer", () => {
+    it("should export render functions", () => {
+      expect(OrgPress.renderOrg).toBeDefined();
+      expect(typeof OrgPress.renderOrg).toBe("function");
+
+      expect(OrgPress.renderOrgToHtml).toBeDefined();
+      expect(typeof OrgPress.renderOrgToHtml).toBe("function");
+
+      expect(OrgPress.renderOrgWithPlugins).toBeDefined();
+      expect(typeof OrgPress.renderOrgWithPlugins).toBe("function");
+    });
+
+    it("should export renderWithLayout", () => {
+      expect(OrgPress.renderWithLayout).toBeDefined();
+      expect(typeof OrgPress.renderWithLayout).toBe("function");
+    });
+
+    it("should export page rendering", () => {
+      expect(OrgPress.renderFullPage).toBeDefined();
+      expect(typeof OrgPress.renderFullPage).toBe("function");
+
+      expect(OrgPress.injectViteHMR).toBeDefined();
+      expect(typeof OrgPress.injectViteHMR).toBe("function");
+
+      expect(OrgPress.applyBasePath).toBeDefined();
+      expect(typeof OrgPress.applyBasePath).toBe("function");
+    });
+
+    it("should export rehypeHeadingIds", () => {
+      expect(OrgPress.rehypeHeadingIds).toBeDefined();
+      expect(typeof OrgPress.rehypeHeadingIds).toBe("function");
+    });
+  });
+
+  describe("Layout System", () => {
+    it("should export layout loading", () => {
+      expect(OrgPress.loadLayout).toBeDefined();
+      expect(typeof OrgPress.loadLayout).toBe("function");
+
+      expect(OrgPress.loadDefaultLayout).toBeDefined();
+      expect(typeof OrgPress.loadDefaultLayout).toBe("function");
+
+      expect(OrgPress.clearLayoutCache).toBeDefined();
+      expect(typeof OrgPress.clearLayoutCache).toBe("function");
+
+      expect(OrgPress.preloadLayouts).toBeDefined();
+      expect(typeof OrgPress.preloadLayouts).toBe("function");
+    });
+  });
+
+  describe("Content API", () => {
+    it("should export content functions", () => {
+      expect(OrgPress.getContentPages).toBeDefined();
+      expect(typeof OrgPress.getContentPages).toBe("function");
+
+      expect(OrgPress.getContentPagesFromDirectory).toBeDefined();
+      expect(typeof OrgPress.getContentPagesFromDirectory).toBe("function");
+
+      expect(OrgPress.renderPageList).toBeDefined();
+      expect(typeof OrgPress.renderPageList).toBe("function");
+
+      expect(OrgPress.clearContentCache).toBeDefined();
+      expect(typeof OrgPress.clearContentCache).toBe("function");
+
+      expect(OrgPress.isDevelopment).toBeDefined();
+      expect(typeof OrgPress.isDevelopment).toBe("function");
+
+      expect(OrgPress.contentHelpers).toBeDefined();
+      expect(typeof OrgPress.contentHelpers).toBe("object");
+    });
+  });
+
+  describe("Cache System", () => {
+    it("should export cache utilities", () => {
+      expect(OrgPress.writeToCache).toBeDefined();
+      expect(typeof OrgPress.writeToCache).toBe("function");
+
+      expect(OrgPress.readFromCache).toBeDefined();
+      expect(typeof OrgPress.readFromCache).toBe("function");
+
+      expect(OrgPress.getCachePath).toBeDefined();
+      expect(typeof OrgPress.getCachePath).toBe("function");
+
+      expect(OrgPress.clearCache).toBeDefined();
+      expect(typeof OrgPress.clearCache).toBe("function");
+
+      expect(OrgPress.cacheFileExists).toBeDefined();
+      expect(typeof OrgPress.cacheFileExists).toBe("function");
+
+      expect(OrgPress.ensureCacheDir).toBeDefined();
+      expect(typeof OrgPress.ensureCacheDir).toBe("function");
+    });
+  });
+
+  describe("Version", () => {
+    it("should export version string", () => {
+      expect(OrgPress.version).toBeDefined();
+      expect(typeof OrgPress.version).toBe("string");
+      expect(OrgPress.version).toBe("2.0.0-alpha");
+    });
+  });
+
+  describe("Default Export (deprecated)", () => {
+    it("should have default export with key functions", () => {
+      expect(OrgPress.default).toBeDefined();
+      expect(OrgPress.default.version).toBe("2.0.0-alpha");
+      expect(OrgPress.default.orgPress).toBeDefined();
+      expect(typeof OrgPress.default.orgPress).toBe("function");
+      expect(OrgPress.default.loadConfig).toBeDefined();
+      expect(typeof OrgPress.default.loadConfig).toBe("function");
+      expect(OrgPress.default.loadPlugins).toBeDefined();
+      expect(typeof OrgPress.default.loadPlugins).toBe("function");
+      expect(OrgPress.default.build).toBeDefined();
+      expect(typeof OrgPress.default.build).toBe("function");
+    });
+  });
+
+  describe("Type Exports", () => {
+    it("should be able to import types (compile-time check)", () => {
+      // This test primarily validates TypeScript compilation
+      // If these imports fail, TypeScript will error at compile time
+      const _typeCheck: {
+        OrgPressPluginOptions?: typeof import("./index.ts").OrgPressPluginOptions;
+        BuildOptions?: typeof import("./index.ts").BuildOptions;
+        BuildResult?: typeof import("./index.ts").BuildResult;
+        DevServerOptions?: typeof import("./index.ts").DevServerOptions;
+        OrgPressConfig?: typeof import("./index.ts").OrgPressConfig;
+        OrgPressUserConfig?: typeof import("./index.ts").OrgPressUserConfig;
+        ThemeConfig?: typeof import("./index.ts").ThemeConfig;
+        PluginPreset?: typeof import("./index.ts").PluginPreset;
+        PageMetadata?: typeof import("./index.ts").PageMetadata;
+        LoadedPlugins?: typeof import("./index.ts").LoadedPlugins;
+        BlockPlugin?: typeof import("./index.ts").BlockPlugin;
+        CodeBlock?: typeof import("./index.ts").CodeBlock;
+        TransformContext?: typeof import("./index.ts").TransformContext;
+        TransformResult?: typeof import("./index.ts").TransformResult;
+        WrapperFunction?: typeof import("./index.ts").WrapperFunction;
+        WrapperConfig?: typeof import("./index.ts").WrapperConfig;
+        ParseContext?: typeof import("./index.ts").ParseContext;
+        ParsedOrg?: typeof import("./index.ts").ParsedOrg;
+        VirtualModule?: typeof import("./index.ts").VirtualModule;
+        CacheFile?: typeof import("./index.ts").CacheFile;
+        ServerExecutionResult?: typeof import("./index.ts").ServerExecutionResult;
+        RenderContext?: typeof import("./index.ts").RenderContext;
+        RenderResult?: typeof import("./index.ts").RenderResult;
+        LayoutComponent?: typeof import("./index.ts").LayoutComponent;
+        LayoutProps?: typeof import("./index.ts").LayoutProps;
+        SSRRenderOptions?: typeof import("./index.ts").SSRRenderOptions;
+        PageRenderOptions?: typeof import("./index.ts").PageRenderOptions;
+        ContentPage?: typeof import("./index.ts").ContentPage;
+        ContentQueryOptions?: typeof import("./index.ts").ContentQueryOptions;
+        ContentHelpers?: typeof import("./index.ts").ContentHelpers;
+      } = {};
+
+      expect(_typeCheck).toBeDefined();
+    });
+  });
+});

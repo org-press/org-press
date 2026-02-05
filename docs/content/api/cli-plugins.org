@@ -1,0 +1,148 @@
+#+TITLE: CLI Plugins
+#+DESCRIPTION: Extending the org-press CLI with custom commands
+
+* CLI Plugins
+
+Add custom commands to the =orgp= CLI using the =CreateCommand= factory.
+
+** Adding a CLI Command
+
+#+begin_export html
+<pre><code>import { CreateCommand } from "org-press";
+
+export const myCommand = CreateCommand("mycommand", {
+  description: "Do something useful",
+  args: {
+    output: {
+      flag: "-o, --output &lt;dir&gt;",
+      description: "Output directory",
+    },
+    verbose: {
+      flag: "-v, --verbose",
+      description: "Verbose output",
+    },
+  },
+  execute: async (args, ctx) => {
+    console.log("Running mycommand");
+    console.log("Output:", args.output);
+    console.log("Verbose:", args.verbose);
+    return 0; // exit code
+  },
+});
+</code></pre>
+#+end_export
+
+** CreateCommand API
+
+#+begin_export html
+<pre><code>CreateCommand(name: string, options: CommandOptions): OrgPressPlugin
+
+interface CommandOptions {
+  /** Description shown in --help */
+  description: string;
+
+  /** Command arguments/flags */
+  args?: Record&lt;string, ArgDefinition&gt;;
+
+  /** Command implementation */
+  execute: (args: ParsedArgs, ctx: CommandContext) =&gt; Promise&lt;number&gt;;
+}
+
+interface ArgDefinition {
+  /** Flag format: "-s, --long &lt;value&gt;" or "-f, --flag" for boolean */
+  flag: string;
+
+  /** Description for --help */
+  description: string;
+
+  /** Default value */
+  default?: unknown;
+
+  /** Short alias (auto-extracted from flag if present) */
+  alias?: string;
+}
+
+interface CommandContext {
+  /** Resolved org-press config */
+  config: OrgPressConfig;
+
+  /** All loaded plugins */
+  plugins: OrgPressPlugin[];
+
+  /** Working directory */
+  cwd: string;
+}
+</code></pre>
+#+end_export
+
+** Built-in CLI Commands
+
+These commands are included with org-press:
+
+| Command           | Description                           |
+|-------------------+---------------------------------------|
+| =orgp build=      | Build the site                        |
+| =orgp dev=        | Start development server              |
+| =orgp fmt=        | Format code blocks                    |
+| =orgp lint=       | Lint code blocks                      |
+| =orgp type-check= | Type-check TypeScript blocks          |
+| =orgp test=       | Run tests (via @org-press/block-test) |
+
+** Example: Custom Test Runner
+
+#+begin_export html
+<pre><code>import { CreateCommand } from "org-press";
+
+export const testCommand = CreateCommand("test", {
+  description: "Run tests in :use test blocks",
+  args: {
+    watch: {
+      flag: "-w, --watch",
+      description: "Watch mode",
+    },
+    coverage: {
+      flag: "--coverage",
+      description: "Collect coverage",
+    },
+    filter: {
+      flag: "-f, --filter &lt;pattern&gt;",
+      description: "Filter tests by name",
+    },
+  },
+  execute: async (args, ctx) => {
+    const { watch, coverage, filter } = args;
+
+    // Find all test blocks in the project
+    // Run vitest with options
+    console.log("Running tests...");
+
+    if (watch) {
+      console.log("Watch mode enabled");
+    }
+
+    return 0;
+  },
+});
+</code></pre>
+#+end_export
+
+** Registering Commands
+
+Commands are registered like any other plugin:
+
+#+begin_export html
+<pre><code>// .org-press/config.ts
+import { defineConfig } from "org-press";
+import { myCommand } from "./plugins/my-command";
+
+export default defineConfig({
+  plugins: [myCommand],
+});
+</code></pre>
+#+end_export
+
+Then use it:
+
+#+begin_example
+orgp mycommand --output ./dist --verbose
+#+end_example

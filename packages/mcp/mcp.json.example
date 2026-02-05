@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "org-press": {
+      "command": "npx",
+      "args": ["org-press-mcp"],
+      "env": {}
+    }
+  }
+}

@@ -1,0 +1,320 @@
+#+TITLE: CLI Reference
+#+DESCRIPTION: Complete reference for the orgp command line interface
+
+* CLI Reference
+
+The =orgp= command provides tools for development, building, and code quality.
+
+** Installation
+
+#+begin_src bash
+# Global installation
+npm install -g org-press
+
+# Or use npx
+npx orgp <command>
+
+# Or add to package.json scripts
+{
+  "scripts": {
+    "dev": "orgp dev",
+    "build": "orgp build"
+  }
+}
+#+end_src
+
+** Development Commands
+
+*** orgp dev
+
+Start the development server with hot module replacement.
+
+#+begin_src bash
+orgp dev
+#+end_src
+
+*Options:*
+
+| Option | Description | Default |
+|--------+-------------+---------|
+| =--port <number>= | Port to listen on | 5173 |
+| =--host= | Expose to network | false |
+| =--open= | Open browser | false |
+| =--config <path>= | Config file path | auto |
+
+*Examples:*
+
+#+begin_src bash
+# Start on custom port
+orgp dev --port 3000
+
+# Expose to network (for mobile testing)
+orgp dev --host
+
+# Open browser automatically
+orgp dev --open
+#+end_src
+
+*** orgp preview
+
+Preview the production build locally.
+
+#+begin_src bash
+orgp build && orgp preview
+#+end_src
+
+*Options:*
+
+| Option | Description | Default |
+|--------+-------------+---------|
+| =--port <number>= | Port to listen on | 4173 |
+| =--host= | Expose to network | false |
+
+** Build Commands
+
+*** orgp build
+
+Build the site for production.
+
+#+begin_src bash
+orgp build
+#+end_src
+
+*Options:*
+
+| Option | Description | Default |
+|--------+-------------+---------|
+| =--outDir <dir>= | Output directory | dist |
+| =--base <path>= | Base public path | / |
+| =--config <path>= | Config file path | auto |
+
+*Examples:*
+
+#+begin_src bash
+# Build to custom directory
+orgp build --outDir public
+
+# Build with base path (for subdirectory deployment)
+orgp build --base /docs/
+#+end_src
+
+** Code Quality Commands
+
+*** orgp fmt
+
+Format code blocks with Prettier.
+
+#+begin_src bash
+orgp fmt
+#+end_src
+
+*Options:*
+
+| Option | Description | Default |
+|--------+-------------+---------|
+| =--check= | Check only, don't write | false |
+| =--languages <list>= | Filter by language | all |
+
+*Examples:*
+
+#+begin_src bash
+# Format all code blocks
+orgp fmt
+
+# Check formatting (CI mode)
+orgp fmt --check
+
+# Format only TypeScript
+orgp fmt --languages ts,tsx
+
+# Format specific file
+orgp fmt content/api.org
+#+end_src
+
+*** orgp lint
+
+Lint code blocks with ESLint.
+
+#+begin_src bash
+orgp lint
+#+end_src
+
+*Options:*
+
+| Option | Description | Default |
+|--------+-------------+---------|
+| =--fix= | Auto-fix problems | false |
+| =--languages <list>= | Filter by language | js,ts,jsx,tsx |
+| =--max-warnings <n>= | Max warnings before fail | unlimited |
+
+*Examples:*
+
+#+begin_src bash
+# Lint all code blocks
+orgp lint
+
+# Auto-fix problems
+orgp lint --fix
+
+# Strict mode (fail on any warning)
+orgp lint --max-warnings 0
+
+# Lint specific file
+orgp lint content/api.org
+#+end_src
+
+*** orgp type-check
+
+Type-check TypeScript code blocks.
+
+#+begin_src bash
+orgp type-check
+#+end_src
+
+*Options:*
+
+| Option | Description | Default |
+|--------+-------------+---------|
+| =--watch= | Watch mode | false |
+
+*Examples:*
+
+#+begin_src bash
+# Check all TypeScript blocks
+orgp type-check
+
+# Watch mode
+orgp type-check --watch
+#+end_src
+
+** Testing Commands
+
+*** orgp test
+
+Run tests in =:use test= blocks via Vitest.
+
+#+begin_src bash
+orgp test
+#+end_src
+
+*Options:*
+
+| Option | Description | Default |
+|--------+-------------+---------|
+| =--watch= | Watch mode | false |
+| =--coverage= | Collect coverage | false |
+| =--name <filter>= | Filter by test name | all |
+
+*Examples:*
+
+#+begin_src bash
+# Run all tests
+orgp test
+
+# Watch mode (re-run on changes)
+orgp test --watch
+
+# With coverage report
+orgp test --coverage
+
+# Filter by name
+orgp test --name "validation"
+
+# Test specific file
+orgp test content/utils.org
+#+end_src
+
+** Hashbang Scripts
+
+Org files can be executed directly as scripts when they have a hashbang:
+
+#+begin_export html
+<pre><code>#!/usr/bin/env orgp
+#+TITLE: Build Script
+
+#+NAME: default
+#+begin_src javascript :exec
+console.log("Running default task...");
+#+end_src
+
+#+NAME: build
+#+begin_src javascript :exec
+console.log("Building...");
+#+end_src
+
+#+NAME: deploy
+#+begin_src javascript :exec
+console.log("Deploying...");
+#+end_src</code></pre>
+#+end_export
+
+*Usage:*
+
+#+begin_src bash
+# Make executable
+chmod +x build.org
+
+# Run default block
+./build.org
+
+# Run specific block
+./build.org run build
+./build.org run deploy
+
+# Other commands work too
+./build.org serve    # Start dev server
+./build.org build    # Build static site
+./build.org --help   # Show help
+#+end_src
+
+** Configuration File
+
+By default, orgp looks for config files in this order:
+
+1. =.org-press/config.ts=
+2. =.org-press/config.js=
+3. =org-press.config.ts=
+4. =org-press.config.js=
+
+Override with =--config=:
+
+#+begin_src bash
+orgp dev --config ./custom-config.ts
+#+end_src
+
+** Exit Codes
+
+| Code | Meaning |
+|------+---------|
+| 0 | Success |
+| 1 | Error (build failed, lint errors, etc.) |
+
+** CI/CD Integration
+
+*GitHub Actions:*
+
+#+begin_src yaml
+- name: Install dependencies
+  run: npm ci
+
+- name: Check formatting
+  run: npx orgp fmt --check
+
+- name: Lint
+  run: npx orgp lint --max-warnings 0
+
+- name: Type check
+  run: npx orgp type-check
+
+- name: Test
+  run: npx orgp test
+
+- name: Build
+  run: npx orgp build
+#+end_src
+
+** See Also
+
+- [[/config/index.html][Configuration]] - Config file options
+- [[/guide/building.html][Building]] - Production build guide
+- [[/guide/deploying.html][Deploying]] - Deployment guides

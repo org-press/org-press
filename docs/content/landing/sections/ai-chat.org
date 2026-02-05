@@ -1,0 +1,157 @@
+#+TITLE: AI Chat Section
+#+DESCRIPTION: AI assistant chat demo
+
+* AI Chat Section
+
+Section demonstrating AI integration with a simulated chat conversation.
+
+#+NAME: ai-chat
+#+begin_src typescript
+/**
+ * AI Chat Demo Section
+ *
+ * Features:
+ * - Chat-style interface with messages
+ * - Typewriter reveal for each message
+ * - Pre-scripted error fixing demonstration
+ */
+
+import { sleep, typewrite } from '../three/animation.org?name=animation';
+
+interface ChatMessage {
+  type: 'error' | 'ai' | 'user' | 'success';
+  content: string;
+  delay: number;
+}
+
+const CHAT_SCRIPT: ChatMessage[] = [
+  {
+    type: 'error',
+    content: "Block renders nothing - output is empty",
+    delay: 0,
+  },
+  {
+    type: 'ai',
+    content: "Your block is missing `export function render()`. With `:use dom`, you need to export a render function that returns the rendered output.",
+    delay: 800,
+  },
+  {
+    type: 'user',
+    content: "Yes, add it",
+    delay: 1600,
+  },
+  {
+    type: 'success',
+    content: "Added `export function render() { return <Card>{data}</Card>; }` - now rendering!",
+    delay: 2200,
+  },
+];
+
+export function createAiChat(): HTMLElement {
+  const section = document.createElement('section');
+  section.className = 'landing-section ai-chat-section';
+  section.id = 'ai';
+
+  section.innerHTML = `
+    <div class="section-content">
+      <div class="ai-header">
+        <div class="ai-titles">
+          <h2>Built for Humans</h2>
+          <h2 class="gold">with AI Powers</h2>
+        </div>
+        <p class="ai-subtitle">
+          Org-press is designed to work seamlessly with AI assistants.
+          Literate programming creates perfect context for AI understanding.
+        </p>
+      </div>
+
+      <div class="chat-demo">
+        <div class="chat-window">
+          <div class="chat-messages" id="chat-messages">
+            <div class="chat-message error" data-index="0">
+              <div class="message-icon error-icon">!</div>
+              <div class="message-content">
+                <span class="message-text"></span>
+              </div>
+            </div>
+            <div class="chat-message ai" data-index="1">
+              <div class="message-icon ai-icon">AI</div>
+              <div class="message-content">
+                <span class="message-text"></span>
+              </div>
+            </div>
+            <div class="chat-message user" data-index="2">
+              <div class="message-icon user-icon">&gt;</div>
+              <div class="message-content">
+                <span class="message-text"></span>
+              </div>
+            </div>
+            <div class="chat-message success" data-index="3">
+              <div class="message-icon success-icon">&#10003;</div>
+              <div class="message-content">
+                <span class="message-text"></span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="ai-features">
+        <div class="ai-feature">
+          <h3>Context-Aware</h3>
+          <p>Prose and code together provide rich context for AI understanding</p>
+        </div>
+        <div class="ai-feature">
+          <h3>Executable Specs</h3>
+          <p>AI can run, test, and validate changes in real-time</p>
+        </div>
+        <div class="ai-feature">
+          <h3>Self-Documenting</h3>
+          <p>Changes are naturally documented in literate style</p>
+        </div>
+      </div>
+    </div>
+  `;
+
+  // Animate chat when section becomes visible
+  let hasAnimated = false;
+
+  async function runChatAnimation() {
+    const messages = section.querySelectorAll('.chat-message');
+
+    for (let i = 0; i < CHAT_SCRIPT.length; i++) {
+      const script = CHAT_SCRIPT[i];
+      const messageEl = messages[i] as HTMLElement;
+      const textEl = messageEl?.querySelector('.message-text') as HTMLElement;
+
+      if (!messageEl || !textEl) continue;
+
+      await sleep(script.delay);
+      messageEl.classList.add('visible');
+      await typewrite(textEl, script.content, script.type === 'user' ? 40 : 20);
+      await sleep(300);
+    }
+  }
+
+  const observer = new IntersectionObserver(
+    (entries) => {
+      for (const entry of entries) {
+        if (entry.isIntersecting && !hasAnimated) {
+          hasAnimated = true;
+          runChatAnimation();
+          observer.disconnect();
+        }
+      }
+    },
+    { threshold: 0.3 }
+  );
+
+  requestAnimationFrame(() => {
+    observer.observe(section);
+  });
+
+  return section;
+}
+
+export default createAiChat();
+#+end_src

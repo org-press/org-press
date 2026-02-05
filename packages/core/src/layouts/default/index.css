@@ -1,0 +1,10 @@
+/**
+ * Default Layout CSS for Org-Press
+ *
+ * Import this to get the default theme styles.
+ * Individual files can be imported separately from ./css/
+ */
+@import "./css/styles.css";
+@import "./css/org.css";
+@import "./css/src.css";
+@import "./css/layout.css";

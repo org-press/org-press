@@ -1,0 +1,351 @@
+#+TITLE: Terminal Demo
+#+DESCRIPTION: Terminal with typewriter effect for SSG demo
+
+* Terminal Demo Component
+
+Section 2 of the landing page - showcases the SSG/dev server with a
+typewriter terminal animation.
+
+#+NAME: terminal-demo
+#+begin_src typescript 
+/**
+ * Terminal Demo Section
+ *
+ * Features:
+ * - Terminal window with macOS-style chrome
+ * - Typewriter effect for command and output
+ * - Demonstrates org-press dev server
+ */
+
+function sleep(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+async function typewrite(
+  element: HTMLElement,
+  text: string,
+  speed: number = 50,
+  startDelay: number = 0
+): Promise<void> {
+  await sleep(startDelay);
+  element.textContent = '';
+
+  for (const char of text) {
+    element.textContent += char;
+    await sleep(speed + Math.random() * 20);
+  }
+}
+
+export function createTerminalDemo(): HTMLElement {
+  const container = document.createElement('section');
+  container.className = 'landing-section terminal-demo-section';
+  container.id = 'ssg';
+
+  container.innerHTML = `
+    <div class="section-content">
+      <div class="section-visual">
+        <div class="terminal-window">
+          <div class="terminal-header">
+            <span class="terminal-dot red"></span>
+            <span class="terminal-dot yellow"></span>
+            <span class="terminal-dot green"></span>
+            <span class="terminal-title">Terminal</span>
+          </div>
+          <div class="terminal-body">
+            <div class="terminal-line">
+              <span class="terminal-prompt">$</span>
+              <span class="terminal-command" data-text="orgp dev"></span>
+              <span class="terminal-cursor">|</span>
+            </div>
+            <div class="terminal-output">
+              <div class="output-line ready" data-text=""></div>
+              <div class="output-line url" data-text=""></div>
+              <div class="output-line info" data-text=""></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="section-text">
+        <span class="section-label">Static Site Generator</span>
+        <h2>Document Format for Web Development</h2>
+        <p>
+          Org-press is a static site generator built for literate programming.
+          Hot module replacement, instant preview, and production builds
+          with a single command.
+        </p>
+        <ul class="feature-list">
+          <li>Lightning-fast Vite-powered dev server</li>
+          <li>TypeScript, JSX, CSS out of the box</li>
+          <li>Server-side execution at build time</li>
+          <li>Automatic syntax highlighting</li>
+        </ul>
+      </div>
+    </div>
+  `;
+
+  // Start typewriter animation when section becomes visible
+  let hasAnimated = false;
+
+  const observer = new IntersectionObserver(
+    (entries) => {
+      for (const entry of entries) {
+        if (entry.isIntersecting && !hasAnimated) {
+          hasAnimated = true;
+          runTerminalAnimation(container);
+          observer.disconnect();
+        }
+      }
+    },
+    { threshold: 0.3 }
+  );
+
+  // Observe after a short delay to ensure DOM is ready
+  requestAnimationFrame(() => {
+    observer.observe(container);
+  });
+
+  return container;
+}
+
+async function runTerminalAnimation(container: HTMLElement): Promise<void> {
+  const commandEl = container.querySelector('.terminal-command') as HTMLElement;
+  const cursorEl = container.querySelector('.terminal-cursor') as HTMLElement;
+  const readyLine = container.querySelector('.output-line.ready') as HTMLElement;
+  const urlLine = container.querySelector('.output-line.url') as HTMLElement;
+  const infoLine = container.querySelector('.output-line.info') as HTMLElement;
+
+  if (!commandEl || !cursorEl) return;
+
+  // Type the command
+  await typewrite(commandEl, 'orgp dev', 80);
+
+  // Hide cursor briefly (simulating Enter press)
+  cursorEl.style.opacity = '0';
+  await sleep(200);
+
+  // Show output with staggered reveal
+  cursorEl.style.display = 'none';
+
+  await sleep(300);
+
+  if (readyLine) {
+    readyLine.textContent = '';
+    readyLine.classList.add('visible');
+    await typewrite(readyLine, 'Ready in 127ms', 30);
+  }
+
+  await sleep(150);
+
+  if (urlLine) {
+    urlLine.classList.add('visible');
+    urlLine.innerHTML = '<span class="dim">Local:</span>   <span class="url-link">http://localhost:3000/</span>';
+  }
+
+  await sleep(100);
+
+  if (infoLine) {
+    infoLine.classList.add('visible');
+    infoLine.innerHTML = '<span class="dim">press</span> <span class="key">h + enter</span> <span class="dim">to show help</span>';
+  }
+}
+
+export default createTerminalDemo();
+#+end_src
+
+#+NAME: terminal-demo-styles
+#+begin_src css 
+/* Terminal Demo Section Styles */
+.terminal-demo-section {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem 2rem;
+}
+
+.terminal-demo-section .section-content {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4rem;
+  max-width: 1100px;
+  width: 100%;
+  align-items: center;
+}
+
+.terminal-demo-section .section-text {
+  text-align: left;
+}
+
+.terminal-demo-section h2 {
+  font-size: 2.5rem;
+  font-weight: 300;
+  color: var(--text-color);
+  margin: 0 0 1.5rem 0;
+  letter-spacing: 0.02em;
+}
+
+.terminal-demo-section p {
+  font-size: 1.1rem;
+  line-height: 1.7;
+  color: var(--text-muted);
+  margin: 0 0 1.5rem 0;
+}
+
+/* Feature list */
+.feature-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.feature-list li {
+  position: relative;
+  padding-left: 1.5rem;
+  margin-bottom: 0.75rem;
+  color: var(--text-muted);
+  font-size: 0.95rem;
+}
+
+.feature-list li::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0.55em;
+  width: 6px;
+  height: 6px;
+  background: var(--text-subtle);
+  border-radius: 50%;
+}
+
+/* Terminal window */
+.terminal-window {
+  background: #1e1e2e;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+  font-size: 0.9rem;
+}
+
+.terminal-header {
+  background: #313244;
+  padding: 0.75rem 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.terminal-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+}
+
+.terminal-dot.red { background: #f38ba8; }
+.terminal-dot.yellow { background: #f9e2af; }
+.terminal-dot.green { background: #a6e3a1; }
+
+.terminal-title {
+  flex: 1;
+  text-align: center;
+  font-size: 0.8rem;
+  color: #6c7086;
+  margin-right: 48px; /* Balance the dots */
+}
+
+.terminal-body {
+  padding: 1.25rem;
+  min-height: 160px;
+}
+
+.terminal-line {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.terminal-prompt {
+  color: #a6e3a1;
+  font-weight: 600;
+}
+
+.terminal-command {
+  color: #cdd6f4;
+}
+
+.terminal-cursor {
+  color: #cdd6f4;
+  animation: cursor-blink 1s step-end infinite;
+}
+
+@keyframes cursor-blink {
+  0%, 50% { opacity: 1; }
+  51%, 100% { opacity: 0; }
+}
+
+.terminal-output {
+  color: #cdd6f4;
+}
+
+.output-line {
+  opacity: 0;
+  transform: translateY(5px);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+  margin-bottom: 0.4rem;
+  line-height: 1.5;
+}
+
+.output-line.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.output-line .dim {
+  color: #6c7086;
+}
+
+.output-line .url-link {
+  color: #89b4fa;
+}
+
+.output-line .key {
+  color: #cdd6f4;
+  background: #45475a;
+  padding: 0.1rem 0.4rem;
+  border-radius: 3px;
+  font-size: 0.85em;
+}
+
+/* Responsive */
+@media (max-width: 900px) {
+  .terminal-demo-section .section-content {
+    grid-template-columns: 1fr;
+    gap: 2rem;
+  }
+
+  .terminal-demo-section .section-content {
+    display: flex;
+    flex-direction: column-reverse;
+  }
+
+  .terminal-demo-section .section-text {
+    text-align: center;
+  }
+
+  .terminal-demo-section h2 {
+    font-size: 2rem;
+  }
+
+  .terminal-window {
+    max-width: 420px;
+    margin: 0 auto;
+  }
+
+  .feature-list {
+    text-align: left;
+    max-width: 320px;
+    margin: 0 auto;
+  }
+}
+#+end_src

@@ -1,0 +1,212 @@
+#+TITLE: Building for Production
+#+DESCRIPTION: Build your org-press site for deployment
+
+* Building for Production
+
+Generate optimized static HTML for deployment.
+
+** Build Command
+
+#+begin_src bash
+orgp build
+#+end_src
+
+This compiles all org files to static HTML in the output directory.
+
+** Build Output
+
+#+begin_export html
+<pre><code>dist/
+├── index.html
+├── guide/
+│   ├── index.html
+│   ├── getting-started.html
+│   └── features.html
+├── api/
+│   └── index.html
+├── assets/
+│   ├── index-abc123.js
+│   └── style-def456.css
+└── node_modules/
+    └── .org-press-cache/    # For API endpoints
+</code></pre>
+#+end_export
+
+** Build Options
+
+*** Output Directory
+
+#+begin_export html
+<pre><code>// .org-press/config.ts
+export default {
+  outDir: "dist",           // Default
+  // outDir: "public",      // Alternative
+  // outDir: "build",       // Another option
+};
+</code></pre>
+#+end_export
+
+*** Base Path
+
+For subdirectory deployment (e.g., =https://example.com/docs/=):
+
+#+begin_export html
+<pre><code>// .org-press/config.ts
+export default {
+  base: "/docs/",
+};
+</code></pre>
+#+end_export
+
+Or via CLI:
+
+#+begin_src bash
+orgp build --base /docs/
+#+end_src
+
+*** Build Concurrency
+
+Control parallel page rendering:
+
+#+begin_export html
+<pre><code>// .org-press/config.ts
+export default {
+  buildConcurrency: 4,  // Number of concurrent workers
+};
+</code></pre>
+#+end_export
+
+Higher values speed up builds but use more memory.
+
+** What Happens During Build
+
+1. *Compile org files* - Parse all .org files in content directory
+2. *Execute server blocks* - =:use server= blocks run with Node.js
+3. *Bundle client code* - Vite bundles JavaScript/CSS
+4. *Generate HTML* - Each page rendered to static HTML
+5. *Copy assets* - Static files copied to output
+
+** Server Blocks
+
+Blocks with =:use server= execute during build, not in the browser:
+
+#+begin_export html
+<pre><code>#+begin_src javascript :use server
+const fs = require('fs');
+const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+return `Version: ${pkg.version}`;
+#+end_src</code></pre>
+#+end_export
+
+This is useful for:
+- Reading local files
+- Fetching API data at build time
+- Generating dynamic content
+- Processing data
+
+** Content Helpers
+
+In server blocks, you have access to content helpers:
+
+#+begin_export html
+<pre><code>#+begin_src javascript :use server
+// Get all pages
+const pages = await content.getContentPages();
+
+// Filter by directory
+const guides = pages.filter(p => p.path.startsWith('/guide/'));
+
+// Render as HTML list
+return await content.renderPageList(guides);
+#+end_src</code></pre>
+#+end_export
+
+** Preview Build
+
+After building, preview locally:
+
+#+begin_src bash
+# Build first
+orgp build
+
+# Preview with Vite
+orgp preview
+
+# Or with any static server
+npx serve dist
+npx http-server dist
+python -m http.server -d dist
+#+end_src
+
+** Build Caching
+
+Org-press caches compiled blocks in =node_modules/.org-press-cache=. This speeds up subsequent builds.
+
+To clear the cache:
+
+#+begin_src bash
+rm -rf node_modules/.org-press-cache
+orgp build
+#+end_src
+
+** CI/CD Build
+
+For CI environments:
+
+#+begin_src yaml
+# GitHub Actions
+- name: Install dependencies
+  run: npm ci
+
+- name: Build site
+  run: npm run build
+
+- name: Upload artifact
+  uses: actions/upload-pages-artifact@v2
+  with:
+    path: ./dist
+#+end_src
+
+** Build Errors
+
+*** Missing Dependencies
+
+#+begin_src text
+Error: Cannot find module 'some-package'
+#+end_src
+
+Install the missing package:
+
+#+begin_src bash
+npm install some-package
+#+end_src
+
+*** Server Block Errors
+
+#+begin_src text
+Server execution error in content/api.org: TypeError: x is not a function
+#+end_src
+
+Check your server block code. Remember server blocks use Node.js, not browser APIs.
+
+*** Type Errors
+
+Run type checking before build:
+
+#+begin_src bash
+orgp type-check
+orgp build
+#+end_src
+
+** Optimization Tips
+
+1. *Minimize server blocks* - They run sequentially during build
+2. *Cache external API calls* - Don't fetch the same data multiple times
+3. *Use build concurrency* - Increase =buildConcurrency= for faster builds
+4. *Clean cache occasionally* - Stale cache can cause issues
+
+** See Also
+
+- [[/guide/deploying.html][Deploying]] - Deploy your built site
+- [[/config/build-options.html][Build Options]] - All build configuration
+- [[/guide/cli.html][CLI Reference]] - Build command options

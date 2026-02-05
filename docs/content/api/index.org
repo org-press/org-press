@@ -1,0 +1,120 @@
+#+TITLE: API Overview
+#+DESCRIPTION: Org-press API reference
+
+* API Reference
+
+Org-press exposes several APIs for different use cases.
+
+** APIs
+
+- [[/api/modes-api.html][Modes API]] - Unified composable block rendering system
+- [[/api/plugin-api.html][Plugin API]] - Create custom block plugins
+- [[/api/javascript-api.html][JavaScript API]] - Programmatic usage
+- [[/api/hmr-api.html][HMR API]] - Hot module replacement
+- [[/api/cli-plugins.html][CLI Plugins]] - Extend the CLI
+
+** Quick Links
+
+*** For Block Rendering
+
+#+begin_export html
+<pre><code>#+begin_src javascript :use dom | withSourceCode
+// Execute code and show both source and result
+console.log("Hello World");
+#+end_src
+
+#+begin_src javascript :use sourceOnly
+// Display code without execution
+const x = 1;
+#+end_src</code></pre>
+#+end_export
+
+See [[/api/modes-api.html][Modes API]].
+
+*** For Plugin Authors
+
+The plugin system provides factory functions for common patterns:
+
+#+begin_export html
+<pre><code>// Block plugins - handle code blocks by language
+import { CreateBlock } from "org-press";
+
+const myLanguagePlugin = CreateBlock(["mylang", "ml"], {
+  transform: (code, ctx) => ({
+    html: `&lt;pre class="mylang"&gt;${code}&lt;/pre&gt;`,
+  }),
+});
+
+// Drawer plugins - transform org drawers
+import { CreateDrawer } from "org-press";
+
+const calloutDrawer = CreateDrawer(
+  ["NOTE", "TIP", "WARNING"],
+  (drawer) => `&lt;aside class="callout callout-${drawer.name.toLowerCase()}"&gt;${drawer.html}&lt;/aside&gt;`
+);
+
+// Transformers - stages in the :use pipeline
+import { CreateTransformer } from "org-press";
+
+const myTransformer = CreateTransformer("mymode", {
+  onBuild: (input, ctx) => ({
+    html: `&lt;div class="enhanced"&gt;${input.html}&lt;/div&gt;`,
+  }),
+});
+
+// CLI commands - extend orgp CLI
+import { CreateCommand } from "org-press";
+
+const myCommand = CreateCommand("mycmd", {
+  description: "My custom command",
+  execute: async (args, ctx) => {
+    console.log("Running mycmd");
+    return 0;
+  },
+});
+
+// Full control - escape hatch for complex plugins
+import { CreatePlugin } from "org-press";
+
+const complexPlugin = CreatePlugin("my-complex-plugin", (ctx) => {
+  ctx.onDrawer("CUSTOM", (drawer) => `&lt;div&gt;${drawer.html}&lt;/div&gt;`);
+  ctx.addCommand("custom", { description: "...", execute: async () => 0 });
+});
+</code></pre>
+#+end_export
+
+See [[/api/plugin-api.html][Plugin API]] and [[/plugins/creating-plugins.html][Creating Plugins]].
+
+*** For Programmatic Usage
+
+#+begin_export html
+<pre><code>import { parseOrgContent, renderOrg } from "org-press";
+
+const parsed = await parseOrgContent(content, context);
+const result = await renderOrg(parsed.ast, renderContext);
+</code></pre>
+#+end_export
+
+See [[/api/javascript-api.html][JavaScript API]].
+
+*** For CLI Extensions
+
+#+begin_export html
+<pre><code>import { CreateCommand } from "org-press";
+
+const myCommand = CreateCommand("mycommand", {
+  description: "Do something useful",
+  args: [
+    { name: "watch", type: "boolean", alias: "w", description: "Watch mode" },
+    { name: "output", type: "string", alias: "o", description: "Output file" },
+  ],
+  execute: async (args, ctx) => {
+    if (args.watch) console.log("Watching...");
+    // Do something with ctx.config, ctx.contentDir, etc.
+    return 0; // Exit code
+  },
+});
+</code></pre>
+#+end_export
+
+See [[/api/cli-plugins.html][CLI Plugins]].

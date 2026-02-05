@@ -1,0 +1,80 @@
+#+TITLE: JavaScript API
+#+DESCRIPTION: Programmatic usage of org-press
+
+* JavaScript API
+
+** Parsing
+
+#+begin_export html
+<pre><code>import { parseOrgContent } from "org-press";
+
+const parsed = await parseOrgContent(orgSource, {
+  orgFilePath: "content/page.org",
+  plugins: [],
+  config: {},
+});
+
+// Access AST
+console.log(parsed.ast);
+
+// Access metadata
+console.log(parsed.metadata.title);
+</code></pre>
+#+end_export
+
+** Rendering
+
+#+begin_export html
+<pre><code>import { renderOrg, renderWithLayout } from "org-press";
+
+// Render to HTML string
+const result = await renderOrg(parsed.ast, {
+  base: "/",
+  metadata: parsed.metadata,
+});
+
+console.log(result.html);
+console.log(result.toc); // Table of contents
+
+// Render with layout component
+const fullHtml = await renderWithLayout({
+  ast: parsed.ast,
+  context: { base: "/", metadata: parsed.metadata },
+  Layout: MyLayoutComponent,
+});
+</code></pre>
+#+end_export
+
+** Configuration
+
+#+begin_export html
+<pre><code>import { loadConfig, loadPlugins } from "org-press";
+
+const config = await loadConfig(".org-press/config.ts");
+const { plugins } = await loadPlugins(config);
+</code></pre>
+#+end_export
+
+** Content Helpers
+
+Available in server blocks:
+
+#+begin_export html
+<pre><code>// In :use server blocks
+const pages = await content.getContentPages();
+const html = await content.renderPageList(pages);
+</code></pre>
+#+end_export
+
+** Types
+
+#+begin_export html
+<pre><code>import type {
+  OrgPressConfig,
+  BlockPlugin,
+  PageMetadata,
+  RenderResult,
+  TocItem,
+} from "org-press";
+</code></pre>
+#+end_export

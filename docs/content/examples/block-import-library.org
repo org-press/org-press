@@ -1,0 +1,290 @@
+#+title: Org Block Library
+#+date: 2025-12-07
+
+This file contains reusable code blocks that can be imported by other org files
+using the org block import feature.
+
+* JavaScript Utilities
+
+#+name: math-utils
+#+begin_src javascript :use dom | withSourceCode
+/**
+ * Reusable math utilities
+ */
+export function add(a, b) {
+  return a + b;
+}
+
+export function multiply(a, b) {
+  return a * b;
+}
+
+export function fibonacci(n) {
+  if (n <= 1) return n;
+  let a = 0, b = 1;
+  for (let i = 2; i <= n; i++) {
+    [a, b] = [b, a + b];
+  }
+  return b;
+}
+#+end_src
+
+#+name: string-utils
+#+begin_src javascript :use dom | withSourceCode
+/**
+ * String manipulation utilities
+ */
+export function capitalize(str) {
+  return str.charAt(0).toUpperCase() + str.slice(1);
+}
+
+export function slugify(str) {
+  return str
+    .toLowerCase()
+    .replace(/[^\w\s-]/g, '')
+    .replace(/[\s_-]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+}
+
+export function truncate(str, maxLength) {
+  if (str.length <= maxLength) return str;
+  return str.slice(0, maxLength - 3) + '...';
+}
+#+end_src
+
+* CSS Utilities
+
+#+name: flex-utils
+#+begin_src css :use dom | withSourceCode
+/* Flexbox utility classes */
+.flex-center {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.flex-column {
+  display: flex;
+  flex-direction: column;
+}
+
+.flex-between {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.flex-gap-1 {
+  gap: 0.25rem;
+}
+
+.flex-gap-2 {
+  gap: 0.5rem;
+}
+
+.flex-gap-4 {
+  gap: 1rem;
+}
+#+end_src
+
+#+name: animation-utils
+#+begin_src css :use dom | withSourceCode
+/* Animation utilities */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.fade-in {
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+.spin {
+  animation: spin 1s linear infinite;
+}
+#+end_src
+
+* JSCad Geometry Primitives
+
+#+name: jscad-base-shapes
+#+begin_src javascript :use dom | withSourceCode
+import * as jscad from '@jscad/modeling';
+
+const { cube, sphere, cylinder, cuboid } = jscad.primitives;
+const { translate, scale, rotate } = jscad.transforms;
+const { union, subtract, intersect } = jscad.booleans;
+const { colorize } = jscad.colors;
+
+/**
+ * Create a rounded cube
+ */
+export function roundedCube(size = 10, radius = 2) {
+  const mainCube = cuboid({ size: [size, size, size] });
+  const corners = [];
+
+  const offset = size / 2 - radius;
+  for (let x of [-1, 1]) {
+    for (let y of [-1, 1]) {
+      for (let z of [-1, 1]) {
+        corners.push(
+          translate(
+            [x * offset, y * offset, z * offset],
+            sphere({ radius })
+          )
+        );
+      }
+    }
+  }
+
+  return union(mainCube, ...corners);
+}
+
+/**
+ * Create a simple house shape
+ */
+export function house(width = 20, height = 15) {
+  const base = cuboid({ size: [width, width, height] });
+  const roof = translate(
+    [0, 0, height / 2],
+    rotate(
+      [Math.PI / 4, 0, 0],
+      cuboid({ size: [width, width * 1.4, 2] })
+    )
+  );
+
+  return colorize([0.8, 0.6, 0.4], union(base, roof));
+}
+
+/**
+ * Create a gear tooth
+ */
+export function gear(teeth = 12, innerRadius = 10, outerRadius = 15, thickness = 3) {
+  const base = cylinder({ radius: innerRadius, height: thickness });
+  const toothAngle = (2 * Math.PI) / teeth;
+  const teethShapes = [];
+
+  for (let i = 0; i < teeth; i++) {
+    const angle = i * toothAngle;
+    const tooth = translate(
+      [Math.cos(angle) * (innerRadius + outerRadius) / 2,
+       Math.sin(angle) * (innerRadius + outerRadius) / 2,
+       0],
+      rotate(
+        [0, 0, angle],
+        cuboid({ size: [outerRadius - innerRadius, 2, thickness] })
+      )
+    );
+    teethShapes.push(tooth);
+  }
+
+  return colorize([0.7, 0.7, 0.8], union(base, ...teethShapes));
+}
+#+end_src
+
+#+name: jscad-composite-shapes
+#+begin_src javascript :use dom | withSourceCode
+import * as jscad from '@jscad/modeling';
+
+const { cube, sphere, cylinder } = jscad.primitives;
+const { translate, rotate } = jscad.transforms;
+const { union, subtract } = jscad.booleans;
+const { colorize } = jscad.colors;
+
+/**
+ * Create a simple screw
+ */
+export function screw(length = 30, diameter = 6, headDiameter = 10) {
+  const shaft = cylinder({ radius: diameter / 2, height: length });
+  const head = translate(
+    [0, 0, length / 2],
+    cylinder({ radius: headDiameter / 2, height: 3 })
+  );
+
+  return colorize([0.6, 0.6, 0.6], union(shaft, head));
+}
+
+/**
+ * Create a bearing
+ */
+export function bearing(outerD = 20, innerD = 10, thickness = 5) {
+  const outer = cylinder({ radius: outerD / 2, height: thickness });
+  const inner = cylinder({ radius: innerD / 2, height: thickness + 1 });
+
+  return colorize([0.5, 0.5, 0.6], subtract(outer, inner));
+}
+#+end_src
+
+* Server-Side Data Processing
+
+#+name: file-stats
+#+begin_src javascript :use server
+const fs = require('fs');
+const path = require('path');
+
+const contentDir = path.join(process.cwd(), 'content');
+const files = fs.readdirSync(contentDir).filter(f => f.endsWith('.org'));
+
+const stats = {
+  totalFiles: files.length,
+  files: files.map(f => ({
+    name: f,
+    size: fs.statSync(path.join(contentDir, f)).size
+  }))
+};
+
+export default JSON.stringify(stats, null, 2);
+#+end_src
+
+#+name: current-date
+#+begin_src javascript :use server
+export default new Date().toISOString().split('T')[0];
+#+end_src
+
+* TypeScript Examples
+
+#+name: type-safe-utils
+#+begin_src typescript
+interface Point {
+  x: number;
+  y: number;
+}
+
+interface Point3D extends Point {
+  z: number;
+}
+
+export function distance2D(p1: Point, p2: Point): number {
+  const dx = p2.x - p1.x;
+  const dy = p2.y - p1.y;
+  return Math.sqrt(dx * dx + dy * dy);
+}
+
+export function distance3D(p1: Point3D, p2: Point3D): number {
+  const dx = p2.x - p1.x;
+  const dy = p2.y - p1.y;
+  const dz = p2.z - p1.z;
+  return Math.sqrt(dx * dx + dy * dy + dz * dz);
+}
+
+export function midpoint(p1: Point, p2: Point): Point {
+  return {
+    x: (p1.x + p2.x) / 2,
+    y: (p1.y + p2.y) / 2
+  };
+}
+#+end_src

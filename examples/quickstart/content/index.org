@@ -1,0 +1,7 @@
+#+TITLE: Hello World
+
+Welcome to org-press!
+
+#+begin_src javascript :use dom
+export default <h2>This code block runs in the browser!</h2>;
+#+end_src

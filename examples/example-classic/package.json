@@ -1,0 +1,15 @@
+{
+  "name": "@org-press/example-classic",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Classic org-press project with config file",
+  "type": "module",
+  "scripts": {
+    "dev": "orgp dev",
+    "build": "orgp build content/index.org",
+    "preview": "orgp preview"
+  },
+  "dependencies": {
+    "org-press": "workspace:*"
+  }
+}

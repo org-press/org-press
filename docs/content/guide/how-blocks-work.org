@@ -1,0 +1,321 @@
+#+TITLE: How Blocks Work
+#+DESCRIPTION: Understanding the block processing pipeline in org-press
+
+* How Blocks Work
+
+This page explains how org-press transforms code blocks from org-mode source into interactive elements on the page. It covers the full pipeline: parsing, plugin matching, transformation, rendering, and client-side hydration.
+
+If you want to use blocks, see [[/guide/rendering-modes.html][Rendering Modes]]. If you want to create your own block handlers, see [[/plugins/creating-plugins.html][Creating Plugins]]. This page is for understanding the internals.
+
+** The Big Picture
+
+When org-press processes a code block, it follows these steps:
+
+1. *Parse* the org file into an AST (=parseOrgContent=)
+2. *Walk* the AST and extract code blocks with their parameters (=processOrgElements=)
+3. *Match* each block to a handler using the =:use= parameter or language (=findBlockHandler=)
+4. *Transform* the block using the matched handler (=processClientBlock= or =processServerBlock=)
+5. *Render* the modified AST to HTML (=renderOrg=)
+6. *Hydrate* the blocks in the browser (=initHydration=)
+
+The rest of this page walks through each step in detail.
+
+** Step 1: Parsing Org to AST
+
+The entry point is =parseOrgContent()= in =parser/parse-content.ts=. It does three things:
+
+1. Parses the raw org-mode text into an AST using =uniorg-parse=
+2. Extracts metadata from =#+TITLE:=, =#+DESCRIPTION:=, and other keywords
+3. Calls =processOrgElements()= to transform code blocks and drawers
+
+The result is a =ParsedOrg= object containing the modified AST, metadata, virtual modules, cache files, and collected blocks.
+
+#+begin_export html
+<pre><code>const parsed = await parseOrgContent(orgSource, context, contentHelpers);
+// parsed.ast         - Modified AST with blocks replaced
+// parsed.metadata    - Page title, description, etc.
+// parsed.virtualModules  - Generated virtual modules for Vite
+// parsed.cacheFiles  - Files written to cache directory
+// parsed.collectedBlocks - Block info for hydration manifest</code></pre>
+#+end_export
+
+** Step 2: Walking the AST
+
+=processOrgElements()= in =parser/exporter.ts= performs a single depth-first walk over the AST. For each =src-block= node, it:
+
+1. Parses the block's parameter string (e.g., =:use dom | withSourceCode=)
+2. Checks for special modes: =:use silent= blocks are marked for removal
+3. Extracts the block name from =#+NAME:= directives
+4. Looks up a handler via =findBlockHandler()=
+5. Routes to =processServerBlock()= or =processClientBlock()= based on the =:use= value
+
+The same walk also processes drawer nodes, matching them to drawer plugins.
+
+*** Common Block Parameters
+
+| Parameter | Example | Effect |
+|-----------+---------+--------|
+| =:use= | =:use dom= | Sets the rendering mode |
+| =:use= with pipe | =:use dom \vert withSourceCode= | Mode plus wrappers |
+| =:use silent= | =:use silent= | Block executes but produces no output |
+| =:use server= | =:use server= | Runs at build time in Node.js |
+| =:use sourceOnly= | =:use sourceOnly= | Shows code without executing |
+| =:use api= | =:use api :endpoint /api/hello= | Creates an API endpoint |
+| =:name= | =:name myBlock= | Names the block for imports |
+| =:tangle= | =:tangle output.js= | Extracts code to a file |
+
+** Step 3: Matching Blocks to Handlers
+
+=findBlockHandler()= determines which plugin handles a block. It checks in this order:
+
+1. Parse the =:use= parameter to get the mode name (e.g., =dom= from =:use dom | withSourceCode=)
+2. Look up a *block handler* registered under that name
+3. If no block handler, look up a *transformer* with an =onBuild= hook under that name
+4. If =:use= didn't match, try a block handler registered for the block's *language*
+5. If nothing matches, the block passes through as a plain code listing
+
+*** Common Handler Resolutions
+
+| Block | =:use= | Resolved Handler |
+|-------+--------+------------------|
+| =#+begin_src javascript :use dom= | =dom= | Built-in DOM transformer |
+| =#+begin_src tsx :use react= | =react= | =@org-press/react= plugin |
+| =#+begin_src javascript :use server= | =server= | Server execution path |
+| =#+begin_src excalidraw= | (language) | =@org-press/block-excalidraw= |
+| =#+begin_src jscad= | (language) | =@org-press/block-jscad= |
+| =#+begin_src javascript= | (none) | Falls through to default handler |
+
+** Step 4: Transforming Blocks
+
+Once a handler is found, the block takes one of three paths: client transformation, server execution, or CSS injection.
+
+*** Client Blocks
+
+=processClientBlock()= handles the majority of blocks. The flow is:
+
+1. The matched handler receives the block code and context, and returns a =TransformResult= with =code=, =html=, =script=, or =css= fields
+2. The transformed code is written to the cache directory
+3. A virtual module ID is generated (e.g., =virtual:org-press:block:dom:content/index.org:3.js=)
+4. The block is registered with the =HydrateRegistry= for per-page hydrate entries
+5. The original =src-block= AST node is replaced with an =export-block= containing a container div
+
+The container div carries a =data-org-block= attribute that the hydration runtime uses to find and populate blocks:
+
+#+begin_export html
+<pre><code>&lt;div id="org-block-3-result"
+     data-org-block="block-content-index-org-3"
+     class="org-block-result"&gt;&lt;/div&gt;</code></pre>
+#+end_export
+
+If the =:use= parameter includes wrappers (e.g., =| withSourceCode=), they are applied to the container HTML before insertion. If =withSourceCode= is present, the original =src-block= node is kept alongside the container so the source code appears above the result.
+
+*** Server Blocks
+
+Blocks with =:use server= take a different path. =processServerBlock()= calls =executeServerBlock()=, which:
+
+1. Runs the code in Node.js at build time
+2. Returns the result as HTML
+
+The result replaces the =src-block= in the AST. Server blocks produce static HTML with no client-side JavaScript. They have access to Node.js APIs, the file system, and content helpers.
+
+*** CSS Blocks
+
+CSS blocks are a special case. Instead of hydration, they produce a =<style>= tag directly:
+
+#+begin_export html
+<pre><code>&lt;style data-org-block="block-content-index-org-5"&gt;
+  .highlight { background: yellow; }
+&lt;/style&gt;</code></pre>
+#+end_export
+
+No JavaScript is generated for CSS blocks.
+
+** Step 5: Rendering to HTML
+
+After all blocks are transformed, =renderOrg()= in =render/render.ts= converts the modified AST to HTML using a unified/rehype pipeline:
+
+1. =uniorg2rehype= - Converts the org AST to a rehype (HTML) AST
+2. =rehype-raw= - Processes raw HTML embedded in the org content
+3. =rehypeOrgLinks= - Transforms =file:path.org= links to =/path.html=
+4. =rehypeHeadingIds= - Adds ID attributes to headings for anchor links
+5. =rehypeTocExtract= - Extracts a table of contents from headings
+6. =rehype-highlight= - Applies syntax highlighting to code blocks
+7. =rehype-stringify= - Serializes the HTML AST to an HTML string
+
+The =export-block= nodes inserted during step 4 become real HTML in the final output, since they were already set to the =html= backend.
+
+** Step 6: Client Hydration
+
+The hydration system connects the static HTML containers to their JavaScript modules.
+
+*** During Build
+
+The =HydrateRegistry= collects every block that needs hydration. After all pages are pre-parsed, =generateEntries()= creates one hydrate entry file per page. Each entry file looks like:
+
+#+begin_export html
+<pre><code>import { initHydration } from "org-press/client/hydrate-runtime";
+import * as Block0 from "virtual:org-press:block:dom:content/index.org:3.js";
+import * as Block1 from "virtual:org-press:block:react:content/index.org:7.tsx";
+
+const blocks = {
+  "block-content-index-org-3": { module: Block0, ext: "js", isReact: false, modeName: "dom" },
+  "block-content-index-org-7": { module: Block1, ext: "tsx", isReact: true, modeName: "react" },
+};
+
+initHydration(blocks);</code></pre>
+#+end_export
+
+*** In the Browser
+
+=initHydration()= in =client/hydrate-runtime.ts= runs on =DOMContentLoaded=. For each block in the registry it:
+
+1. Finds the container element by its =data-org-block= attribute
+2. Gets the =default= export from the block module (the execution result)
+3. Calls the =render= export if one exists, or falls back to default rendering
+4. For React blocks (TSX/JSX), creates a React root and renders the component
+
+*** Export Conventions
+
+| Export | Purpose |
+|--------+---------|
+| =export default= | The block's execution result (value, element, or component) |
+| =export function render(result, el)= | Custom render function for DOM blocks |
+| React component via =render= | For TSX/JSX blocks, renders with =createRoot= |
+
+If a block has no =render= export, the hydration runtime handles the result automatically: HTML elements are appended, strings become innerHTML or textContent, objects are displayed as formatted JSON.
+
+** The Plugin Registry
+
+The =PluginRegistry= in =plugins/registry.ts= manages plugin initialization:
+
+1. Plugins are sorted by priority (higher priority runs first, default is 0)
+2. Each plugin's =setup(ctx)= function is called with a =PluginContextImpl=
+3. Inside =setup=, plugins register their handlers using context methods like =ctx.onBlock()=, =ctx.onDrawer()=, =ctx.addTransformer()=
+4. Errors during setup are logged but don't crash the build
+
+=PluginContextImpl= in =plugins/context.ts= stores all registered handlers and provides lookup methods used during the AST walk.
+
+*** Factory Functions
+
+Most plugins are created using factory functions instead of the raw =setup= API:
+
+| Factory | Purpose | Example |
+|---------+---------+---------|
+| =CreateBlock= | Handles code blocks by language | =CreateBlock('jscad', { transform: ... })= |
+| =CreateDrawer= | Handles org drawers by name | =CreateDrawer('NOTE', (drawer) => ...)= |
+| =CreateTransformer= | Adds a =:use= pipeline stage | =CreateTransformer('dom', { onBuild: ... })= |
+| =CreatePlugin= | Full =PluginContext= access | =CreatePlugin('ai', (ctx) => { ... })= |
+
+=CreateBlock= and =CreateDrawer= are wrappers that call =ctx.onBlock()= and =ctx.onDrawer()= internally. =CreateTransformer= calls =ctx.addTransformer()=. =CreatePlugin= gives you the raw context for complex cases that need multiple handler types.
+
+** Build vs Dev Mode
+
+*** Dev Mode
+
+In development (=npx orgp dev=):
+
+- Each request triggers fresh parsing of the requested org file
+- Virtual modules are resolved on-demand by the Vite dev server
+- The =virtual-blocks= Vite plugin handles =virtual:org-press:block:...= imports
+- HMR is supported: editing an org file clears the AST and block caches, then invalidates affected virtual modules
+
+*** Build Mode
+
+In production (=npx orgp build=):
+
+1. *Pre-parse*: All org files are parsed and blocks are collected into the =HydrateRegistry=
+2. *Generate entries*: Hydrate entry files are written to the cache directory
+3. *Client bundle*: Vite bundles the entry files and their block imports
+4. *SSR render*: Each page is rendered to static HTML with the block containers
+5. *Output*: Static HTML files with script tags pointing to the bundled hydrate entries
+
+** Virtual Block Imports
+
+The =virtual-blocks= Vite plugin in =node/plugins/virtual-blocks.ts= handles two import patterns.
+
+*** The =.org?name== Pattern
+
+When you write:
+
+#+begin_export html
+<pre><code>import { add } from './math.org?name=mathUtils';</code></pre>
+#+end_export
+
+The plugin:
+
+1. Resolves the =.org= path relative to the importer
+2. Parses the org file and extracts code blocks
+3. Finds the block named =mathUtils=
+4. Converts the import to a virtual module ID
+5. Returns the block's code (with plugin transformations applied)
+
+You can also use =?index=N= to import by position, or =?data= to get raw data without plugin transformation.
+
+*** Virtual Module IDs
+
+Virtual module IDs follow this format:
+
+#+begin_export html
+<pre><code>virtual:org-press:block:{parser}:{orgFilePath}:{blockIndex}.{extension}
+virtual:org-press:block:{parser}:{orgFilePath}:NAME:{blockName}.{extension}</code></pre>
+#+end_export
+
+The =parser= segment indicates the transformation type: =default= for plugin-based, =data= for raw imports, =server= for server execution, or a plugin-specific suffix like =jscad-model=.
+
+** Wrappers and the Pipe Syntax
+
+The =:use= parameter supports composable wrappers via pipe syntax:
+
+#+begin_export html
+<pre><code>#+begin_src javascript :use dom | withSourceCode | withConsole
+// Code here
+#+end_src</code></pre>
+#+end_export
+
+=parsePipe()= in =plugins/pipe-parser.ts= splits this into segments:
+
+1. The first segment is the *mode* (=dom=)
+2. Everything after the first pipe is a *wrapper* (=withSourceCode=, =withConsole=)
+
+Each wrapper can accept configuration via query strings or JSON:
+
+#+begin_export html
+<pre><code>:use dom | withSourceCode?position=before
+:use dom | withContainer:{"class":"highlight"}</code></pre>
+#+end_export
+
+Wrappers are applied during =processClientBlock()=. They transform the container HTML, adding source code panels, tabs, or other UI around the block output.
+
+*** Built-in Wrappers
+
+| Wrapper | Effect |
+|---------+--------|
+| =withSourceCode= | Shows the source code alongside the result |
+| =withContainer= | Wraps the output in a custom container |
+
+Plugins can register additional wrappers using =CreateTransformer=.
+
+** Summary: The Complete Flow
+
+Here is the full path a code block takes from org source to rendered page:
+
+1. Raw org text is parsed to AST (=parseOrgContent= in =parser/parse-content.ts=)
+2. =uniorg-parse= creates AST nodes including =src-block= for code blocks
+3. =processOrgElements= walks the AST (=parser/exporter.ts=)
+4. =parseCodeBlockParameters= extracts =:use=, =:name=, and other parameters (=parser/parameters.ts=)
+5. =findBlockHandler= matches the block to a plugin (=parser/exporter.ts=)
+6. =processClientBlock= or =processServerBlock= transforms the block (=parser/exporter.ts=)
+7. Transformed code is written to cache and a virtual module ID is generated
+8. The =src-block= node is replaced with an =export-block= containing the container div
+9. =renderOrg= converts the modified AST to HTML via the rehype pipeline (=render/render.ts=)
+10. =HydrateRegistry= generates per-page hydrate entry files (=node/build/hydrate-registry.ts=)
+11. Vite bundles the entries and resolves virtual module imports (=node/plugins/virtual-blocks.ts=)
+12. =initHydration= runs in the browser, finds containers by =data-org-block=, and renders block modules (=client/hydrate-runtime.ts=)
+
+** See Also
+
+- [[/guide/rendering-modes.html][Rendering Modes]] - Using the =:use= parameter
+- [[/guide/using-plugins.html][Using Plugins]] - Installing and configuring plugins
+- [[/guide/block-imports.html][Block Imports]] - Importing blocks across files
+- [[/plugins/creating-plugins.html][Creating Plugins]] - Building your own block handlers
+- [[/api/plugin-api.html][Plugin API]] - Full API reference

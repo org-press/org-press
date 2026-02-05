@@ -1,0 +1,128 @@
+#+TITLE: Configuration
+#+DESCRIPTION: Configure org-press with .org-press/config.ts
+
+* Configuring Org-Press
+
+Org-press is configured using a =.org-press/config.ts= file in your project root.
+
+** Config File
+
+The simplest config file exports an object:
+
+#+begin_export html
+<pre><code class="language-typescript">// .org-press/config.ts
+import type { OrgPressUserConfig } from "org-press/config-types";
+
+const config: OrgPressUserConfig = {
+  contentDir: "content",
+  outDir: "dist/static",
+};
+
+export default config;
+</code></pre>
+#+end_export
+
+** Config File Resolution
+
+Org-press looks for config files in the following order:
+
+1. =.org-press/config.ts=
+2. =.org-press/config.js=
+3. =.org-press/config.mjs=
+
+TypeScript config files are recommended for type safety and autocomplete.
+
+** Config Intellisense
+
+Since org-press ships with TypeScript types, you get full intellisense when using the =OrgPressUserConfig= type:
+
+#+begin_export html
+<pre><code class="language-typescript">import type { OrgPressUserConfig } from "org-press/config-types";
+
+const config: OrgPressUserConfig = {
+  // Autocomplete available here
+};
+
+export default config;
+</code></pre>
+#+end_export
+
+** Conditional Config
+
+The config can be a function for conditional configuration:
+
+#+begin_export html
+<pre><code class="language-typescript">import type { OrgPressUserConfig } from "org-press/config-types";
+
+export default (): OrgPressUserConfig => {
+  const isProd = process.env.NODE_ENV === "production";
+
+  return {
+    base: isProd ? "/docs/" : "/",
+    outDir: isProd ? "dist/production" : "dist/dev",
+  };
+};
+</code></pre>
+#+end_export
+
+** Async Config
+
+For configs that need async operations, export an async function:
+
+#+begin_export html
+<pre><code class="language-typescript">import type { OrgPressUserConfig } from "org-press/config-types";
+
+export default async (): Promise&lt;OrgPressUserConfig&gt; => {
+  const plugins = await loadPluginsFromRegistry();
+
+  return {
+    plugins,
+  };
+};
+</code></pre>
+#+end_export
+
+** Configuration Sections
+
+- [[/config/shared-options.html][Shared Options]] - Common settings: =contentDir=, =outDir=, =base=, =cacheDir=
+- [[/config/build-options.html][Build Options]] - Production build: =buildConcurrency=, =uniorg=, =vite.build=
+- [[/config/server-options.html][Server Options]] - Dev server: =vite.server=
+- [[/config/plugin-options.html][Plugin Options]] - Plugins and themes: =plugins=, =orgPlugins=, =theme=
+
+** Full Example
+
+#+begin_export html
+<pre><code class="language-typescript">// .org-press/config.ts
+import type { OrgPressUserConfig } from "org-press/config-types";
+import { excalidrawPlugin } from "@org-press/block-excalidraw";
+import { jscadPlugin } from "@org-press/block-jscad";
+import { testPlugin } from "@org-press/block-test";
+
+const config: OrgPressUserConfig = {
+  // Content location
+  contentDir: "content",
+  outDir: "dist/static",
+  base: "/",
+  cacheDir: "node_modules/.org-press-cache",
+
+  // Plugins
+  plugins: [excalidrawPlugin, jscadPlugin, testPlugin],
+  orgPlugins: ["./plugins/custom.org"],
+
+  // Theme
+  theme: ".org-press/themes/index.tsx",
+
+  // Build settings
+  buildConcurrency: 4,
+
+  // Vite overrides
+  vite: {
+    server: {
+      port: 3000,
+    },
+  },
+};
+
+export default config;
+</code></pre>
+#+end_export

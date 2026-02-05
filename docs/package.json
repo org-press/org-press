@@ -1,0 +1,36 @@
+{
+  "name": "@org-press/docs",
+  "version": "0.2.0-beta.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "orgp dev",
+    "build": "orgp build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@excalidraw/excalidraw": "^0.18.0",
+    "@jscad/modeling": "^2.12.0",
+    "@jscad/regl-renderer": "^2.6.0",
+    "@org-press/block-echarts": "workspace:*",
+    "@org-press/block-excalidraw": "workspace:*",
+    "@org-press/block-jscad": "workspace:*",
+    "echarts": "^5.6.0",
+    "@types/three": "^0.182.0",
+    "highlight.js": "^11.11.1",
+    "org-press": "workspace:*",
+    "react": "^19.2.3",
+    "react-dom": "^19.2.3",
+    "three": "^0.182.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.8",
+    "@types/react-dom": "^19.2.3",
+    "typescript": "~5.7.3",
+    "vite": "^7.0.0"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "http://192.168.1.80:3000/api/packages/ideabile/npm/"
+  }
+}

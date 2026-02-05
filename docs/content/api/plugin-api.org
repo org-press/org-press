@@ -1,0 +1,738 @@
+#+TITLE: Plugin API
+#+DESCRIPTION: Complete plugin API reference for org-press
+
+* Plugin API
+
+The plugin system provides factory functions for creating plugins. This is the complete API reference.
+
+** OrgPressPlugin Interface
+
+All plugins conform to the =OrgPressPlugin= interface:
+
+#+begin_export html
+<pre><code>interface OrgPressPlugin {
+  /** Unique plugin name */
+  name: string;
+
+  /**
+   * Plugin priority (higher = runs first)
+   * Default: 0
+   * Built-in plugins use 10
+   * User plugins typically use 50-100
+   */
+  priority?: number;
+
+  /**
+   * Setup function called during plugin initialization
+   * Use this for complex plugins that need full PluginContext access
+   */
+  setup?: (ctx: PluginContext) => void | Promise&lt;void&gt;;
+
+  // Internal markers (set by factory functions)
+  _type?: PluginType;
+  _config?: unknown;
+}
+
+type PluginType =
+  | "drawer"      // CreateDrawer
+  | "block"       // CreateBlock
+  | "element"     // CreateElement
+  | "transformer" // CreateTransformer
+  | "rehype"      // CreateRehypePlugin
+  | "uniorg"      // CreateUniorgPlugin
+  | "command"     // CreateCommand
+  | "vite"        // CreateVitePlugin
+  | "middleware"  // CreateMiddlewarePlugin
+  | "generic";    // CreatePlugin
+</code></pre>
+#+end_export
+
+** Factory Functions
+
+*** CreateBlock
+
+Create plugins for handling code blocks by language.
+
+#+begin_export html
+<pre><code>function CreateBlock(
+  language: string | string[],
+  options: BlockOptions
+): OrgPressPlugin;
+
+interface BlockOptions {
+  /** Transform function for the code block */
+  transform: (code: string, ctx: BlockContext) => TransformResult | Promise&lt;TransformResult&gt;;
+
+  /** Optional React wrapper component */
+  wrapper?: unknown;
+
+  /** Optional client-side script */
+  clientScript?: string;
+
+  /** Default file extension for generated modules */
+  defaultExtension?: string;
+
+  /** Plugin priority (higher = runs first) */
+  priority?: number;
+}
+
+interface BlockContext {
+  blockId: string;      // Unique ID (e.g., "block-0")
+  language: string;     // Block language
+  params: Record&lt;string, string&gt;;  // Parsed parameters
+  orgFilePath: string;  // Relative path to org file
+  blockIndex: number;   // 0-based index
+  base: string;         // Base URL path
+}
+
+interface TransformResult {
+  code?: string;   // Transformed code
+  html?: string;   // HTML output
+  script?: string; // Additional script
+  css?: string;    // Additional CSS
+}
+</code></pre>
+#+end_export
+
+*Example:*
+
+#+begin_export html
+<pre><code>import { CreateBlock } from "org-press";
+
+const myBlock = CreateBlock(["mylang", "ml"], {
+  transform: (code, ctx) => ({
+    html: `&lt;pre id="${ctx.blockId}"&gt;${code}&lt;/pre&gt;`,
+    css: `#${ctx.blockId} { background: #f5f5f5; }`,
+  }),
+  priority: 50,
+});
+</code></pre>
+#+end_export
+
+*** CreateDrawer
+
+Create plugins for handling org-mode drawers.
+
+#+begin_export html
+<pre><code>function CreateDrawer(
+  name: string | string[],
+  transform: DrawerTransformFn
+): OrgPressPlugin;
+
+type DrawerTransformFn = (
+  drawer: DrawerNode,
+  ctx: TransformContext
+) => string | null | Promise&lt;string | null&gt;;
+
+interface DrawerNode {
+  name: string;        // Drawer name (e.g., "NOTE")
+  children: unknown[]; // Raw AST children
+  html: string;        // Pre-rendered HTML content
+}
+
+interface TransformContext {
+  orgFilePath: string;  // Relative path to org file
+  base: string;         // Base URL path
+  config: OrgPressConfig;
+}
+</code></pre>
+#+end_export
+
+*Example:*
+
+#+begin_export html
+<pre><code>import { CreateDrawer } from "org-press";
+
+// Single drawer
+const noteDrawer = CreateDrawer("NOTE", (drawer) =>
+  `&lt;aside class="note"&gt;${drawer.html}&lt;/aside&gt;`
+);
+
+// Multiple drawers
+const callouts = CreateDrawer(
+  ["NOTE", "TIP", "WARNING"],
+  (drawer) => `&lt;aside class="callout-${drawer.name.toLowerCase()}"&gt;${drawer.html}&lt;/aside&gt;`
+);
+
+// Remove drawer from output
+const hideProps = CreateDrawer("PROPERTIES", () => null);
+</code></pre>
+#+end_export
+
+*** CreateTransformer
+
+Create pipeline stages for the =:use= parameter.
+
+#+begin_export html
+<pre><code>function CreateTransformer(
+  name: string,
+  options: TransformerOptions
+): OrgPressPlugin;
+
+interface TransformerOptions {
+  /** Build-time transform (Node.js environment) */
+  onBuild?: (input: TransformerInput, ctx: BuildContext) => TransformerOutput;
+
+  /** Server-side execution (Node.js environment) */
+  onServer?: (code: string, ctx: ServerContext) => Promise&lt;unknown&gt;;
+
+  /**
+   * Client-side code (browser environment)
+   * - Function: Dynamic import for code splitting
+   * - String: Inline script
+   */
+  client?: (() => Promise&lt;ClientModule&gt;) | string;
+}
+
+interface TransformerInput {
+  code: string;                    // Original source code
+  language: string;                // Block language
+  params: Record&lt;string, string&gt;; // Block parameters
+  html?: string;                   // HTML from previous transformer
+  result?: unknown;                // Result from onServer
+  clientData?: unknown;            // Data for client
+}
+
+interface TransformerOutput {
+  html?: string;        // HTML output
+  result?: unknown;     // Pass to next transformer
+  clientData?: unknown; // Data for client hydration
+  script?: string;      // Additional script
+  css?: string;         // Additional styles
+}
+
+interface BuildContext {
+  id: string;           // Unique block ID
+  code: string;         // Original source code
+  orgFilePath: string;  // Relative path to org file
+  blockIndex: number;   // Block index
+  params: Record&lt;string, string&gt;;
+}
+
+interface ServerContext extends BuildContext {
+  execute: (code: string) => Promise&lt;unknown&gt;; // Code execution
+  contentHelpers?: ContentHelpers;
+}
+
+interface ClientModule {
+  onMount?: (element: HTMLElement, ctx: ClientContext) => void | (() => void);
+  onUnmount?: (element: HTMLElement) => void;
+  onUpdate?: (element: HTMLElement, ctx: ClientContext) => void;
+}
+
+interface ClientContext {
+  blockId: string;
+  data?: unknown;  // From clientData
+  params: Record&lt;string, string&gt;;
+}
+</code></pre>
+#+end_export
+
+*Example:*
+
+#+begin_export html
+<pre><code>import { CreateTransformer } from "org-press";
+
+// Simple HTML wrapper
+const wrapper = CreateTransformer("wrapper", {
+  onBuild: (input, ctx) => ({
+    html: `&lt;div class="wrapped"&gt;${input.html}&lt;/div&gt;`,
+  }),
+});
+
+// With server execution
+const serverData = CreateTransformer("serverData", {
+  onServer: async (code, ctx) => {
+    const fs = await import("fs/promises");
+    return JSON.parse(await fs.readFile(code.trim(), "utf-8"));
+  },
+  onBuild: (input, ctx) => ({
+    html: `&lt;pre&gt;${JSON.stringify(input.result)}&lt;/pre&gt;`,
+  }),
+});
+
+// With client interactivity
+const interactive = CreateTransformer("interactive", {
+  onBuild: (input, ctx) => ({
+    html: `&lt;button id="${ctx.id}"&gt;Click&lt;/button&gt;`,
+    clientData: { count: 0 },
+  }),
+  client: `
+    export function onMount(el, ctx) {
+      let count = ctx.data.count;
+      el.onclick = () => el.textContent = ++count;
+    }
+  `,
+});
+</code></pre>
+#+end_export
+
+*** CreateCommand
+
+Create CLI commands for the =orgp= tool.
+
+#+begin_export html
+<pre><code>function CreateCommand(
+  name: string,
+  options: CommandOptions
+): OrgPressPlugin;
+
+interface CommandOptions {
+  /** Command description for help text */
+  description: string;
+
+  /** Command argument definitions */
+  args?: ArgDefinition[];
+
+  /** Execute the command (return exit code) */
+  execute: (args: ParsedArgs, ctx: CommandContext) => Promise&lt;number&gt;;
+}
+
+interface ArgDefinition {
+  name: string;
+  type: "string" | "boolean" | "number";
+  description?: string;
+  required?: boolean;
+  default?: string | boolean | number;
+  alias?: string;  // Short flag (e.g., "v" for --verbose)
+}
+
+interface ParsedArgs {
+  [key: string]: string | boolean | number | string[] | undefined;
+  _: string[];  // Positional arguments
+}
+
+interface CommandContext {
+  config: OrgPressConfig;
+  projectRoot: string;
+  contentDir: string;
+}
+</code></pre>
+#+end_export
+
+*Example:*
+
+#+begin_export html
+<pre><code>import { CreateCommand } from "org-press";
+
+const lintCommand = CreateCommand("lint", {
+  description: "Lint org files for issues",
+  args: [
+    { name: "fix", type: "boolean", alias: "f", description: "Auto-fix" },
+    { name: "pattern", type: "string", default: "**/*.org" },
+  ],
+  execute: async (args, ctx) => {
+    const fix = args.fix as boolean;
+    console.log(`Linting in ${ctx.contentDir}`);
+    // ... lint logic
+    return 0; // Exit code
+  },
+});
+
+// Usage: orgp lint --fix -pattern "docs/**/*.org"
+</code></pre>
+#+end_export
+
+*** CreateVitePlugin
+
+Register Vite plugins from org-press plugins.
+
+#+begin_export html
+<pre><code>function CreateVitePlugin(
+  name: string,
+  config: VitePluginConfig
+): OrgPressPlugin;
+
+interface VitePluginConfig extends Omit&lt;VitePlugin, "name"&gt; {
+  /** When to run: 'pre' | 'post' | undefined */
+  enforce?: "pre" | "post";
+  /** When to apply: 'build' | 'serve' | undefined (both) */
+  apply?: "build" | "serve";
+  // ... all other Vite plugin hooks
+}
+</code></pre>
+#+end_export
+
+*Example:*
+
+#+begin_export html
+<pre><code>import { CreateVitePlugin } from "org-press";
+
+// Add virtual module support
+const virtualModule = CreateVitePlugin("virtual-config", {
+  resolveId(id) {
+    if (id === "virtual:my-config") {
+      return "\0virtual:my-config";
+    }
+  },
+  load(id) {
+    if (id === "\0virtual:my-config") {
+      return `export default ${JSON.stringify({ key: "value" })}`;
+    }
+  },
+});
+
+// Add custom transform
+const customTransform = CreateVitePlugin("my-transform", {
+  enforce: "pre",
+  apply: "build",
+  transform(code, id) {
+    if (id.endsWith(".special")) {
+      return transformCode(code);
+    }
+  },
+});
+</code></pre>
+#+end_export
+
+*** CreateMiddlewarePlugin
+
+Register dev server middleware for custom API routes.
+
+#+begin_export html
+<pre><code>function CreateMiddlewarePlugin(
+  path: string,
+  optionsOrHandler: MiddlewareOptions | MiddlewareHandler
+): OrgPressPlugin;
+
+type HttpMethod = "GET" | "POST" | "PUT" | "DELETE" | "PATCH" | "HEAD" | "OPTIONS";
+
+interface MiddlewareOptions {
+  /** HTTP methods to handle. Default: all methods */
+  methods?: HttpMethod[];
+  /** Handler function */
+  handler: MiddlewareHandler;
+}
+
+type MiddlewareHandler = (
+  req: IncomingMessage,
+  res: ServerResponse,
+  next: () => void
+) => void | Promise&lt;void&gt;;
+</code></pre>
+#+end_export
+
+*Example:*
+
+#+begin_export html
+<pre><code>import { CreateMiddlewarePlugin } from "org-press";
+
+// Simple handler (shorthand)
+const pingApi = CreateMiddlewarePlugin("/api/ping", (req, res) => {
+  res.end("pong");
+});
+
+// With method filtering
+const dataApi = CreateMiddlewarePlugin("/api/data", {
+  methods: ["GET", "POST"],
+  handler: async (req, res, next) => {
+    if (req.method === "GET") {
+      res.setHeader("Content-Type", "application/json");
+      res.end(JSON.stringify({ items: [] }));
+    } else {
+      // Handle POST
+      let body = "";
+      req.on("data", (chunk) => (body += chunk));
+      req.on("end", () => {
+        res.setHeader("Content-Type", "application/json");
+        res.end(JSON.stringify({ received: JSON.parse(body) }));
+      });
+    }
+  },
+});
+</code></pre>
+#+end_export
+
+*** CreatePlugin
+
+Full control escape hatch for complex plugins.
+
+#+begin_export html
+<pre><code>function CreatePlugin(
+  name: string,
+  setup: PluginSetupFunction
+): OrgPressPlugin;
+
+type PluginSetupFunction = (ctx: PluginContext) => void | Promise&lt;void&gt;;
+</code></pre>
+#+end_export
+
+*Example:*
+
+#+begin_export html
+<pre><code>import { CreatePlugin } from "org-press";
+
+const complexPlugin = CreatePlugin("my-plugin", (ctx) => {
+  // Multiple drawer types
+  ctx.onDrawer(["NOTE", "TIP"], (drawer) =>
+    `&lt;aside&gt;${drawer.html}&lt;/aside&gt;`
+  );
+
+  // Code block handling
+  ctx.onBlock("mylang", (block, blockCtx) => ({
+    html: `&lt;div&gt;${block.value}&lt;/div&gt;`,
+  }));
+
+  // CLI command
+  ctx.addCommand("mycommand", {
+    description: "Do something",
+    execute: async () => 0,
+  });
+
+  // Pipeline hooks
+  ctx.hook("build:start", () => console.log("Building..."));
+});
+</code></pre>
+#+end_export
+
+*** CreateRehypePlugin
+
+Wrap rehype plugins for use in org-press.
+
+#+begin_export html
+<pre><code>function CreateRehypePlugin(
+  plugin: RehypePlugin,
+  options?: unknown
+): OrgPressPlugin;
+</code></pre>
+#+end_export
+
+*Example:*
+
+#+begin_export html
+<pre><code>import { CreateRehypePlugin } from "org-press";
+import rehypeHighlight from "rehype-highlight";
+
+const highlightPlugin = CreateRehypePlugin(rehypeHighlight, {
+  languages: { javascript: js, typescript: ts },
+});
+</code></pre>
+#+end_export
+
+*** CreateUniorgPlugin
+
+Wrap uniorg plugins for use in org-press.
+
+#+begin_export html
+<pre><code>function CreateUniorgPlugin(
+  plugin: UniorgPlugin,
+  options?: unknown
+): OrgPressPlugin;
+</code></pre>
+#+end_export
+
+** PluginContext API
+
+The =PluginContext= is available in =CreatePlugin= setup functions:
+
+#+begin_export html
+<pre><code>interface PluginContext {
+  // === Element Handlers ===
+
+  /** Register handler for any AST element type */
+  onElement(type: string, handler: ElementHandler): void;
+
+  /** Register drawer handler */
+  onDrawer(name: string | string[], handler: DrawerHandler): void;
+
+  /** Register code block handler */
+  onBlock(language: string | string[], handler: BlockHandler): void;
+
+  // === Pipeline Hooks ===
+
+  /** Hook into pipeline stages */
+  hook(stage: PipelineStage, handler: StageHandler): void;
+
+  // === Unified Ecosystem ===
+
+  /** Add rehype plugin to render pipeline */
+  useRehype(plugin: RehypePlugin, options?: unknown): void;
+
+  /** Add uniorg plugin to parse pipeline */
+  useUniorg(plugin: UniorgPlugin, options?: unknown): void;
+
+  // === Extensions ===
+
+  /** Add CLI command */
+  addCommand(name: string, options: CommandOptions): void;
+
+  /** Add transformer for :use parameter */
+  addTransformer(name: string, options: TransformerOptions): void;
+
+  // === Vite Integration ===
+
+  /** Register a Vite plugin */
+  addVitePlugin(plugin: VitePlugin): void;
+
+  /** Register dev server middleware */
+  addMiddleware(path: string, options: MiddlewareOptions): void;
+
+  // === Shared State ===
+
+  /** Provide value for other plugins */
+  provide&lt;T&gt;(key: string, value: T): void;
+
+  /** Inject value from another plugin */
+  inject&lt;T&gt;(key: string): T | undefined;
+
+  // === Utilities ===
+
+  config: OrgPressConfig;
+  projectRoot: string;
+  logger: Logger;
+}
+</code></pre>
+#+end_export
+
+** Pipeline Stages
+
+Available stages for =ctx.hook()=:
+
+#+begin_export html
+<pre><code>type PipelineStage =
+  | "parse:before"     // Before uniorg parsing
+  | "parse:after"      // After uniorg, before transforms
+  | "transform:before" // Before element transforms
+  | "transform:after"  // After element transforms
+  | "render:before"    // Before rehype processing
+  | "render:after"     // After HTML generation
+  | "build:start"      // Build started
+  | "build:end";       // Build finished
+
+interface StagePayload {
+  stage: PipelineStage;
+  source?: string;                    // parse:before
+  ast?: OrgData;                      // parse:after, transform:*
+  html?: string;                      // render:after
+  metadata?: Record&lt;string, unknown&gt;; // All stages after parse
+}
+</code></pre>
+#+end_export
+
+** Plugin Presets
+
+Pre-configured plugin arrays for common setups:
+
+#+begin_export html
+<pre><code>import {
+  defaultPlugins,  // Standard content plugins
+  minimalPlugins,  // Empty array
+  cliPlugins,      // CLI command plugins
+  allPlugins,      // defaultPlugins + cliPlugins
+} from "org-press";
+</code></pre>
+#+end_export
+
+*** defaultPlugins
+
+| Plugin | Description |
+|--------|-------------|
+| =domPlugin= | DOM rendering for =:use dom= |
+| =javascriptPlugin= | JavaScript/JS handling |
+| =typescriptPlugin= | TypeScript/TS handling |
+| =cssPlugin= | CSS handling |
+| =serverPlugin= | Server-side execution |
+
+*** cliPlugins
+
+| Plugin | Description |
+|--------|-------------|
+| =fmtPlugin= | =orgp fmt= command |
+| =lintPlugin= | =orgp lint= command |
+| =typeCheckPlugin= | =orgp type-check= command |
+
+*** Usage
+
+#+begin_export html
+<pre><code>// Standard setup
+export default {
+  plugins: [...defaultPlugins],
+};
+
+// Add custom plugins
+export default {
+  plugins: [
+    ...defaultPlugins,
+    CreateDrawer("NOTE", (d) => `&lt;aside&gt;${d.html}&lt;/aside&gt;`),
+    myCustomPlugin,
+  ],
+};
+
+// Minimal - full control
+export default {
+  plugins: [
+    CreateBlock("javascript", { transform: (code) => ({ code }) }),
+    // Only what you need
+  ],
+};
+</code></pre>
+#+end_export
+
+
+** Type Exports
+
+All types are exported from =org-press=:
+
+#+begin_export html
+<pre><code>import type {
+  // Core
+  OrgPressPlugin,
+  PluginType,
+  PluginContext,
+
+  // Pipeline
+  PipelineStage,
+  StagePayload,
+  StageHandler,
+
+  // Nodes
+  DrawerNode,
+  CodeBlockNode,
+
+  // Transform
+  TransformContext,
+  BlockTransformContext,
+  TransformResult,
+
+  // Transformer
+  TransformerOptions,
+  TransformerInput,
+  TransformerOutput,
+  BuildContext,
+  ServerContext,
+  ClientModule,
+  ClientContext,
+
+  // Handlers
+  ElementHandler,
+  DrawerHandler,
+  BlockHandler,
+
+  // Command
+  CommandOptions,
+  CommandContext,
+  ArgDefinition,
+  ParsedArgs,
+
+  // Vite/Middleware
+  VitePluginConfig,
+  MiddlewareOptions,
+  MiddlewareHandler,
+  HttpMethod,
+
+  // Ecosystem
+  RehypePlugin,
+  UniorgPlugin,
+
+  // Utilities
+  Logger,
+  OrgPressConfig,
+} from "org-press";
+</code></pre>
+#+end_export
+
+** See Also
+
+- [[/plugins/creating-plugins.html][Creating Plugins]] - Tutorial with examples
+- [[/api/modes-api.html][Modes API]] - Understanding =:use= pipeline
+- [[/api/cli-plugins.html][CLI Plugins]] - CLI command details

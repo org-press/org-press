@@ -1,0 +1,13 @@
+{
+  "name": "org-press-quickstart",
+  "description": "Minimal org-press quickstart example",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "orgp dev",
+    "build": "orgp build"
+  },
+  "dependencies": {
+    "org-press": "workspace:*"
+  }
+}

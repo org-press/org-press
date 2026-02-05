@@ -1,0 +1,252 @@
+#+TITLE: Rendering Modes
+#+DESCRIPTION: Understanding how code blocks are rendered in org-press
+
+* Rendering Modes
+
+Org-press uses a mode system to control how code blocks are rendered. Each mode defines the execution environment and output format for your code.
+
+** Overview
+
+When you write a code block, the =:use= parameter determines how it's processed:
+
+#+begin_export html
+<pre><code>#+begin_src javascript :use dom
+// Your code here
+#+end_src</code></pre>
+#+end_export
+
+** Available Modes
+
+| Mode | Description | Use Case |
+|------+-------------+----------|
+| =dom= | Execute and render to DOM | Interactive JavaScript, vanilla JS components |
+| =react= | React component rendering | React/JSX components with hooks and state |
+| =server= | Server-side execution | Build-time data fetching, file system access |
+| =sourceOnly= | Display code only | Documentation, examples without execution |
+| =silent= | Execute without output | Side effects, setup code |
+| =raw= | Raw output | Direct HTML/text output |
+
+** DOM Mode (=:use dom=)
+
+The default mode for client-side JavaScript. Code is executed in the browser and the result is rendered to the DOM.
+
+*** Basic Usage
+
+#+begin_export html
+<pre><code>#+begin_src javascript :use dom
+const button = document.createElement('button');
+button.textContent = 'Click me!';
+button.onclick = () => alert('Hello!');
+
+export function render() {
+  return button;
+}
+#+end_src</code></pre>
+#+end_export
+
+*** Supported Return Types
+
+The =render= function can return:
+
+- =HTMLElement= - Appended to the container
+- =string= - Set as innerHTML (if starts with =<=) or textContent
+- =number= / =boolean= - Converted to text
+- =object= / =array= - Displayed as formatted JSON
+
+*** Without Export
+
+Simple expressions work without explicit exports:
+
+#+begin_export html
+<pre><code>#+begin_src javascript :use dom
+1 + 1  // Returns 2
+#+end_src</code></pre>
+#+end_export
+
+** React Mode (=:use react=)
+
+For React components with JSX/TSX. Requires the =@org-press/react= package.
+
+*** Setup
+
+#+begin_src typescript :use sourceOnly
+// .org-press/config.ts
+import { reactPlugin } from "@org-press/react";
+
+export default {
+  plugins: [reactPlugin],
+};
+#+end_src
+
+*** Basic Component
+
+#+begin_export html
+<pre><code>#+begin_src tsx :use react
+import { useState } from 'react';
+
+export function render() {
+  const [count, setCount] = useState(0);
+
+  return (
+    &lt;button onClick={() => setCount(c => c + 1)}&gt;
+      Count: {count}
+    &lt;/button&gt;
+  );
+}
+#+end_src</code></pre>
+#+end_export
+
+*** Hooks Support
+
+All React hooks work as expected:
+
+- =useState= - Component state
+- =useEffect= - Side effects and cleanup
+- =useReducer= - Complex state management
+- =useContext= - Context consumption
+- =useMemo= / =useCallback= - Performance optimization
+- Custom hooks
+
+** Server Mode (=:use server=)
+
+Code executes at build time on the server. Access to Node.js APIs, file system, and environment variables.
+
+*** Basic Usage
+
+#+begin_export html
+<pre><code>#+begin_src javascript :use server
+import fs from 'node:fs';
+
+const pkg = JSON.parse(fs.readFileSync('package.json', 'utf-8'));
+return `Version: ${pkg.version}`;
+#+end_src</code></pre>
+#+end_export
+
+*** Data Fetching
+
+#+begin_export html
+<pre><code>#+begin_src javascript :use server
+const response = await fetch('https://api.example.com/data');
+const data = await response.json();
+return data;
+#+end_src</code></pre>
+#+end_export
+
+*** Content Helpers
+
+Server blocks have access to content helpers:
+
+#+begin_export html
+<pre><code>#+begin_src javascript :use server
+const pages = await content.getContentPages();
+return content.renderPageList(pages);
+#+end_src</code></pre>
+#+end_export
+
+** Source Only Mode (=:use sourceOnly=)
+
+Displays code without executing it. Perfect for documentation and examples.
+
+#+begin_export html
+<pre><code>#+begin_src typescript :use sourceOnly
+interface User {
+  id: number;
+  name: string;
+  email: string;
+}
+
+async function fetchUser(id: number): Promise&lt;User&gt; {
+  const response = await fetch(\`/api/users/\${id}\`);
+  return response.json();
+}
+#+end_src</code></pre>
+#+end_export
+
+** Silent Mode (=:use silent=)
+
+Executes code without displaying output. Useful for setup, imports, or side effects.
+
+#+begin_export html
+<pre><code>#+begin_src javascript :use silent
+// Set up global configuration
+window.APP_CONFIG = {
+  apiUrl: 'https://api.example.com',
+  debug: true
+};
+#+end_src</code></pre>
+#+end_export
+
+** Raw Mode (=:use raw=)
+
+Returns the execution result directly without wrapping. Useful for generating HTML.
+
+#+begin_export html
+<pre><code>#+begin_src javascript :use raw
+return '&lt;div class="custom"&gt;Raw HTML output&lt;/div&gt;';
+#+end_src</code></pre>
+#+end_export
+
+** Choosing the Right Mode
+
+*** Use =:use dom= when:
+
+- Building vanilla JavaScript components
+- Manipulating the DOM directly
+- Creating simple interactive elements
+- No React dependency needed
+
+*** Use =:use react= when:
+
+- Building React components with JSX
+- Using React hooks (useState, useEffect, etc.)
+- Need component lifecycle management
+- Building complex interactive UIs
+
+*** Use =:use server= when:
+
+- Fetching data at build time
+- Reading files from the file system
+- Generating static content
+- Using Node.js APIs
+
+*** Use =:use sourceOnly= when:
+
+- Documenting code examples
+- Showing API signatures
+- Teaching concepts without execution
+
+** Combining with Wrappers
+
+Modes can be combined with wrappers using the pipe syntax:
+
+#+begin_export html
+<pre><code>#+begin_src javascript :use dom | withSourceCode
+const result = 42;
+export function render() {
+  return document.createTextNode(result);
+}
+#+end_src</code></pre>
+#+end_export
+
+See [[/api/modes-api.html][Modes API]] for available wrappers.
+
+** Language Support
+
+| Language | DOM | React | Server |
+|----------+-----+-------+--------|
+| JavaScript | Yes | Yes | Yes |
+| TypeScript | Yes | Yes | Yes |
+| TSX | Yes | Yes | Yes |
+| JSX | Yes | Yes | Yes |
+| CSS | Inject | - | - |
+
+** Migration from Legacy
+
+If migrating from older org-mode syntax:
+
+| Old Syntax | New Syntax |
+|------------+------------|
+| =:exports code= | =:use sourceOnly= |
+| =:exports results= | =:use dom= |
+| =:exports both= | =:use dom \vert withSourceCode= |
+| =:exports none= | =:use silent= |
