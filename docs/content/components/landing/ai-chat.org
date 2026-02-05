@@ -1,0 +1,412 @@
+#+TITLE: AI Chat Demo
+#+DESCRIPTION: AI assistant chat demo with typewriter reveal
+
+* AI Chat Demo Component
+
+Section 4 of the landing page - showcases AI integration with a simulated
+chat conversation demonstrating error fixing.
+
+#+NAME: ai-chat
+#+begin_src typescript 
+/**
+ * AI Chat Demo Section
+ *
+ * Features:
+ * - Chat-style interface with messages
+ * - Typewriter reveal for each message
+ * - Pre-scripted error fixing demonstration
+ */
+
+interface ChatMessage {
+  type: 'error' | 'ai' | 'user' | 'success';
+  content: string;
+  delay: number;
+}
+
+const CHAT_SCRIPT: ChatMessage[] = [
+  {
+    type: 'error',
+    content: "Error: Cannot find module './utils'",
+    delay: 0,
+  },
+  {
+    type: 'ai',
+    content: "I found the issue. The utils.ts file is missing. Want me to create it with the required exports?",
+    delay: 800,
+  },
+  {
+    type: 'user',
+    content: "Yes, fix it",
+    delay: 1600,
+  },
+  {
+    type: 'success',
+    content: "Done! Created utils.ts with the missing formatDate and parseConfig exports.",
+    delay: 2200,
+  },
+];
+
+function sleep(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+async function typewrite(
+  element: HTMLElement,
+  text: string,
+  speed: number = 25
+): Promise<void> {
+  element.textContent = '';
+  for (const char of text) {
+    element.textContent += char;
+    await sleep(speed + Math.random() * 15);
+  }
+}
+
+export function createAiChat(): HTMLElement {
+  const container = document.createElement('section');
+  container.className = 'landing-section ai-chat-section';
+  container.id = 'ai';
+
+  container.innerHTML = `
+    <div class="section-content">
+      <div class="ai-header">
+        <div class="ai-glow"></div>
+        <div class="ai-titles">
+          <h2>Built for Humans</h2>
+          <h2 class="gold">with AI Powers</h2>
+        </div>
+        <p class="ai-subtitle">
+          Org-press is designed to work seamlessly with AI assistants.
+          Literate programming creates perfect context for AI understanding.
+        </p>
+      </div>
+
+      <div class="chat-demo">
+        <div class="chat-window">
+          <div class="chat-messages">
+            <div class="chat-message error" data-index="0">
+              <div class="message-icon error-icon">!</div>
+              <div class="message-content">
+                <span class="message-text"></span>
+              </div>
+            </div>
+            <div class="chat-message ai" data-index="1">
+              <div class="message-icon ai-icon">AI</div>
+              <div class="message-content">
+                <span class="message-text"></span>
+              </div>
+            </div>
+            <div class="chat-message user" data-index="2">
+              <div class="message-icon user-icon">&gt;</div>
+              <div class="message-content">
+                <span class="message-text"></span>
+              </div>
+            </div>
+            <div class="chat-message success" data-index="3">
+              <div class="message-icon success-icon">&#10003;</div>
+              <div class="message-content">
+                <span class="message-text"></span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="ai-features">
+        <div class="ai-feature">
+          <h3>Context-Aware</h3>
+          <p>Prose and code together provide rich context for AI understanding</p>
+        </div>
+        <div class="ai-feature">
+          <h3>Executable Specs</h3>
+          <p>AI can run, test, and validate changes in real-time</p>
+        </div>
+        <div class="ai-feature">
+          <h3>Self-Documenting</h3>
+          <p>Changes are naturally documented in literate style</p>
+        </div>
+      </div>
+    </div>
+  `;
+
+  // Animate chat when section becomes visible
+  let hasAnimated = false;
+
+  const observer = new IntersectionObserver(
+    (entries) => {
+      for (const entry of entries) {
+        if (entry.isIntersecting && !hasAnimated) {
+          hasAnimated = true;
+          runChatAnimation(container);
+          observer.disconnect();
+        }
+      }
+    },
+    { threshold: 0.3 }
+  );
+
+  requestAnimationFrame(() => {
+    observer.observe(container);
+  });
+
+  return container;
+}
+
+async function runChatAnimation(container: HTMLElement): Promise<void> {
+  const messages = container.querySelectorAll('.chat-message');
+
+  for (let i = 0; i < CHAT_SCRIPT.length; i++) {
+    const script = CHAT_SCRIPT[i];
+    const messageEl = messages[i] as HTMLElement;
+    const textEl = messageEl?.querySelector('.message-text') as HTMLElement;
+
+    if (!messageEl || !textEl) continue;
+
+    // Wait for delay
+    await sleep(script.delay);
+
+    // Show message container
+    messageEl.classList.add('visible');
+
+    // Typewrite the content
+    await typewrite(textEl, script.content, script.type === 'user' ? 40 : 20);
+
+    // Small pause between messages
+    await sleep(300);
+  }
+}
+
+export default createAiChat();
+#+end_src
+
+#+NAME: ai-chat-styles
+#+begin_src css 
+/* AI Chat Section Styles */
+.ai-chat-section {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem 2rem;
+}
+
+.ai-chat-section .section-content {
+  max-width: 900px;
+  width: 100%;
+  text-align: center;
+}
+
+/* AI Header with golden glow */
+.ai-header {
+  position: relative;
+  margin-bottom: 3rem;
+}
+
+.ai-glow {
+  position: absolute;
+  top: -40px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 80px;
+  height: 80px;
+  background: radial-gradient(
+    circle,
+    rgba(255, 215, 0, 0.6) 0%,
+    rgba(255, 215, 0, 0.3) 30%,
+    rgba(255, 215, 0, 0.1) 50%,
+    transparent 70%
+  );
+  border-radius: 50%;
+  animation: glow-pulse 3s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes glow-pulse {
+  0%, 100% {
+    transform: translateX(-50%) scale(1);
+    opacity: 0.8;
+  }
+  50% {
+    transform: translateX(-50%) scale(1.2);
+    opacity: 1;
+  }
+}
+
+.ai-titles {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.ai-titles h2 {
+  font-size: 2.5rem;
+  font-weight: 300;
+  color: var(--text-color);
+  margin: 0;
+  letter-spacing: 0.02em;
+}
+
+.ai-titles h2.gold {
+  background: linear-gradient(135deg, #ffd700 0%, #ffaa00 50%, #ffd700 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.ai-subtitle {
+  font-size: 1.1rem;
+  line-height: 1.7;
+  color: var(--text-muted);
+  max-width: 550px;
+  margin: 0 auto;
+}
+
+/* Chat window */
+.chat-demo {
+  margin: 2.5rem 0;
+}
+
+.chat-window {
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 1.5rem;
+  max-width: 600px;
+  margin: 0 auto;
+  text-align: left;
+}
+
+.chat-messages {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.chat-message {
+  display: flex;
+  gap: 0.75rem;
+  opacity: 0;
+  transform: translateY(10px);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.chat-message.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.message-icon {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.error-icon {
+  background: rgba(239, 68, 68, 0.2);
+  color: #ef4444;
+}
+
+.ai-icon {
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.3), rgba(139, 92, 246, 0.3));
+  color: #a78bfa;
+  font-size: 0.65rem;
+}
+
+.user-icon {
+  background: var(--border-color);
+  color: var(--text-muted);
+  font-family: monospace;
+}
+
+.success-icon {
+  background: rgba(34, 197, 94, 0.2);
+  color: #22c55e;
+}
+
+.message-content {
+  flex: 1;
+  padding: 0.5rem 0;
+}
+
+.message-text {
+  color: var(--text-muted);
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+.chat-message.error .message-text {
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  font-size: 0.85rem;
+  color: #ef4444;
+}
+
+.chat-message.user .message-text {
+  font-style: italic;
+  color: var(--text-subtle);
+}
+
+.chat-message.success .message-text {
+  color: #22c55e;
+}
+
+/* AI Features */
+.ai-features {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 2rem;
+  margin-top: 3rem;
+}
+
+.ai-feature {
+  text-align: center;
+}
+
+.ai-feature h3 {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-color);
+  margin: 0 0 0.5rem 0;
+}
+
+.ai-feature p {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  margin: 0;
+  line-height: 1.5;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .ai-titles h2 {
+    font-size: 1.8rem;
+  }
+
+  .ai-features {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+
+  .chat-window {
+    padding: 1rem;
+  }
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .ai-glow {
+    animation: none;
+  }
+
+  .chat-message {
+    transition: none;
+  }
+}
+#+end_src

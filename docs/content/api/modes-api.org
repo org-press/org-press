@@ -1,0 +1,231 @@
+#+TITLE: Modes API
+#+DESCRIPTION: Unified composable block rendering system
+
+* Modes API
+
+The Modes API provides a unified, composable system for block rendering in org-press.
+
+** Overview
+
+The Modes API provides a clean, pipe-based syntax for controlling block rendering:
+
+#+begin_export html
+<pre><code>#+begin_src javascript :use dom | withSourceCode
+console.log("Hello World");
+#+end_src</code></pre>
+#+end_export
+
+** Key Concepts
+
+*** Mode Plugins
+
+Mode plugins control the base rendering behavior. They are built-in plugins included in =builtinPlugins= by default:
+
+| Mode | Description |
+|------+-------------|
+| ~dom~ | Execute code and show results (default) |
+| ~sourceOnly~ | Show source code only, no execution |
+| ~silent~ | Execute but don't show output |
+| ~raw~ | Execute and output raw result |
+| ~server~ | Execute on server during SSR/build |
+
+These are implemented as plugins (=domPlugin=, =sourceOnlyPlugin=, =silentPlugin=, =rawPlugin=) with higher priority than language plugins, so they match first when you specify =:use dom= etc.
+
+*** Wrappers
+
+Wrappers transform the render output. They can be chained using the pipe syntax:
+
+#+begin_export html
+<pre><code>:use dom | withSourceCode | withContainer?class=my-class</code></pre>
+#+end_export
+
+**** Built-in Wrappers
+
+| Wrapper | Description |
+|---------+-------------|
+| ~withSourceCode~ | Show both source code and result |
+| ~withContainer~ | Wrap output in a container div |
+| ~withErrorBoundary~ | Catch and display errors gracefully |
+| ~withConsole~ | Capture and display console output |
+| ~withCollapse~ | Make output collapsible |
+
+**** Format Wrappers
+
+For server execution, format wrappers format the output:
+
+| Format | Description |
+|--------+-------------|
+| ~json~ | Format output as JSON |
+| ~yaml~ | Format output as YAML |
+| ~csv~ | Format output as CSV |
+| ~html~ | Output raw HTML |
+
+** Syntax
+
+*** Basic Usage
+
+#+begin_export html
+<pre><code>#+begin_src javascript :use dom
+// Execute and show result
+"Hello World"
+#+end_src
+
+#+begin_src javascript :use sourceOnly
+// Show code only
+const x = 1;
+#+end_src
+
+#+begin_src javascript :use silent
+// Execute but don't show
+console.log("silent");
+#+end_src</code></pre>
+#+end_export
+
+*** With Wrappers
+
+#+begin_export html
+<pre><code>#+begin_src javascript :use dom | withSourceCode
+// Show both code and result
+1 + 1
+#+end_src
+
+#+begin_src javascript :use dom | withSourceCode?position=before
+// Source code shown before result
+1 + 1
+#+end_src
+
+#+begin_src javascript :use dom | withConsole | withSourceCode
+// Show console output, then code and result
+console.log("Hello");
+"World"
+#+end_src</code></pre>
+#+end_export
+
+*** Server Execution
+
+#+begin_export html
+<pre><code>#+begin_src javascript :use server
+// Runs at build time
+const fs = require('fs');
+return fs.readFileSync('package.json', 'utf8');
+#+end_src
+
+#+begin_src javascript :use server | json
+// Format result as JSON
+return { message: "Hello" };
+#+end_src</code></pre>
+#+end_export
+
+** Configuration
+
+*** Default Mode
+
+Set a default mode for all blocks in your config:
+
+#+begin_src javascript :use sourceOnly
+// .org-press/config.js
+export default {
+  defaultUse: "dom | withErrorBoundary"
+};
+#+end_src
+
+*** Language Defaults
+
+Set different defaults per language:
+
+#+begin_src javascript :use sourceOnly
+// .org-press/config.js
+export default {
+  languageDefaults: {
+    javascript: "dom",
+    typescript: "dom | withErrorBoundary",
+    python: "sourceOnly"
+  }
+};
+#+end_src
+
+** Custom Render Functions
+
+Plugins can export a ~render~ function to customize rendering:
+
+#+begin_src typescript :use sourceOnly
+// In a code block or plugin
+export const render = (result, ctx) => {
+  return {
+    html: `<div class="custom-render">${result}</div>`,
+    css: `.custom-render { background: #f0f0f0; }`
+  };
+};
+#+end_src
+
+*** RenderFn Signature
+
+#+begin_src typescript :use sourceOnly
+type RenderFn = (result: unknown, ctx: BlockContext) => RenderResult;
+
+interface BlockContext {
+  language: string;
+  code: string;
+  blockIndex: number;
+  blockName?: string;
+  parameters: Record<string, string>;
+}
+
+interface RenderResult {
+  html: string;
+  css?: string;
+  js?: string;
+}
+#+end_src
+
+** Creating Custom Wrappers
+
+Wrappers follow the pattern: ~(config?) => (render) => RenderFn~
+
+#+begin_src typescript :use sourceOnly
+import { registerWrapper } from 'org-press';
+
+// Simple wrapper (no config)
+const myWrapper = (render) => (result, ctx) => {
+  const inner = render(result, ctx);
+  return {
+    html: `<div class="my-wrapper">${inner.html}</div>`,
+    css: inner.css
+  };
+};
+
+// Configurable wrapper
+const myConfigurableWrapper = (config = {}) => (render) => (result, ctx) => {
+  const inner = render(result, ctx);
+  return {
+    html: `<div class="${config.class || 'default'}">${inner.html}</div>`
+  };
+};
+
+// Register wrappers
+registerWrapper('myWrapper', myWrapper);
+registerWrapper('myConfigurable', myConfigurableWrapper);
+#+end_src
+
+Usage:
+
+#+begin_export html
+<pre><code>#+begin_src javascript :use dom | myWrapper
+"Hello"
+#+end_src
+
+#+begin_src javascript :use dom | myConfigurable?class=custom-class
+"Hello"
+#+end_src</code></pre>
+#+end_export
+
+** Migration from Legacy System
+
+If you're migrating from the old ~:exports~ system:
+
+| Old Syntax | New Syntax |
+|------------+------------|
+| ~:exports code~ | ~:use sourceOnly~ |
+| ~:exports results~ | ~:use dom~ |
+| ~:exports both~ | ~:use dom | withSourceCode~ |
+| ~:exports none~ | ~:use silent~ |

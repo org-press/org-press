@@ -1,0 +1,455 @@
+#+TITLE: Formation Types
+#+DESCRIPTION: All 6 formation types for the sphere grid
+
+* Formation Types
+
+Defines all formation types and their state structures.
+
+#+NAME: formations
+#+begin_src typescript
+/**
+ * Formation Types and State Structures
+ *
+ * All 6 formations:
+ * - grid: Default letter grid
+ * - cube: 3D cube array
+ * - pipeline: Ripple effect
+ * - globe: Rotating wireframe globe
+ * - prism: Hexagonal crystal
+ * - warp: Star field travel effect
+ */
+
+import * as THREE from 'three';
+
+// Formation type
+export type Formation = 'grid' | 'cube' | 'pipeline' | 'globe' | 'prism' | 'warp';
+
+// =============================================================================
+// Sphere State
+// =============================================================================
+
+export interface SphereState {
+  targetX: number;
+  targetY: number;
+  targetZ: number;
+  targetScale: number;
+  currentX: number;
+  currentY: number;
+  currentZ: number;
+  currentScale: number;
+  delay: number;
+  isCharacter: boolean;
+  wordGroup: number;
+  baseZ: number;
+  baseScale: number;
+  highlightAmount: number;
+  targetHighlight: number;
+  highlightDelay: number;
+}
+
+// =============================================================================
+// Word Group (for grid highlighting)
+// =============================================================================
+
+export interface WordGroup {
+  word: string;
+  sphereIndices: number[];
+  isHighlighted: boolean;
+  highlightStartTime: number;
+  highlightDuration: number;
+}
+
+// =============================================================================
+// Ripple Effect (pipeline formation)
+// =============================================================================
+
+export interface Ripple {
+  x: number;
+  y: number;
+  radius: number;
+  maxRadius: number;
+  strength: number;
+  speed: number;
+}
+
+// =============================================================================
+// Cube Mapping
+// =============================================================================
+
+export interface CubeMapping {
+  cubeIdx: number;
+  localX: number;
+  localY: number;
+  localZ: number;
+  cubeCenterX: number;
+  cubeCenterY: number;
+  isInCube: boolean;
+}
+
+export interface CubeState {
+  isHighlighted: boolean;
+  highlightStartTime: number;
+  highlightDuration: number;
+}
+
+// =============================================================================
+// Globe Mapping
+// =============================================================================
+
+export interface GlobeMapping {
+  theta: number;
+  phi: number;
+  isOnGlobe: boolean;
+  isLatLine: boolean;
+  isLongLine: boolean;
+}
+
+// =============================================================================
+// Prism Mapping
+// =============================================================================
+
+export interface PrismMapping {
+  x: number;
+  y: number;
+  z: number;
+  isOnPrism: boolean;
+}
+
+// =============================================================================
+// Warp Star
+// =============================================================================
+
+export interface WarpStar {
+  x: number;
+  y: number;
+  z: number;
+  baseX: number;
+  baseY: number;
+  initialZ: number;
+  speedMultiplier: number;
+  distanceFromCenter: number;
+  stretch: number;
+  brightness: number;
+  isActive: boolean;
+}
+
+// =============================================================================
+// Formation Configuration Generator
+// =============================================================================
+
+export interface FormationConfig {
+  gridCols: number;
+  gridRows: number;
+  effectiveSpacing: number;
+  gridWidth: number;
+  gridHeight: number;
+  visibleWidth: number;
+  visibleHeight: number;
+  totalSpheres: number;
+}
+
+/**
+ * Generate cube formation mappings
+ */
+export function generateCubeMappings(config: FormationConfig): {
+  sphereToCube: CubeMapping[];
+  cubeStates: CubeState[];
+  spheresPerCubeSide: number;
+  sphereSpacingInCube: number;
+} {
+  const { gridCols, gridRows, effectiveSpacing, gridWidth, gridHeight, totalSpheres } = config;
+
+  const cubeGridCols = 7;
+  const cubeGridRows = 5;
+  const spheresPerCubeSide = 4;
+  const totalCubes = cubeGridCols * cubeGridRows;
+
+  const gridCellsPerCubeX = Math.floor(gridCols / cubeGridCols);
+  const gridCellsPerCubeY = Math.floor(gridRows / cubeGridRows);
+
+  const xBucketSize = Math.floor(gridCellsPerCubeX / spheresPerCubeSide);
+  const yBucketSize = Math.floor(gridCellsPerCubeY / spheresPerCubeSide);
+
+  const regionWidth = gridCellsPerCubeX * effectiveSpacing;
+  const regionHeight = gridCellsPerCubeY * effectiveSpacing;
+  const cubeSize = Math.min(regionWidth, regionHeight) * 0.7;
+  const sphereSpacingInCube = cubeSize / (spheresPerCubeSide - 1);
+
+  const sphereToCube: CubeMapping[] = [];
+
+  for (let row = 0; row < gridRows; row++) {
+    for (let col = 0; col < gridCols; col++) {
+      const cubeCol = Math.floor(col / gridCellsPerCubeX);
+      const cubeRow = Math.floor(row / gridCellsPerCubeY);
+
+      const localCol = col % gridCellsPerCubeX;
+      const localRow = row % gridCellsPerCubeY;
+
+      const localX = Math.min(Math.floor(localCol / xBucketSize), spheresPerCubeSide - 1);
+      const localY = Math.min(Math.floor(localRow / yBucketSize), spheresPerCubeSide - 1);
+
+      const bucketCol = localCol % xBucketSize;
+      const bucketRow = localRow % yBucketSize;
+      const bucketIndex = bucketRow * xBucketSize + bucketCol;
+      const localZ = bucketIndex % spheresPerCubeSide;
+
+      const isValidCube = cubeCol < cubeGridCols && cubeRow < cubeGridRows;
+      const cubeIdx = isValidCube ? cubeRow * cubeGridCols + cubeCol : -1;
+
+      const cubeCenterX = (cubeCol + 0.5) * gridCellsPerCubeX * effectiveSpacing - gridWidth / 2;
+      const cubeCenterY = (cubeRow + 0.5) * gridCellsPerCubeY * effectiveSpacing - gridHeight / 2;
+
+      sphereToCube.push({
+        cubeIdx,
+        localX,
+        localY,
+        localZ,
+        cubeCenterX,
+        cubeCenterY,
+        isInCube: isValidCube,
+      });
+    }
+  }
+
+  const cubeStates: CubeState[] = Array(totalCubes).fill(null).map(() => ({
+    isHighlighted: false,
+    highlightStartTime: 0,
+    highlightDuration: 0,
+  }));
+
+  return { sphereToCube, cubeStates, spheresPerCubeSide, sphereSpacingInCube };
+}
+
+/**
+ * Generate globe formation mappings
+ */
+export function generateGlobeMappings(config: FormationConfig): {
+  sphereToGlobe: GlobeMapping[];
+  globeRadius: number;
+} {
+  const { visibleWidth, visibleHeight, totalSpheres } = config;
+
+  const globeRadius = Math.min(visibleWidth, visibleHeight) * 0.35;
+  const latLines = 12;
+  const longLines = 24;
+  const spheresPerLatLine = 40;
+  const spheresPerLongLine = 20;
+
+  const globePoints: { theta: number; phi: number; isLat: boolean; isLong: boolean }[] = [];
+
+  // Latitude lines
+  for (let lat = 1; lat < latLines; lat++) {
+    const phi = (lat / latLines) * Math.PI;
+    for (let i = 0; i < spheresPerLatLine; i++) {
+      const theta = (i / spheresPerLatLine) * Math.PI * 2;
+      globePoints.push({ theta, phi, isLat: true, isLong: false });
+    }
+  }
+
+  // Longitude lines
+  for (let long = 0; long < longLines; long++) {
+    const theta = (long / longLines) * Math.PI * 2;
+    for (let i = 1; i < spheresPerLongLine; i++) {
+      const phi = (i / spheresPerLongLine) * Math.PI;
+      const exists = globePoints.some(p =>
+        Math.abs(p.theta - theta) < 0.1 && Math.abs(p.phi - phi) < 0.1
+      );
+      if (!exists) {
+        globePoints.push({ theta, phi, isLat: false, isLong: true });
+      } else {
+        const existing = globePoints.find(p =>
+          Math.abs(p.theta - theta) < 0.1 && Math.abs(p.phi - phi) < 0.1
+        );
+        if (existing) existing.isLong = true;
+      }
+    }
+  }
+
+  const sphereToGlobe: GlobeMapping[] = [];
+  for (let i = 0; i < totalSpheres; i++) {
+    if (i < globePoints.length) {
+      const point = globePoints[i];
+      sphereToGlobe.push({
+        theta: point.theta,
+        phi: point.phi,
+        isOnGlobe: true,
+        isLatLine: point.isLat,
+        isLongLine: point.isLong,
+      });
+    } else {
+      sphereToGlobe.push({
+        theta: 0,
+        phi: 0,
+        isOnGlobe: false,
+        isLatLine: false,
+        isLongLine: false,
+      });
+    }
+  }
+
+  return { sphereToGlobe, globeRadius };
+}
+
+/**
+ * Generate prism (crystal) formation mappings
+ */
+export function generatePrismMappings(config: FormationConfig): {
+  sphereToPrism: PrismMapping[];
+} {
+  const { visibleWidth, visibleHeight, totalSpheres } = config;
+
+  const crystalHeight = Math.min(visibleWidth, visibleHeight) * 0.55;
+  const crystalRadius = crystalHeight * 0.25;
+  const crystalPointHeight = crystalHeight * 0.25;
+  const spheresPerEdge = 12;
+
+  const prismPoints: { x: number; y: number; z: number }[] = [];
+
+  const hexSides = 6;
+  const midTopY = crystalHeight / 2 - crystalPointHeight;
+  const midBottomY = -crystalHeight / 2 + crystalPointHeight;
+  const topPoint = { x: 0, y: crystalHeight / 2, z: 0 };
+  const bottomPoint = { x: 0, y: -crystalHeight / 2, z: 0 };
+
+  const hexTopVertices: { x: number; y: number; z: number }[] = [];
+  const hexBottomVertices: { x: number; y: number; z: number }[] = [];
+
+  for (let i = 0; i < hexSides; i++) {
+    const angle = (i / hexSides) * Math.PI * 2;
+    hexTopVertices.push({
+      x: crystalRadius * Math.cos(angle),
+      y: midTopY,
+      z: crystalRadius * Math.sin(angle),
+    });
+    hexBottomVertices.push({
+      x: crystalRadius * Math.cos(angle),
+      y: midBottomY,
+      z: crystalRadius * Math.sin(angle),
+    });
+  }
+
+  function addEdgePoints(v1: { x: number; y: number; z: number }, v2: { x: number; y: number; z: number }) {
+    for (let i = 0; i < spheresPerEdge; i++) {
+      const t = i / (spheresPerEdge - 1);
+      prismPoints.push({
+        x: v1.x + (v2.x - v1.x) * t,
+        y: v1.y + (v2.y - v1.y) * t,
+        z: v1.z + (v2.z - v1.z) * t,
+      });
+    }
+  }
+
+  // Top point to hex top
+  for (let i = 0; i < hexSides; i++) {
+    addEdgePoints(topPoint, hexTopVertices[i]);
+  }
+
+  // Hex top ring
+  for (let i = 0; i < hexSides; i++) {
+    addEdgePoints(hexTopVertices[i], hexTopVertices[(i + 1) % hexSides]);
+  }
+
+  // Vertical edges
+  for (let i = 0; i < hexSides; i++) {
+    addEdgePoints(hexTopVertices[i], hexBottomVertices[i]);
+  }
+
+  // Hex bottom ring
+  for (let i = 0; i < hexSides; i++) {
+    addEdgePoints(hexBottomVertices[i], hexBottomVertices[(i + 1) % hexSides]);
+  }
+
+  // Bottom point to hex bottom
+  for (let i = 0; i < hexSides; i++) {
+    addEdgePoints(bottomPoint, hexBottomVertices[i]);
+  }
+
+  const sphereToPrism: PrismMapping[] = [];
+  for (let i = 0; i < totalSpheres; i++) {
+    if (i < prismPoints.length) {
+      const point = prismPoints[i];
+      sphereToPrism.push({
+        x: point.x,
+        y: point.y,
+        z: point.z,
+        isOnPrism: true,
+      });
+    } else {
+      sphereToPrism.push({
+        x: 0,
+        y: 0,
+        z: -50,
+        isOnPrism: false,
+      });
+    }
+  }
+
+  return { sphereToPrism };
+}
+
+/**
+ * Generate warp star field
+ */
+export function generateWarpStars(config: FormationConfig): {
+  warpStars: WarpStar[];
+  warpTunnelRadius: number;
+  warpDepth: number;
+  warpNearPlane: number;
+} {
+  const { visibleWidth, visibleHeight, totalSpheres } = config;
+
+  const warpTunnelRadius = Math.max(visibleWidth, visibleHeight) * 0.8;
+  const warpDepth = 150;
+  const warpNearPlane = 5;
+  const warpStarDensity = 0.04;
+
+  const warpStars: WarpStar[] = [];
+
+  for (let i = 0; i < totalSpheres; i++) {
+    const angle = Math.random() * Math.PI * 2;
+    const t = Math.random();
+    const distance = (0.3 + t * 0.7) * warpTunnelRadius;
+    const x = Math.cos(angle) * distance;
+    const y = Math.sin(angle) * distance;
+    const z = Math.random() * warpDepth - warpDepth * 0.5;
+
+    warpStars.push({
+      x, y, z,
+      baseX: x,
+      baseY: y,
+      initialZ: z,
+      speedMultiplier: 0.7 + Math.random() * 0.6,
+      distanceFromCenter: distance / warpTunnelRadius,
+      stretch: 1,
+      brightness: 0.3 + Math.random() * 0.7,
+      isActive: Math.random() < warpStarDensity,
+    });
+  }
+
+  return { warpStars, warpTunnelRadius, warpDepth, warpNearPlane };
+}
+
+/**
+ * Reset a warp star to back of tunnel
+ */
+export function resetWarpStar(star: WarpStar, warpTunnelRadius: number, warpDepth: number) {
+  const angle = Math.random() * Math.PI * 2;
+  const t = Math.random();
+  const distance = (0.2 + t * 0.8) * warpTunnelRadius;
+  star.x = Math.cos(angle) * distance;
+  star.y = Math.sin(angle) * distance;
+  star.baseX = star.x;
+  star.baseY = star.y;
+  star.z = -warpDepth * 0.5;
+  star.distanceFromCenter = distance / warpTunnelRadius;
+  star.brightness = 0.3 + Math.random() * 0.7;
+}
+
+export default {
+  generateCubeMappings,
+  generateGlobeMappings,
+  generatePrismMappings,
+  generateWarpStars,
+  resetWarpStar,
+};
+#+end_src

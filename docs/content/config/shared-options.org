@@ -1,0 +1,100 @@
+#+TITLE: Shared Options
+#+DESCRIPTION: Core configuration options for contentDir, outDir, base, and cacheDir
+
+* Shared Options
+
+These options apply to both development and production builds.
+
+** contentDir
+
+- *Type:* =string=
+- *Default:* ="content"=
+
+Directory containing your =.org= files. All org files in this directory (and subdirectories) will be processed.
+
+#+begin_export html
+<pre><code class="language-typescript">export default {
+  contentDir: "content",
+};
+</code></pre>
+#+end_export
+
+The directory structure is preserved in the output. For example:
+
+#+begin_export html
+<pre><code>content/
+├── index.org        → /index.html
+├── guide/
+│   └── intro.org    → /guide/intro.html
+└── api/
+    └── types.org    → /api/types.html
+</code></pre>
+#+end_export
+
+** outDir
+
+- *Type:* =string=
+- *Default:* ="dist/static"=
+
+Output directory for production build. Created by =orgp build=.
+
+#+begin_export html
+<pre><code class="language-typescript">export default {
+  outDir: "dist/static",
+};
+</code></pre>
+#+end_export
+
+The output contains fully static HTML files that can be deployed to any static host.
+
+** base
+
+- *Type:* =string=
+- *Default:* ="/"=
+
+Base public path for the site. Set this when deploying to a subdirectory.
+
+#+begin_export html
+<pre><code class="language-typescript">// Deployed to https://example.com/docs/
+export default {
+  base: "/docs/",
+};
+</code></pre>
+#+end_export
+
+All asset URLs and internal links will be prefixed with this base path.
+
+*** Environment-Based Base
+
+#+begin_export html
+<pre><code class="language-typescript">export default () => ({
+  base: process.env.BASE_URL || "/",
+});
+</code></pre>
+#+end_export
+
+** cacheDir
+
+- *Type:* =string=
+- *Default:* ="node_modules/.org-press-cache"=
+
+Directory for build cache and generated intermediate files. Contains:
+
+- Compiled block outputs
+- Virtual module cache
+- Type definitions
+
+#+begin_export html
+<pre><code class="language-typescript">export default {
+  cacheDir: "node_modules/.org-press-cache",
+};
+</code></pre>
+#+end_export
+
+You can safely delete this directory to force a full rebuild. It will be regenerated automatically.
+
+** See Also
+
+- [[/config/build-options.html][Build Options]] - =buildConcurrency=, =uniorg=, Vite build settings
+- [[/config/server-options.html][Server Options]] - Development server configuration
+- [[/config/plugin-options.html][Plugin Options]] - =plugins=, =orgPlugins=, =theme=

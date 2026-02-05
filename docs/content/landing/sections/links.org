@@ -1,0 +1,61 @@
+#+TITLE: Links Section
+#+DESCRIPTION: Footer quick links section
+
+* Links Section
+
+Footer section with quick links to documentation.
+
+#+NAME: links
+#+begin_src typescript
+/**
+ * Links Section
+ *
+ * Features:
+ * - Grid of quick link cards
+ * - Hover effects with arrows
+ * - Links to docs, features, imports, plugins
+ */
+
+export function createLinks(): HTMLElement {
+  const section = document.createElement('section');
+  section.className = 'links-section';
+
+  section.innerHTML = `
+    <h2 class="links-section-title">Get Started</h2>
+    <div class="links-grid">
+      <a href="./guide/getting-started.html" class="link-card">
+        <span class="link-card-icon">&#9889;</span>
+        <div class="link-card-content">
+          <h3>Quick Start <span class="link-card-arrow">&#8594;</span></h3>
+          <p>Create your first org-press project in minutes</p>
+        </div>
+      </a>
+      <a href="./guide/features.html" class="link-card">
+        <span class="link-card-icon">&#10024;</span>
+        <div class="link-card-content">
+          <h3>Features <span class="link-card-arrow">&#8594;</span></h3>
+          <p>Interactive code blocks, live preview, and more</p>
+        </div>
+      </a>
+      <a href="./guide/block-imports.html" class="link-card">
+        <span class="link-card-icon">&#128279;</span>
+        <div class="link-card-content">
+          <h3>Block Imports <span class="link-card-arrow">&#8594;</span></h3>
+          <p>Share and reuse code across your documentation</p>
+        </div>
+      </a>
+      <a href="./plugins/index.html" class="link-card">
+        <span class="link-card-icon">&#128640;</span>
+        <div class="link-card-content">
+          <h3>Plugins <span class="link-card-arrow">&#8594;</span></h3>
+          <p>Extend with Excalidraw, JSCAD, and more</p>
+        </div>
+      </a>
+    </div>
+  `;
+
+  return section;
+}
+
+export default createLinks();
+#+end_src

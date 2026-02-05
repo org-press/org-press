@@ -1,0 +1,372 @@
+/**
+ * Landing Page Styles
+ *
+ * Styles for the particle journey landing page experience.
+ * Imported via landing.css block in index.org.
+ */
+
+/* ==========================================================================
+   Theme Variables
+   ========================================================================== */
+
+:root {
+  --bg-color: #0a0a0f;
+  --text-color: #ffffff;
+  --text-muted: rgba(255, 255, 255, 0.7);
+  --text-subtle: rgba(255, 255, 255, 0.5);
+  --border-color: rgba(255, 255, 255, 0.08);
+  --border-hover: rgba(255, 255, 255, 0.15);
+  --card-bg: rgba(255, 255, 255, 0.03);
+  --card-hover: rgba(255, 255, 255, 0.06);
+  --sphere-color: #fff;
+  --sphere-glow: rgba(255, 255, 255, 0.6);
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    --bg-color: #f5f5f7;
+    --text-color: #1a1a1a;
+    --text-muted: rgba(0, 0, 0, 0.7);
+    --text-subtle: rgba(0, 0, 0, 0.5);
+    --border-color: rgba(0, 0, 0, 0.1);
+    --border-hover: rgba(0, 0, 0, 0.2);
+    --card-bg: rgba(0, 0, 0, 0.03);
+    --card-hover: rgba(0, 0, 0, 0.06);
+    --sphere-color: #4a4a4a;
+    --sphere-glow: rgba(100, 100, 100, 0.4);
+  }
+}
+
+/* ==========================================================================
+   Base Layout
+   ========================================================================== */
+
+body {
+  background: var(--bg-color);
+  color: var(--text-color);
+}
+
+/* Landing page header - transparent with blur */
+.top-nav {
+  background: rgba(10, 10, 15, 0.8) !important;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom-color: var(--border-color) !important;
+}
+
+.top-nav-logo .logo-text,
+.top-nav-link,
+.top-nav-social-link {
+  color: var(--text-color) !important;
+}
+
+.top-nav-link:hover,
+.top-nav-link.active {
+  color: var(--text-muted) !important;
+}
+
+@media (prefers-color-scheme: light) {
+  .top-nav {
+    background: rgba(245, 245, 247, 0.8) !important;
+    border-bottom-color: var(--border-color) !important;
+  }
+
+  .top-nav-logo .logo-text,
+  .top-nav-link,
+  .top-nav-social-link {
+    color: var(--text-color) !important;
+  }
+}
+
+/* ==========================================================================
+   Landing Page Container
+   ========================================================================== */
+
+.landing-page {
+  position: relative;
+  min-height: 100vh;
+}
+
+/* Particle canvas layer */
+.landing-particles {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 0;
+  pointer-events: none;
+}
+
+/* Content layer */
+.landing-content {
+  position: relative;
+  z-index: 1;
+}
+
+/* ==========================================================================
+   Hero Section
+   ========================================================================== */
+
+.hero-section {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  padding: 2rem;
+}
+
+.hero-logo {
+  font-size: 4rem;
+  font-weight: 200;
+  letter-spacing: 0.2em;
+  color: var(--text-color);
+  text-shadow: 0 0 40px var(--card-bg);
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+}
+
+.hero-logo-text {
+  display: inline;
+}
+
+.hero-tagline {
+  font-size: 1.25rem;
+  color: var(--text-muted);
+  max-width: 600px;
+  line-height: 1.6;
+  margin: 0;
+}
+
+.hero-cta {
+  margin-top: 3rem;
+  display: flex;
+  gap: 1rem;
+}
+
+.hero-cta a {
+  padding: 0.75rem 2rem;
+  border-radius: 4px;
+  text-decoration: none;
+  font-size: 1rem;
+  transition: all 0.2s ease;
+}
+
+.hero-cta .primary {
+  background: var(--card-bg);
+  border: 1px solid var(--border-hover);
+  color: var(--text-color);
+}
+
+.hero-cta .primary:hover {
+  background: var(--card-hover);
+  border-color: var(--text-subtle);
+}
+
+.hero-cta .secondary {
+  background: transparent;
+  border: 1px solid var(--border-color);
+  color: var(--text-muted);
+}
+
+.hero-cta .secondary:hover {
+  border-color: var(--border-hover);
+  color: var(--text-color);
+}
+
+/* Scroll indicator */
+.scroll-indicator {
+  position: absolute;
+  bottom: 2rem;
+  left: 50%;
+  transform: translateX(-50%);
+  color: var(--text-subtle);
+  animation: bounce 2s infinite;
+  font-size: 1.5rem;
+}
+
+@keyframes bounce {
+  0%, 20%, 50%, 80%, 100% { transform: translateX(-50%) translateY(0); }
+  40% { transform: translateX(-50%) translateY(-10px); }
+  60% { transform: translateX(-50%) translateY(-5px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scroll-indicator {
+    animation: none;
+  }
+}
+
+/* ==========================================================================
+   Generic Section Styles
+   ========================================================================== */
+
+.landing-section {
+  position: relative;
+  z-index: 1;
+}
+
+.section-label {
+  display: inline-block;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--text-subtle);
+  margin-bottom: 1rem;
+}
+
+/* ==========================================================================
+   Quick Links Footer
+   ========================================================================== */
+
+.links-section {
+  position: relative;
+  z-index: 1;
+  padding: 6rem 2rem;
+  background: linear-gradient(to bottom, transparent 0%, var(--bg-color) 20%);
+}
+
+.links-grid {
+  max-width: 800px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1.5rem;
+}
+
+.link-card {
+  display: block;
+  padding: 1.5rem;
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  text-decoration: none;
+  text-align: center;
+  transition: all 0.2s ease;
+}
+
+.link-card:hover {
+  background: var(--card-hover);
+  border-color: var(--border-hover);
+  transform: translateY(-2px);
+}
+
+.link-card h3 {
+  color: var(--text-color);
+  font-size: 1rem;
+  font-weight: 500;
+  margin: 0 0 0.5rem 0;
+}
+
+.link-card p {
+  color: var(--text-subtle);
+  font-size: 0.85rem;
+  margin: 0;
+}
+
+@media (max-width: 600px) {
+  .links-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .hero-logo {
+    font-size: 2.5rem;
+    letter-spacing: 0.1em;
+  }
+}
+
+/* ==========================================================================
+   Pipeline Section
+   ========================================================================== */
+
+.pipeline-section {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem 2rem;
+}
+
+.pipeline-section .section-content {
+  text-align: center;
+  max-width: 600px;
+}
+
+.pipeline-section h2 {
+  font-size: 2.5rem;
+  margin-bottom: 1rem;
+}
+
+.pipeline-section p {
+  color: var(--text-muted);
+  font-size: 1.1rem;
+  line-height: 1.6;
+  margin-bottom: 2rem;
+}
+
+.output-formats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  justify-content: center;
+}
+
+.format-badge {
+  padding: 0.5rem 1rem;
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  font-family: monospace;
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  transition: all 0.2s ease;
+}
+
+.format-badge:hover {
+  background: var(--card-hover);
+  border-color: var(--border-hover);
+  color: var(--text-color);
+}
+
+/* ==========================================================================
+   Mobile Fallback
+   ========================================================================== */
+
+@media (max-width: 768px) {
+  .landing-particles {
+    display: none;
+  }
+
+  /* Show static decorative elements instead */
+  .mobile-decoration {
+    display: block;
+  }
+}
+
+@media (min-width: 769px) {
+  .mobile-decoration {
+    display: none;
+  }
+}
+
+/* ==========================================================================
+   Reduced Motion
+   ========================================================================== */
+
+@media (prefers-reduced-motion: reduce) {
+  .landing-particles {
+    display: none;
+  }
+
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

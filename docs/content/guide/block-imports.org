@@ -1,0 +1,249 @@
+#+TITLE: Block Imports
+#+DESCRIPTION: Import and share code blocks across org files
+
+* Block Imports
+
+Import named blocks from other org files to share code and avoid duplication.
+
+** Naming Blocks
+
+Use =#+NAME:= to give a block an identity:
+
+#+begin_export html
+<pre><code>#+NAME: mathUtils
+#+begin_src typescript
+export function add(a: number, b: number): number {
+  return a + b;
+}
+
+export function multiply(a: number, b: number): number {
+  return a * b;
+}
+#+end_src</code></pre>
+#+end_export
+
+Named blocks can be imported from other files.
+
+** Basic Imports
+
+Import using the =?name== query parameter:
+
+#+begin_export html
+<pre><code>// In another file
+import { add, multiply } from './math.org?name=mathUtils';
+
+const result = add(2, 3);      // 5
+const product = multiply(4, 5); // 20</code></pre>
+#+end_export
+
+** Import Syntax
+
+*** Named Imports
+
+#+begin_export html
+<pre><code>import { functionA, functionB } from './utils.org?name=helpers';</code></pre>
+#+end_export
+
+*** Default Import
+
+If a block has a default export:
+
+#+begin_export html
+<pre><code>#+NAME: config
+#+begin_src typescript
+export default {
+  apiUrl: 'https://api.example.com',
+  timeout: 5000,
+};
+#+end_src</code></pre>
+#+end_export
+
+#+begin_export html
+<pre><code>import config from './settings.org?name=config';</code></pre>
+#+end_export
+
+*** Namespace Import
+
+#+begin_export html
+<pre><code>import * as Utils from './utils.org?name=helpers';
+
+Utils.formatDate(new Date());</code></pre>
+#+end_export
+
+** Path Resolution
+
+*** Relative Paths
+
+#+begin_export html
+<pre><code>// Same directory
+import { x } from './file.org?name=block';
+
+// Parent directory
+import { x } from '../shared/utils.org?name=helpers';
+
+// Nested path
+import { x } from './lib/deep/module.org?name=exports';</code></pre>
+#+end_export
+
+*** Absolute Paths
+
+Paths starting with =/= are relative to the content root:
+
+#+begin_export html
+<pre><code>import { theme } from '/shared/themes.org?name=dark';</code></pre>
+#+end_export
+
+** TypeScript Support
+
+Block imports are fully typed. The LSP provides:
+
+- Autocompletion for exported symbols
+- Go-to-definition across files
+- Type checking at import boundaries
+- Hover documentation
+
+#+begin_export html
+<pre><code>#+NAME: types
+#+begin_src typescript
+export interface User {
+  id: string;
+  name: string;
+  email: string;
+}
+
+export function createUser(name: string, email: string): User {
+  return { id: crypto.randomUUID(), name, email };
+}
+#+end_src</code></pre>
+#+end_export
+
+When you import =createUser=, your IDE knows its signature.
+
+** Circular Imports
+
+Circular imports are allowed and handled correctly:
+
+#+begin_export html
+<pre><code>// a.org
+#+NAME: a
+#+begin_src typescript
+import { b } from './b.org?name=b';
+export const a = () => b() + 1;
+#+end_src
+
+// b.org
+#+NAME: b
+#+begin_src typescript
+import { a } from './a.org?name=a';
+export const b = () => 42;
+#+end_src</code></pre>
+#+end_export
+
+However, avoid circular dependencies when possible for clarity.
+
+** Multiple Blocks per File
+
+A file can have many named blocks:
+
+#+begin_export html
+<pre><code>#+NAME: validators
+#+begin_src typescript
+export function isEmail(s: string): boolean {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s);
+}
+#+end_src
+
+#+NAME: formatters
+#+begin_src typescript
+export function formatCurrency(n: number): string {
+  return '$' + n.toFixed(2);
+}
+#+end_src
+
+#+NAME: constants
+#+begin_src typescript
+export const API_URL = 'https://api.example.com';
+export const TIMEOUT = 5000;
+#+end_src</code></pre>
+#+end_export
+
+Import each by name:
+
+#+begin_export html
+<pre><code>import { isEmail } from './utils.org?name=validators';
+import { formatCurrency } from './utils.org?name=formatters';
+import { API_URL } from './utils.org?name=constants';</code></pre>
+#+end_export
+
+** Use Cases
+
+*** Shared Utilities
+
+Create a utilities file with common helpers:
+
+#+begin_export html
+<pre><code>// content/lib/utils.org
+#+NAME: dateUtils
+#+begin_src typescript
+export function formatDate(d: Date): string {
+  return d.toISOString().split('T')[0];
+}
+
+export function parseDate(s: string): Date {
+  return new Date(s);
+}
+#+end_src</code></pre>
+#+end_export
+
+*** Configuration Sharing
+
+Share configuration across pages:
+
+#+begin_export html
+<pre><code>// content/config.org
+#+NAME: siteConfig
+#+begin_src typescript
+export const config = {
+  siteName: 'My Documentation',
+  baseUrl: 'https://docs.example.com',
+  author: 'Your Name',
+};
+#+end_src</code></pre>
+#+end_export
+
+*** Component Libraries
+
+Build reusable React components:
+
+#+begin_export html
+<pre><code>// content/components/buttons.org
+#+NAME: Button
+#+begin_src tsx
+export function Button({
+  children,
+  variant = 'primary'
+}: {
+  children: React.ReactNode;
+  variant?: 'primary' | 'secondary';
+}) {
+  return (
+    <button className={`btn btn-${variant}`}>
+      {children}
+    </button>
+  );
+}
+#+end_src</code></pre>
+#+end_export
+
+** Best Practices
+
+1. *Use descriptive names* - =userValidation= over =utils=
+2. *One concept per block* - Don't mix unrelated exports
+3. *Keep imports shallow* - Avoid deep directory nesting
+4. *Export only what's needed* - Internal helpers stay private
+
+** See Also
+
+- [[/guide/features.html][Features]] - Other org-press features
+- [[/examples/block-imports.html][Examples]] - Working examples
+- [[/api/javascript-api.html][JavaScript API]] - Programmatic access

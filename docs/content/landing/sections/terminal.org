@@ -1,0 +1,69 @@
+#+TITLE: Terminal Section
+#+DESCRIPTION: Terminal demo section
+
+* Terminal Section
+
+Section demonstrating the dev server with a terminal mockup.
+
+#+NAME: terminal
+#+begin_src typescript
+/**
+ * Terminal Demo Section
+ *
+ * Features:
+ * - Terminal window mockup
+ * - Feature list
+ * - Static output display
+ */
+
+export function createTerminal(): HTMLElement {
+  const section = document.createElement('section');
+  section.className = 'landing-section terminal-demo-section';
+  section.id = 'ssg';
+
+  section.innerHTML = `
+    <div class="section-content">
+      <div class="section-visual">
+        <div class="terminal-window">
+          <div class="terminal-header">
+            <span class="terminal-dot red"></span>
+            <span class="terminal-dot yellow"></span>
+            <span class="terminal-dot green"></span>
+            <span class="terminal-title">Terminal</span>
+          </div>
+          <div class="terminal-body">
+            <div class="terminal-line">
+              <span class="terminal-prompt">$</span>
+              <span class="terminal-command">orgp dev</span>
+            </div>
+            <div class="terminal-output">
+              <div class="output-line visible">Ready in 127ms</div>
+              <div class="output-line visible"><span class="dim">Local:</span>   <span class="url-link">http://localhost:3000/</span></div>
+              <div class="output-line visible"><span class="dim">press</span> <span class="key">h + enter</span> <span class="dim">to show help</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="section-text">
+        <span class="section-label">Static Site Generator</span>
+        <h2>Document Format for Web Development</h2>
+        <p>
+          Org-press is a static site generator built for literate programming.
+          Hot module replacement, instant preview, and production builds
+          with a single command.
+        </p>
+        <ul class="feature-list">
+          <li>Lightning-fast Vite-powered dev server</li>
+          <li>TypeScript, JSX, CSS out of the box</li>
+          <li>Server-side execution at build time</li>
+          <li>Automatic syntax highlighting</li>
+        </ul>
+      </div>
+    </div>
+  `;
+
+  return section;
+}
+
+export default createTerminal();
+#+end_src

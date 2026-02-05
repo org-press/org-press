@@ -1,0 +1,55 @@
+#!/usr/bin/env orgp
+#+TITLE: Test Script
+
+* Main
+
+This is the main entry point, marked as the default block.
+
+#+name: main
+#+begin_src ts :executable :default
+console.log("Args:", process.argv.slice(2));
+"main executed"
+#+end_src
+
+* Build
+
+Build task for the script.
+
+#+name: build
+#+begin_src ts :executable
+console.log("Building...");
+"build completed"
+#+end_src
+
+* Echo
+
+Echoes the provided arguments.
+
+#+name: echo
+#+begin_src ts :executable
+const args = process.argv.slice(2);
+console.log(args.join(" "));
+args.join(" ")
+#+end_src
+
+* Helper
+
+This block is NOT marked as executable - should error if run directly.
+
+#+name: helper
+#+begin_src ts
+// This is a helper function, not executable
+function helper() {
+  return "I'm a helper";
+}
+#+end_src
+
+* Server Block
+
+A block marked with :use server (also executable).
+
+#+name: server-task
+#+begin_src ts :use server
+console.log("Running server task");
+"server task done"
+#+end_src

@@ -1,0 +1,5 @@
+.fancy-button {
+  background: linear-gradient(45deg, #ff6b6b, #feca57);
+  border-radius: 8px;
+  padding: 12px 24px;
+}

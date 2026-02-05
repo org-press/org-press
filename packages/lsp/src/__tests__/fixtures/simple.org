@@ -1,0 +1,72 @@
+#+TITLE: Simple Test File
+
+This file contains basic code blocks for single-file tests.
+
+* Variables and Types
+
+#+name: variables
+#+begin_src typescript
+const greeting = "Hello, World!";
+const count: number = 42;
+const items = ["apple", "banana", "cherry"];
+#+end_src
+
+* Functions
+
+#+name: functions
+#+begin_src typescript
+function add(a: number, b: number): number {
+  return a + b;
+}
+
+function greet(name: string): string {
+  return `Hello, ${name}!`;
+}
+
+const result = add(10, 20);
+const message = greet("Claude");
+#+end_src
+
+* Objects
+
+#+name: objects
+#+begin_src typescript
+interface Person {
+  name: string;
+  age: number;
+  email?: string;
+}
+
+const user: Person = {
+  name: "Alice",
+  age: 30,
+};
+
+console.log(user.name);
+#+end_src
+
+* Classes
+
+#+name: classes
+#+begin_src typescript
+class Calculator {
+  private value: number = 0;
+
+  add(n: number): this {
+    this.value += n;
+    return this;
+  }
+
+  subtract(n: number): this {
+    this.value -= n;
+    return this;
+  }
+
+  getResult(): number {
+    return this.value;
+  }
+}
+
+const calc = new Calculator();
+calc.add(5).subtract(2);
+#+end_src
