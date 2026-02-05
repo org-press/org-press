@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charSet="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/><title>How Blocks Work | org-press</title><meta name="description" content="Understanding the block processing pipeline in org-press"/><script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script><script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/highlight.min.js"></script><link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/styles/github.min.css" media="(prefers-color-scheme: light)"/><link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/styles/github-dark.min.css" media="(prefers-color-scheme: dark)"/><script>
+          // Register org-mode language for highlight.js
+          if (typeof hljs !== 'undefined') {
+            hljs.registerLanguage('org', function(hljs) {
+              return {
+                name: 'Org',
+                aliases: ['org', 'org-mode', 'orgmode'],
+                case_insensitive: true,
+                contains: [
+                  // Headlines
+                  {
+                    className: 'section',
+                    begin: /^\*+\s/,
+                    end: /$/,
+                    contains: [
+                      { className: 'keyword', begin: /\b(TODO|DONE|WAITING|CANCELLED|NEXT|HOLD)\b/ }
+                    ]
+                  },
+                  // Keywords (#+KEYWORD:)
+                  {
+                    className: 'meta',
+                    begin: /^#\+[A-Za-z_]+:/,
+                    end: /$/,
+                    contains: [{ className: 'string', begin: /\s/, end: /$/ }]
+                  },
+                  // Begin/end blocks
+                  { className: 'keyword', begin: /^#\+(begin|end)_[a-z]+/i, relevance: 10 },
+                  // Property drawers
+                  { className: 'attribute', begin: /^:\w+:/, end: /$/ },
+                  // Links [[url][description]]
+                  {
+                    className: 'link',
+                    begin: /\[\[/,
+                    end: /\]\]/,
+                    contains: [{ className: 'string', begin: /\]\[/, end: /(?=\]\])/ }]
+                  },
+                  // Comments (lines starting with #, but not #+)
+                  { className: 'comment', begin: /^#[^+]/, end: /$/ },
+                  // Timestamps
+                  { className: 'number', begin: /<\d{4}-\d{2}-\d{2}/, end: />/ },
+                  // Tags :tag1:tag2:
+                  { className: 'tag', begin: /\s:[a-zA-Z0-9_@#%:]+:\s*$/ }
+                ]
+              };
+            });
+            // Run highlighting after DOM is ready
+            document.addEventListener('DOMContentLoaded', function() {
+              hljs.highlightAll();
+            });
+          }
+        </script><script>
+          (function() {
+            // Set current path as data attribute for CSS styling
+            document.documentElement.dataset.path = window.location.pathname;
+
+            // Mobile menu toggle using event delegation
+            document.addEventListener('click', function(e) {
+              var button = e.target.closest('.mobile-menu-button');
+              if (button) {
+                e.stopPropagation();
+                document.body.classList.toggle('mobile-menu-open');
+                return;
+              }
+              // Close menu when clicking a link inside the menu
+              var menuLink = e.target.closest('.mobile-menu a');
+              if (menuLink) {
+                document.body.classList.remove('mobile-menu-open');
+                return;
+              }
+              // Close menu when clicking outside
+              if (document.body.classList.contains('mobile-menu-open')) {
+                var menu = document.querySelector('.mobile-menu');
+                if (menu && !menu.contains(e.target)) {
+                  document.body.classList.remove('mobile-menu-open');
+                }
+              }
+            });
+
+            // Highlight current page in navigation
+            document.addEventListener('DOMContentLoaded', function() {
+              var path = window.location.pathname;
+              // Highlight sidebar links
+              document.querySelectorAll('.sidebar-link').forEach(function(link) {
+                if (link.getAttribute('href') === path) {
+                  link.classList.add('active');
+                  link.closest('.sidebar-item')?.classList.add('active');
+                }
+              });
+              // Highlight top nav links
+              document.querySelectorAll('.top-nav-link').forEach(function(link) {
+                var href = link.getAttribute('href');
+                var match = link.dataset.match;
+                if (path === href || (match && path.startsWith(match))) {
+                  link.classList.add('active');
+                }
+              });
+            });
+          })();
+        </script><link rel="stylesheet" href="/assets/theme-DsForQV0.css"/><script type="module" src="/assets/entry-client-l0sNRNKZ.js"></script></head><body><div class="docs-layout"><header class="top-nav"><div class="top-nav-container"><a href="/index.html" class="top-nav-logo"><span class="logo-text">Org-Press</span></a><nav class="top-nav-links"><a href="/guide/index.html" class="top-nav-link active" data-match="^\/(guide(\/|$)|getting-started|index\.html$)">Guide</a><a href="/config/index.html" class="top-nav-link " data-match="^\/config(\/|$)">Config</a><a href="/plugins/index.html" class="top-nav-link " data-match="^\/plugins(\/|$)">Plugins</a><a href="/api/index.html" class="top-nav-link " data-match="^\/api(\/|$)">API</a></nav><div class="top-nav-social"><a href="https://github.com/org-press/org-press/blob/main/docs/content/guide/how-blocks-work.org?plain=1" class="top-nav-source-link" target="_blank" rel="noopener noreferrer" title="View page source on GitHub">:view-source</a><a href="https://github.com/org-press/org-press" class="top-nav-social-link" target="_blank" rel="noopener noreferrer" aria-label="GitHub"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"></path></svg></a></div><button class="mobile-menu-button" aria-label="Toggle navigation menu" aria-expanded="false"><span class="hamburger-line"></span><span class="hamburger-line"></span><span class="hamburger-line"></span></button></div></header><div class="mobile-menu"><nav class="mobile-menu-nav"><div class="mobile-menu-section"><a href="/guide/index.html" class="mobile-menu-section-title active">Guide</a><ul class="mobile-menu-list"><li><a href="/guide/index.html" class="mobile-menu-link ">What is Org-Press?</a></li><li><a href="/guide/getting-started.html" class="mobile-menu-link ">Getting Started</a></li><li><a href="/guide/why-org-press.html" class="mobile-menu-link ">Why Org-Press?</a></li><li><a href="/guide/features.html" class="mobile-menu-link ">Features</a></li><li><a href="/guide/rendering-modes.html" class="mobile-menu-link ">Rendering Modes</a></li><li><a href="/guide/cli.html" class="mobile-menu-link ">CLI Reference</a></li><li><a href="/guide/using-plugins.html" class="mobile-menu-link ">Using Plugins</a></li><li><a href="/guide/block-imports.html" class="mobile-menu-link ">Block Imports</a></li><li><a href="/guide/static-assets.html" class="mobile-menu-link ">Static Assets</a></li><li><a href="/guide/building.html" class="mobile-menu-link ">Building for Production</a></li><li><a href="/guide/deploying.html" class="mobile-menu-link ">Deploying</a></li><li><a href="/guide/troubleshooting.html" class="mobile-menu-link ">Troubleshooting</a></li></ul></div><div class="mobile-menu-section"><a href="/config/index.html" class="mobile-menu-section-title ">Config</a><ul class="mobile-menu-list"><li><a href="/config/index.html" class="mobile-menu-link ">Overview</a></li><li><a href="/config/shared-options.html" class="mobile-menu-link ">Shared Options</a></li><li><a href="/config/build-options.html" class="mobile-menu-link ">Build Options</a></li><li><a href="/config/server-options.html" class="mobile-menu-link ">Server Options</a></li><li><a href="/config/plugin-options.html" class="mobile-menu-link ">Plugin Options</a></li></ul></div><div class="mobile-menu-section"><a href="/plugins/index.html" class="mobile-menu-section-title ">Plugins</a><ul class="mobile-menu-list"><li><a href="/plugins/index.html" class="mobile-menu-link ">Overview</a></li><li class="mobile-menu-group"><span class="mobile-menu-group-title">Official Plugins</span><ul class="mobile-menu-sublist"><li><a href="/plugins/react.html" class="mobile-menu-link ">React</a></li><li><a href="/plugins/echarts.html" class="mobile-menu-link ">ECharts</a></li><li><a href="/plugins/excalidraw.html" class="mobile-menu-link ">Excalidraw</a></li><li><a href="/plugins/jscad.html" class="mobile-menu-link ">JSCAD</a></li><li><a href="/plugins/test.html" class="mobile-menu-link ">Test</a></li></ul></li><li><a href="/plugins/creating-plugins.html" class="mobile-menu-link ">Creating Plugins</a></li></ul></div><div class="mobile-menu-section"><a href="/api/index.html" class="mobile-menu-section-title ">API</a><ul class="mobile-menu-list"><li><a href="/api/index.html" class="mobile-menu-link ">Overview</a></li><li><a href="/api/plugin-api.html" class="mobile-menu-link ">Plugin API</a></li><li><a href="/api/javascript-api.html" class="mobile-menu-link ">JavaScript API</a></li><li><a href="/api/hmr-api.html" class="mobile-menu-link ">HMR API</a></li><li><a href="/api/cli-plugins.html" class="mobile-menu-link ">CLI Plugins</a></li></ul></div></nav><div class="mobile-menu-footer"><a href="https://github.com/org-press/org-press" class="mobile-menu-link" target="_blank" rel="noopener noreferrer">GitHub</a></div></div><div class="alpha-banner"><span class="alpha-banner-icon">⚠️</span><span class="alpha-banner-text"><strong>Early Alpha</strong> — Org-press is experimental. Perfect for hackers and tinkerers, not ready for production. Documentation may be incomplete or inaccurate.</span></div><div class="docs-container"><aside class="sidebar"><div class="sidebar-content"><nav class="sidebar-nav" aria-label="Section navigation"><div class="sidebar-section"><h3 class="sidebar-section-title">Guide</h3><ul class="sidebar-list"><li class="sidebar-item "><a href="/guide/index.html" class="sidebar-link ">What is Org-Press?</a></li><li class="sidebar-item "><a href="/guide/getting-started.html" class="sidebar-link ">Getting Started</a></li><li class="sidebar-item "><a href="/guide/why-org-press.html" class="sidebar-link ">Why Org-Press?</a></li><li class="sidebar-item "><a href="/guide/features.html" class="sidebar-link ">Features</a></li><li class="sidebar-item "><a href="/guide/rendering-modes.html" class="sidebar-link ">Rendering Modes</a></li><li class="sidebar-item "><a href="/guide/cli.html" class="sidebar-link ">CLI Reference</a></li><li class="sidebar-item "><a href="/guide/using-plugins.html" class="sidebar-link ">Using Plugins</a></li><li class="sidebar-item "><a href="/guide/block-imports.html" class="sidebar-link ">Block Imports</a></li><li class="sidebar-item "><a href="/guide/static-assets.html" class="sidebar-link ">Static Assets</a></li><li class="sidebar-item "><a href="/guide/building.html" class="sidebar-link ">Building for Production</a></li><li class="sidebar-item "><a href="/guide/deploying.html" class="sidebar-link ">Deploying</a></li><li class="sidebar-item "><a href="/guide/troubleshooting.html" class="sidebar-link ">Troubleshooting</a></li></ul></div></nav></div></aside><main class="docs-content"><article class="docs-article"><div class="docs-body"><div><h1 id="how-blocks-work">How Blocks Work</h1><p>This page explains how org-press transforms code blocks from org-mode source into interactive elements on the page. It covers the full pipeline: parsing, plugin matching, transformation, rendering, and client-side hydration.
+</p><p>If you want to use blocks, see <a href="/guide/rendering-modes.html">Rendering Modes</a>. If you want to create your own block handlers, see <a href="/plugins/creating-plugins.html">Creating Plugins</a>. This page is for understanding the internals.
+</p><h2 id="the-big-picture">The Big Picture</h2><p>When org-press processes a code block, it follows these steps:
+</p><ol><li><strong>Parse</strong> the org file into an AST (<code class="inline-verbatim">parseOrgContent</code>)
+</li><li><strong>Walk</strong> the AST and extract code blocks with their parameters (<code class="inline-verbatim">processOrgElements</code>)
+</li><li><strong>Match</strong> each block to a handler using the <code class="inline-verbatim">:use</code> parameter or language (<code class="inline-verbatim">findBlockHandler</code>)
+</li><li><strong>Transform</strong> the block using the matched handler (<code class="inline-verbatim">processClientBlock</code> or <code class="inline-verbatim">processServerBlock</code>)
+</li><li><strong>Render</strong> the modified AST to HTML (<code class="inline-verbatim">renderOrg</code>)
+</li><li><strong>Hydrate</strong> the blocks in the browser (<code class="inline-verbatim">initHydration</code>)
+</li></ol><p>The rest of this page walks through each step in detail.
+</p><h2 id="step-1-parsing-org-to-ast">Step 1: Parsing Org to AST</h2><p>The entry point is <code class="inline-verbatim">parseOrgContent()</code> in <code class="inline-verbatim">parser/parse-content.ts</code>. It does three things:
+</p><ol><li>Parses the raw org-mode text into an AST using <code class="inline-verbatim">uniorg-parse</code></li><li>Extracts metadata from <code class="inline-verbatim">#+TITLE:</code>, <code class="inline-verbatim">#+DESCRIPTION:</code>, and other keywords
+</li><li>Calls <code class="inline-verbatim">processOrgElements()</code> to transform code blocks and drawers
+</li></ol><p>The result is a <code class="inline-verbatim">ParsedOrg</code> object containing the modified AST, metadata, virtual modules, cache files, and collected blocks.
+</p><pre><code>const parsed = await parseOrgContent(orgSource, context, contentHelpers);
+// parsed.ast         - Modified AST with blocks replaced
+// parsed.metadata    - Page title, description, etc.
+// parsed.virtualModules  - Generated virtual modules for Vite
+// parsed.cacheFiles  - Files written to cache directory
+// parsed.collectedBlocks - Block info for hydration manifest</code></pre>
+<h2 id="step-2-walking-the-ast">Step 2: Walking the AST</h2><p><code class="inline-verbatim">processOrgElements()</code> in <code class="inline-verbatim">parser/exporter.ts</code> performs a single depth-first walk over the AST. For each <code class="inline-verbatim">src-block</code> node, it:
+</p><ol><li>Parses the block's parameter string (e.g., <code class="inline-verbatim">:use dom | withSourceCode</code>)
+</li><li>Checks for special modes: <code class="inline-verbatim">:use silent</code> blocks are marked for removal
+</li><li>Extracts the block name from <code class="inline-verbatim">#+NAME:</code> directives
+</li><li>Looks up a handler via <code class="inline-verbatim">findBlockHandler()</code></li><li>Routes to <code class="inline-verbatim">processServerBlock()</code> or <code class="inline-verbatim">processClientBlock()</code> based on the <code class="inline-verbatim">:use</code> value
+</li></ol><p>The same walk also processes drawer nodes, matching them to drawer plugins.
+</p><h3 id="common-block-parameters">Common Block Parameters</h3><table><thead><tr><th>Parameter</th><th>Example</th><th>Effect</th></tr></thead><tbody><tr><td><code class="inline-verbatim">:use</code></td><td><code class="inline-verbatim">:use dom</code></td><td>Sets the rendering mode</td></tr><tr><td><code class="inline-verbatim">:use</code> with pipe</td><td><code class="inline-verbatim">:use dom \vert withSourceCode</code></td><td>Mode plus wrappers</td></tr><tr><td><code class="inline-verbatim">:use silent</code></td><td><code class="inline-verbatim">:use silent</code></td><td>Block executes but produces no output</td></tr><tr><td><code class="inline-verbatim">:use server</code></td><td><code class="inline-verbatim">:use server</code></td><td>Runs at build time in Node.js</td></tr><tr><td><code class="inline-verbatim">:use sourceOnly</code></td><td><code class="inline-verbatim">:use sourceOnly</code></td><td>Shows code without executing</td></tr><tr><td><code class="inline-verbatim">:use api</code></td><td><code class="inline-verbatim">:use api :endpoint /api/hello</code></td><td>Creates an API endpoint</td></tr><tr><td><code class="inline-verbatim">:name</code></td><td><code class="inline-verbatim">:name myBlock</code></td><td>Names the block for imports</td></tr><tr><td><code class="inline-verbatim">:tangle</code></td><td><code class="inline-verbatim">:tangle output.js</code></td><td>Extracts code to a file</td></tr></tbody></table><h2 id="step-3-matching-blocks-to-handlers">Step 3: Matching Blocks to Handlers</h2><p><code class="inline-verbatim">findBlockHandler()</code> determines which plugin handles a block. It checks in this order:
+</p><ol><li>Parse the <code class="inline-verbatim">:use</code> parameter to get the mode name (e.g., <code class="inline-verbatim">dom</code> from <code class="inline-verbatim">:use dom | withSourceCode</code>)
+</li><li>Look up a <strong>block handler</strong> registered under that name
+</li><li>If no block handler, look up a <strong>transformer</strong> with an <code class="inline-verbatim">onBuild</code> hook under that name
+</li><li>If <code class="inline-verbatim">:use</code> didn't match, try a block handler registered for the block's <strong>language</strong></li><li>If nothing matches, the block passes through as a plain code listing
+</li></ol><h3 id="common-handler-resolutions">Common Handler Resolutions</h3><table><thead><tr><th>Block</th><th><code class="inline-verbatim">:use</code></th><th>Resolved Handler</th></tr></thead><tbody><tr><td><code class="inline-verbatim">#+begin_src javascript :use dom</code></td><td><code class="inline-verbatim">dom</code></td><td>Built-in DOM transformer</td></tr><tr><td><code class="inline-verbatim">#+begin_src tsx :use react</code></td><td><code class="inline-verbatim">react</code></td><td><code class="inline-verbatim">@org-press/react</code> plugin</td></tr><tr><td><code class="inline-verbatim">#+begin_src javascript :use server</code></td><td><code class="inline-verbatim">server</code></td><td>Server execution path</td></tr><tr><td><code class="inline-verbatim">#+begin_src excalidraw</code></td><td>(language)</td><td><code class="inline-verbatim">@org-press/block-excalidraw</code></td></tr><tr><td><code class="inline-verbatim">#+begin_src jscad</code></td><td>(language)</td><td><code class="inline-verbatim">@org-press/block-jscad</code></td></tr><tr><td><code class="inline-verbatim">#+begin_src javascript</code></td><td>(none)</td><td>Falls through to default handler</td></tr></tbody></table><h2 id="step-4-transforming-blocks">Step 4: Transforming Blocks</h2><p>Once a handler is found, the block takes one of three paths: client transformation, server execution, or CSS injection.
+</p><h3 id="client-blocks">Client Blocks</h3><p><code class="inline-verbatim">processClientBlock()</code> handles the majority of blocks. The flow is:
+</p><ol><li>The matched handler receives the block code and context, and returns a <code class="inline-verbatim">TransformResult</code> with <code class="inline-verbatim">code</code>, <code class="inline-verbatim">html</code>, <code class="inline-verbatim">script</code>, or <code class="inline-verbatim">css</code> fields
+</li><li>The transformed code is written to the cache directory
+</li><li>A virtual module ID is generated (e.g., <code class="inline-verbatim">virtual:org-press:block:dom:content/index.org:3.js</code>)
+</li><li>The block is registered with the <code class="inline-verbatim">HydrateRegistry</code> for per-page hydrate entries
+</li><li>The original <code class="inline-verbatim">src-block</code> AST node is replaced with an <code class="inline-verbatim">export-block</code> containing a container div
+</li></ol><p>The container div carries a <code class="inline-verbatim">data-org-block</code> attribute that the hydration runtime uses to find and populate blocks:
+</p><pre><code>&#x3C;div id="org-block-3-result"
+     data-org-block="block-content-index-org-3"
+     class="org-block-result">&#x3C;/div></code></pre>
+<p>If the <code class="inline-verbatim">:use</code> parameter includes wrappers (e.g., <code class="inline-verbatim">| withSourceCode</code>), they are applied to the container HTML before insertion. If <code class="inline-verbatim">withSourceCode</code> is present, the original <code class="inline-verbatim">src-block</code> node is kept alongside the container so the source code appears above the result.
+</p><h3 id="server-blocks">Server Blocks</h3><p>Blocks with <code class="inline-verbatim">:use server</code> take a different path. <code class="inline-verbatim">processServerBlock()</code> calls <code class="inline-verbatim">executeServerBlock()</code>, which:
+</p><ol><li>Runs the code in Node.js at build time
+</li><li>Returns the result as HTML
+</li></ol><p>The result replaces the <code class="inline-verbatim">src-block</code> in the AST. Server blocks produce static HTML with no client-side JavaScript. They have access to Node.js APIs, the file system, and content helpers.
+</p><h3 id="css-blocks">CSS Blocks</h3><p>CSS blocks are a special case. Instead of hydration, they produce a <code class="inline-verbatim">&#x3C;style></code> tag directly:
+</p><pre><code>&#x3C;style data-org-block="block-content-index-org-5">
+  .highlight { background: yellow; }
+&#x3C;/style></code></pre>
+<p>No JavaScript is generated for CSS blocks.
+</p><h2 id="step-5-rendering-to-html">Step 5: Rendering to HTML</h2><p>After all blocks are transformed, <code class="inline-verbatim">renderOrg()</code> in <code class="inline-verbatim">render/render.ts</code> converts the modified AST to HTML using a unified/rehype pipeline:
+</p><ol><li><code class="inline-verbatim">uniorg2rehype</code> - Converts the org AST to a rehype (HTML) AST
+</li><li><code class="inline-verbatim">rehype-raw</code> - Processes raw HTML embedded in the org content
+</li><li><code class="inline-verbatim">rehypeOrgLinks</code> - Transforms <code class="inline-verbatim">file:path.org</code> links to <code class="inline-verbatim">/path.html</code></li><li><code class="inline-verbatim">rehypeHeadingIds</code> - Adds ID attributes to headings for anchor links
+</li><li><code class="inline-verbatim">rehypeTocExtract</code> - Extracts a table of contents from headings
+</li><li><code class="inline-verbatim">rehype-highlight</code> - Applies syntax highlighting to code blocks
+</li><li><code class="inline-verbatim">rehype-stringify</code> - Serializes the HTML AST to an HTML string
+</li></ol><p>The <code class="inline-verbatim">export-block</code> nodes inserted during step 4 become real HTML in the final output, since they were already set to the <code class="inline-verbatim">html</code> backend.
+</p><h2 id="step-6-client-hydration">Step 6: Client Hydration</h2><p>The hydration system connects the static HTML containers to their JavaScript modules.
+</p><h3 id="during-build">During Build</h3><p>The <code class="inline-verbatim">HydrateRegistry</code> collects every block that needs hydration. After all pages are pre-parsed, <code class="inline-verbatim">generateEntries()</code> creates one hydrate entry file per page. Each entry file looks like:
+</p><pre><code>import { initHydration } from "org-press/client/hydrate-runtime";
+import * as Block0 from "virtual:org-press:block:dom:content/index.org:3.js";
+import * as Block1 from "virtual:org-press:block:react:content/index.org:7.tsx";
+
+const blocks = {
+  "block-content-index-org-3": { module: Block0, ext: "js", isReact: false, modeName: "dom" },
+  "block-content-index-org-7": { module: Block1, ext: "tsx", isReact: true, modeName: "react" },
+};
+
+initHydration(blocks);</code></pre>
+<h3 id="in-the-browser">In the Browser</h3><p><code class="inline-verbatim">initHydration()</code> in <code class="inline-verbatim">client/hydrate-runtime.ts</code> runs on <code class="inline-verbatim">DOMContentLoaded</code>. For each block in the registry it:
+</p><ol><li>Finds the container element by its <code class="inline-verbatim">data-org-block</code> attribute
+</li><li>Gets the <code class="inline-verbatim">default</code> export from the block module (the execution result)
+</li><li>Calls the <code class="inline-verbatim">render</code> export if one exists, or falls back to default rendering
+</li><li>For React blocks (TSX/JSX), creates a React root and renders the component
+</li></ol><h3 id="export-conventions">Export Conventions</h3><table><thead><tr><th>Export</th><th>Purpose</th></tr></thead><tbody><tr><td><code class="inline-verbatim">export default</code></td><td>The block's execution result (value, element, or component)</td></tr><tr><td><code class="inline-verbatim">export function render(result, el)</code></td><td>Custom render function for DOM blocks</td></tr><tr><td>React component via <code class="inline-verbatim">render</code></td><td>For TSX/JSX blocks, renders with <code class="inline-verbatim">createRoot</code></td></tr></tbody></table><p>If a block has no <code class="inline-verbatim">render</code> export, the hydration runtime handles the result automatically: HTML elements are appended, strings become innerHTML or textContent, objects are displayed as formatted JSON.
+</p><h2 id="the-plugin-registry">The Plugin Registry</h2><p>The <code class="inline-verbatim">PluginRegistry</code> in <code class="inline-verbatim">plugins/registry.ts</code> manages plugin initialization:
+</p><ol><li>Plugins are sorted by priority (higher priority runs first, default is 0)
+</li><li>Each plugin's <code class="inline-verbatim">setup(ctx)</code> function is called with a <code class="inline-verbatim">PluginContextImpl</code></li><li>Inside <code class="inline-verbatim">setup</code>, plugins register their handlers using context methods like <code class="inline-verbatim">ctx.onBlock()</code>, <code class="inline-verbatim">ctx.onDrawer()</code>, <code class="inline-verbatim">ctx.addTransformer()</code></li><li>Errors during setup are logged but don't crash the build
+</li></ol><p><code class="inline-verbatim">PluginContextImpl</code> in <code class="inline-verbatim">plugins/context.ts</code> stores all registered handlers and provides lookup methods used during the AST walk.
+</p><h3 id="factory-functions">Factory Functions</h3><p>Most plugins are created using factory functions instead of the raw <code class="inline-verbatim">setup</code> API:
+</p><table><thead><tr><th>Factory</th><th>Purpose</th><th>Example</th></tr></thead><tbody><tr><td><code class="inline-verbatim">CreateBlock</code></td><td>Handles code blocks by language</td><td><code class="inline-verbatim">CreateBlock('jscad', { transform: ... })</code></td></tr><tr><td><code class="inline-verbatim">CreateDrawer</code></td><td>Handles org drawers by name</td><td><code class="inline-verbatim">CreateDrawer('NOTE', (drawer) => ...)</code></td></tr><tr><td><code class="inline-verbatim">CreateTransformer</code></td><td>Adds a <code class="inline-verbatim">:use</code> pipeline stage</td><td><code class="inline-verbatim">CreateTransformer('dom', { onBuild: ... })</code></td></tr><tr><td><code class="inline-verbatim">CreatePlugin</code></td><td>Full <code class="inline-verbatim">PluginContext</code> access</td><td><code class="inline-verbatim">CreatePlugin('ai', (ctx) => { ... })</code></td></tr></tbody></table><p><code class="inline-verbatim">CreateBlock</code> and <code class="inline-verbatim">CreateDrawer</code> are wrappers that call <code class="inline-verbatim">ctx.onBlock()</code> and <code class="inline-verbatim">ctx.onDrawer()</code> internally. <code class="inline-verbatim">CreateTransformer</code> calls <code class="inline-verbatim">ctx.addTransformer()</code>. <code class="inline-verbatim">CreatePlugin</code> gives you the raw context for complex cases that need multiple handler types.
+</p><h2 id="build-vs-dev-mode">Build vs Dev Mode</h2><h3 id="dev-mode">Dev Mode</h3><p>In development (<code class="inline-verbatim">npx orgp dev</code>):
+</p><ul><li>Each request triggers fresh parsing of the requested org file
+</li><li>Virtual modules are resolved on-demand by the Vite dev server
+</li><li>The <code class="inline-verbatim">virtual-blocks</code> Vite plugin handles <code class="inline-verbatim">virtual:org-press:block:...</code> imports
+</li><li>HMR is supported: editing an org file clears the AST and block caches, then invalidates affected virtual modules
+</li></ul><h3 id="build-mode">Build Mode</h3><p>In production (<code class="inline-verbatim">npx orgp build</code>):
+</p><ol><li><strong>Pre-parse</strong>: All org files are parsed and blocks are collected into the <code class="inline-verbatim">HydrateRegistry</code></li><li><strong>Generate entries</strong>: Hydrate entry files are written to the cache directory
+</li><li><strong>Client bundle</strong>: Vite bundles the entry files and their block imports
+</li><li><strong>SSR render</strong>: Each page is rendered to static HTML with the block containers
+</li><li><strong>Output</strong>: Static HTML files with script tags pointing to the bundled hydrate entries
+</li></ol><h2 id="virtual-block-imports">Virtual Block Imports</h2><p>The <code class="inline-verbatim">virtual-blocks</code> Vite plugin in <code class="inline-verbatim">node/plugins/virtual-blocks.ts</code> handles two import patterns.
+</p><h3 id="the-orgname-pattern">The <code class="inline-verbatim">.org?name=</code> Pattern</h3><p>When you write:
+</p><pre><code>import { add } from './math.org?name=mathUtils';</code></pre>
+<p>The plugin:
+</p><ol><li>Resolves the <code class="inline-verbatim">.org</code> path relative to the importer
+</li><li>Parses the org file and extracts code blocks
+</li><li>Finds the block named <code class="inline-verbatim">mathUtils</code></li><li>Converts the import to a virtual module ID
+</li><li>Returns the block's code (with plugin transformations applied)
+</li></ol><p>You can also use <code class="inline-verbatim">?index=N</code> to import by position, or <code class="inline-verbatim">?data</code> to get raw data without plugin transformation.
+</p><h3 id="virtual-module-ids">Virtual Module IDs</h3><p>Virtual module IDs follow this format:
+</p><pre><code>virtual:org-press:block:{parser}:{orgFilePath}:{blockIndex}.{extension}
+virtual:org-press:block:{parser}:{orgFilePath}:NAME:{blockName}.{extension}</code></pre>
+<p>The <code class="inline-verbatim">parser</code> segment indicates the transformation type: <code class="inline-verbatim">default</code> for plugin-based, <code class="inline-verbatim">data</code> for raw imports, <code class="inline-verbatim">server</code> for server execution, or a plugin-specific suffix like <code class="inline-verbatim">jscad-model</code>.
+</p><h2 id="wrappers-and-the-pipe-syntax">Wrappers and the Pipe Syntax</h2><p>The <code class="inline-verbatim">:use</code> parameter supports composable wrappers via pipe syntax:
+</p><pre><code>#+begin_src javascript :use dom | withSourceCode | withConsole
+// Code here
+#+end_src</code></pre>
+<p><code class="inline-verbatim">parsePipe()</code> in <code class="inline-verbatim">plugins/pipe-parser.ts</code> splits this into segments:
+</p><ol><li>The first segment is the <strong>mode</strong> (<code class="inline-verbatim">dom</code>)
+</li><li>Everything after the first pipe is a <strong>wrapper</strong> (<code class="inline-verbatim">withSourceCode</code>, <code class="inline-verbatim">withConsole</code>)
+</li></ol><p>Each wrapper can accept configuration via query strings or JSON:
+</p><pre><code>:use dom | withSourceCode?position=before
+:use dom | withContainer:{"class":"highlight"}</code></pre>
+<p>Wrappers are applied during <code class="inline-verbatim">processClientBlock()</code>. They transform the container HTML, adding source code panels, tabs, or other UI around the block output.
+</p><h3 id="built-in-wrappers">Built-in Wrappers</h3><table><thead><tr><th>Wrapper</th><th>Effect</th></tr></thead><tbody><tr><td><code class="inline-verbatim">withSourceCode</code></td><td>Shows the source code alongside the result</td></tr><tr><td><code class="inline-verbatim">withContainer</code></td><td>Wraps the output in a custom container</td></tr></tbody></table><p>Plugins can register additional wrappers using <code class="inline-verbatim">CreateTransformer</code>.
+</p><h2 id="summary-the-complete-flow">Summary: The Complete Flow</h2><p>Here is the full path a code block takes from org source to rendered page:
+</p><ol><li>Raw org text is parsed to AST (<code class="inline-verbatim">parseOrgContent</code> in <code class="inline-verbatim">parser/parse-content.ts</code>)
+</li><li><code class="inline-verbatim">uniorg-parse</code> creates AST nodes including <code class="inline-verbatim">src-block</code> for code blocks
+</li><li><code class="inline-verbatim">processOrgElements</code> walks the AST (<code class="inline-verbatim">parser/exporter.ts</code>)
+</li><li><code class="inline-verbatim">parseCodeBlockParameters</code> extracts <code class="inline-verbatim">:use</code>, <code class="inline-verbatim">:name</code>, and other parameters (<code class="inline-verbatim">parser/parameters.ts</code>)
+</li><li><code class="inline-verbatim">findBlockHandler</code> matches the block to a plugin (<code class="inline-verbatim">parser/exporter.ts</code>)
+</li><li><code class="inline-verbatim">processClientBlock</code> or <code class="inline-verbatim">processServerBlock</code> transforms the block (<code class="inline-verbatim">parser/exporter.ts</code>)
+</li><li>Transformed code is written to cache and a virtual module ID is generated
+</li><li>The <code class="inline-verbatim">src-block</code> node is replaced with an <code class="inline-verbatim">export-block</code> containing the container div
+</li><li><code class="inline-verbatim">renderOrg</code> converts the modified AST to HTML via the rehype pipeline (<code class="inline-verbatim">render/render.ts</code>)
+</li><li><code class="inline-verbatim">HydrateRegistry</code> generates per-page hydrate entry files (<code class="inline-verbatim">node/build/hydrate-registry.ts</code>)
+</li><li>Vite bundles the entries and resolves virtual module imports (<code class="inline-verbatim">node/plugins/virtual-blocks.ts</code>)
+</li><li><code class="inline-verbatim">initHydration</code> runs in the browser, finds containers by <code class="inline-verbatim">data-org-block</code>, and renders block modules (<code class="inline-verbatim">client/hydrate-runtime.ts</code>)
+</li></ol><h2 id="see-also">See Also</h2><ul><li><a href="/guide/rendering-modes.html">Rendering Modes</a> - Using the <code class="inline-verbatim">:use</code> parameter
+</li><li><a href="/guide/using-plugins.html">Using Plugins</a> - Installing and configuring plugins
+</li><li><a href="/guide/block-imports.html">Block Imports</a> - Importing blocks across files
+</li><li><a href="/plugins/creating-plugins.html">Creating Plugins</a> - Building your own block handlers
+</li><li><a href="/api/plugin-api.html">Plugin API</a> - Full API reference
+</li></ul></div></div></article></main><aside class="toc"><div class="toc-content"><h4 class="toc-title">On this page</h4><nav class="toc-nav" aria-label="Table of contents"><ul class="toc-list"><li class="toc-item "><a href="#the-big-picture" class="toc-link">The Big Picture</a></li><li class="toc-item "><a href="#step-1-parsing-org-to-ast" class="toc-link">Step 1: Parsing Org to AST</a></li><li class="toc-item "><a href="#step-2-walking-the-ast" class="toc-link">Step 2: Walking the AST</a></li><li class="toc-item toc-item-nested"><a href="#common-block-parameters" class="toc-link">Common Block Parameters</a></li><li class="toc-item "><a href="#step-3-matching-blocks-to-handlers" class="toc-link">Step 3: Matching Blocks to Handlers</a></li><li class="toc-item toc-item-nested"><a href="#common-handler-resolutions" class="toc-link">Common Handler Resolutions</a></li><li class="toc-item "><a href="#step-4-transforming-blocks" class="toc-link">Step 4: Transforming Blocks</a></li><li class="toc-item toc-item-nested"><a href="#client-blocks" class="toc-link">Client Blocks</a></li><li class="toc-item toc-item-nested"><a href="#server-blocks" class="toc-link">Server Blocks</a></li><li class="toc-item toc-item-nested"><a href="#css-blocks" class="toc-link">CSS Blocks</a></li><li class="toc-item "><a href="#step-5-rendering-to-html" class="toc-link">Step 5: Rendering to HTML</a></li><li class="toc-item "><a href="#step-6-client-hydration" class="toc-link">Step 6: Client Hydration</a></li><li class="toc-item toc-item-nested"><a href="#during-build" class="toc-link">During Build</a></li><li class="toc-item toc-item-nested"><a href="#in-the-browser" class="toc-link">In the Browser</a></li><li class="toc-item toc-item-nested"><a href="#export-conventions" class="toc-link">Export Conventions</a></li><li class="toc-item "><a href="#the-plugin-registry" class="toc-link">The Plugin Registry</a></li><li class="toc-item toc-item-nested"><a href="#factory-functions" class="toc-link">Factory Functions</a></li><li class="toc-item "><a href="#build-vs-dev-mode" class="toc-link">Build vs Dev Mode</a></li><li class="toc-item toc-item-nested"><a href="#dev-mode" class="toc-link">Dev Mode</a></li><li class="toc-item toc-item-nested"><a href="#build-mode" class="toc-link">Build Mode</a></li><li class="toc-item "><a href="#virtual-block-imports" class="toc-link">Virtual Block Imports</a></li><li class="toc-item toc-item-nested"><a href="#the-orgname-pattern" class="toc-link">The .org?name= Pattern</a></li><li class="toc-item toc-item-nested"><a href="#virtual-module-ids" class="toc-link">Virtual Module IDs</a></li><li class="toc-item "><a href="#wrappers-and-the-pipe-syntax" class="toc-link">Wrappers and the Pipe Syntax</a></li><li class="toc-item toc-item-nested"><a href="#built-in-wrappers" class="toc-link">Built-in Wrappers</a></li><li class="toc-item "><a href="#summary-the-complete-flow" class="toc-link">Summary: The Complete Flow</a></li><li class="toc-item "><a href="#see-also" class="toc-link">See Also</a></li></ul></nav></div></aside></div><footer class="site-footer"><div class="footer-content"><div class="footer-grid"><div class="footer-column"><h4>Guide</h4><ul><li><a href="/guide/index.html">What is Org-Press?</a></li><li><a href="/guide/getting-started.html">Getting Started</a></li><li><a href="/guide/features.html">Features</a></li><li><a href="/guide/cli.html">CLI Reference</a></li><li><a href="/guide/building.html">Building</a></li></ul></div><div class="footer-column"><h4>Config</h4><ul><li><a href="/config/index.html">Overview</a></li><li><a href="/config/shared-options.html">Shared Options</a></li><li><a href="/config/build-options.html">Build Options</a></li><li><a href="/config/server-options.html">Server Options</a></li></ul></div><div class="footer-column"><h4>Plugins</h4><ul><li><a href="/plugins/index.html">Overview</a></li><li><a href="/plugins/excalidraw.html">Excalidraw</a></li><li><a href="/plugins/jscad.html">JSCAD</a></li><li><a href="/plugins/creating-plugins.html">Creating Plugins</a></li></ul></div><div class="footer-column"><h4>API</h4><ul><li><a href="/api/index.html">Overview</a></li><li><a href="/api/plugin-api.html">Plugin API</a></li><li><a href="/api/javascript-api.html">JavaScript API</a></li></ul></div><div class="footer-column"><h4>Resources</h4><ul><li><a href="/examples/index.html">Examples</a></li><li><a href="https://github.com/org-press/org-press" target="_blank" rel="noopener">GitHub</a></li><li><a href="https://github.com/org-press/org-press/releases" target="_blank" rel="noopener">Releases</a></li></ul></div></div><div class="footer-bottom"><p class="footer-copyright">Released under the GPL-2.0 License.</p><p class="footer-credit">Built with <a href="https://github.com/org-press/org-press">org-press</a></p></div></div></footer></div><script src="https://analytics.ideable.dev/api/script.js" data-site-id="5dc60eeeac5d" defer=""></script></body></html>

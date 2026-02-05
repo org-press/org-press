@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charSet="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/><title>Unified Plugin API v2: A Complete Redesign | org-press</title><script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script><script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/highlight.min.js"></script><link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/styles/github.min.css" media="(prefers-color-scheme: light)"/><link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/styles/github-dark.min.css" media="(prefers-color-scheme: dark)"/><script>
+          // Register org-mode language for highlight.js
+          if (typeof hljs !== 'undefined') {
+            hljs.registerLanguage('org', function(hljs) {
+              return {
+                name: 'Org',
+                aliases: ['org', 'org-mode', 'orgmode'],
+                case_insensitive: true,
+                contains: [
+                  // Headlines
+                  {
+                    className: 'section',
+                    begin: /^\*+\s/,
+                    end: /$/,
+                    contains: [
+                      { className: 'keyword', begin: /\b(TODO|DONE|WAITING|CANCELLED|NEXT|HOLD)\b/ }
+                    ]
+                  },
+                  // Keywords (#+KEYWORD:)
+                  {
+                    className: 'meta',
+                    begin: /^#\+[A-Za-z_]+:/,
+                    end: /$/,
+                    contains: [{ className: 'string', begin: /\s/, end: /$/ }]
+                  },
+                  // Begin/end blocks
+                  { className: 'keyword', begin: /^#\+(begin|end)_[a-z]+/i, relevance: 10 },
+                  // Property drawers
+                  { className: 'attribute', begin: /^:\w+:/, end: /$/ },
+                  // Links [[url][description]]
+                  {
+                    className: 'link',
+                    begin: /\[\[/,
+                    end: /\]\]/,
+                    contains: [{ className: 'string', begin: /\]\[/, end: /(?=\]\])/ }]
+                  },
+                  // Comments (lines starting with #, but not #+)
+                  { className: 'comment', begin: /^#[^+]/, end: /$/ },
+                  // Timestamps
+                  { className: 'number', begin: /<\d{4}-\d{2}-\d{2}/, end: />/ },
+                  // Tags :tag1:tag2:
+                  { className: 'tag', begin: /\s:[a-zA-Z0-9_@#%:]+:\s*$/ }
+                ]
+              };
+            });
+            // Run highlighting after DOM is ready
+            document.addEventListener('DOMContentLoaded', function() {
+              hljs.highlightAll();
+            });
+          }
+        </script><script>
+          (function() {
+            // Set current path as data attribute for CSS styling
+            document.documentElement.dataset.path = window.location.pathname;
+
+            // Mobile menu toggle using event delegation
+            document.addEventListener('click', function(e) {
+              var button = e.target.closest('.mobile-menu-button');
+              if (button) {
+                e.stopPropagation();
+                document.body.classList.toggle('mobile-menu-open');
+                return;
+              }
+              // Close menu when clicking a link inside the menu
+              var menuLink = e.target.closest('.mobile-menu a');
+              if (menuLink) {
+                document.body.classList.remove('mobile-menu-open');
+                return;
+              }
+              // Close menu when clicking outside
+              if (document.body.classList.contains('mobile-menu-open')) {
+                var menu = document.querySelector('.mobile-menu');
+                if (menu && !menu.contains(e.target)) {
+                  document.body.classList.remove('mobile-menu-open');
+                }
+              }
+            });
+
+            // Highlight current page in navigation
+            document.addEventListener('DOMContentLoaded', function() {
+              var path = window.location.pathname;
+              // Highlight sidebar links
+              document.querySelectorAll('.sidebar-link').forEach(function(link) {
+                if (link.getAttribute('href') === path) {
+                  link.classList.add('active');
+                  link.closest('.sidebar-item')?.classList.add('active');
+                }
+              });
+              // Highlight top nav links
+              document.querySelectorAll('.top-nav-link').forEach(function(link) {
+                var href = link.getAttribute('href');
+                var match = link.dataset.match;
+                if (path === href || (match && path.startsWith(match))) {
+                  link.classList.add('active');
+                }
+              });
+            });
+          })();
+        </script><link rel="stylesheet" href="/assets/theme-DsForQV0.css"/><script type="module" src="/assets/entry-client-l0sNRNKZ.js"></script></head><body><div class="docs-layout"><header class="top-nav"><div class="top-nav-container"><a href="/index.html" class="top-nav-logo"><span class="logo-text">Org-Press</span></a><nav class="top-nav-links"><a href="/guide/index.html" class="top-nav-link " data-match="^\/(guide(\/|$)|getting-started|index\.html$)">Guide</a><a href="/config/index.html" class="top-nav-link " data-match="^\/config(\/|$)">Config</a><a href="/plugins/index.html" class="top-nav-link " data-match="^\/plugins(\/|$)">Plugins</a><a href="/api/index.html" class="top-nav-link " data-match="^\/api(\/|$)">API</a></nav><div class="top-nav-social"><a href="https://github.com/org-press/org-press/blob/main/docs/content/blog/plugin-system-v2.org?plain=1" class="top-nav-source-link" target="_blank" rel="noopener noreferrer" title="View page source on GitHub">:view-source</a><a href="https://github.com/org-press/org-press" class="top-nav-social-link" target="_blank" rel="noopener noreferrer" aria-label="GitHub"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"></path></svg></a></div><button class="mobile-menu-button" aria-label="Toggle navigation menu" aria-expanded="false"><span class="hamburger-line"></span><span class="hamburger-line"></span><span class="hamburger-line"></span></button></div></header><div class="mobile-menu"><nav class="mobile-menu-nav"><div class="mobile-menu-section"><a href="/guide/index.html" class="mobile-menu-section-title ">Guide</a><ul class="mobile-menu-list"><li><a href="/guide/index.html" class="mobile-menu-link ">What is Org-Press?</a></li><li><a href="/guide/getting-started.html" class="mobile-menu-link ">Getting Started</a></li><li><a href="/guide/why-org-press.html" class="mobile-menu-link ">Why Org-Press?</a></li><li><a href="/guide/features.html" class="mobile-menu-link ">Features</a></li><li><a href="/guide/rendering-modes.html" class="mobile-menu-link ">Rendering Modes</a></li><li><a href="/guide/cli.html" class="mobile-menu-link ">CLI Reference</a></li><li><a href="/guide/using-plugins.html" class="mobile-menu-link ">Using Plugins</a></li><li><a href="/guide/block-imports.html" class="mobile-menu-link ">Block Imports</a></li><li><a href="/guide/static-assets.html" class="mobile-menu-link ">Static Assets</a></li><li><a href="/guide/building.html" class="mobile-menu-link ">Building for Production</a></li><li><a href="/guide/deploying.html" class="mobile-menu-link ">Deploying</a></li><li><a href="/guide/troubleshooting.html" class="mobile-menu-link ">Troubleshooting</a></li></ul></div><div class="mobile-menu-section"><a href="/config/index.html" class="mobile-menu-section-title ">Config</a><ul class="mobile-menu-list"><li><a href="/config/index.html" class="mobile-menu-link ">Overview</a></li><li><a href="/config/shared-options.html" class="mobile-menu-link ">Shared Options</a></li><li><a href="/config/build-options.html" class="mobile-menu-link ">Build Options</a></li><li><a href="/config/server-options.html" class="mobile-menu-link ">Server Options</a></li><li><a href="/config/plugin-options.html" class="mobile-menu-link ">Plugin Options</a></li></ul></div><div class="mobile-menu-section"><a href="/plugins/index.html" class="mobile-menu-section-title ">Plugins</a><ul class="mobile-menu-list"><li><a href="/plugins/index.html" class="mobile-menu-link ">Overview</a></li><li class="mobile-menu-group"><span class="mobile-menu-group-title">Official Plugins</span><ul class="mobile-menu-sublist"><li><a href="/plugins/react.html" class="mobile-menu-link ">React</a></li><li><a href="/plugins/echarts.html" class="mobile-menu-link ">ECharts</a></li><li><a href="/plugins/excalidraw.html" class="mobile-menu-link ">Excalidraw</a></li><li><a href="/plugins/jscad.html" class="mobile-menu-link ">JSCAD</a></li><li><a href="/plugins/test.html" class="mobile-menu-link ">Test</a></li></ul></li><li><a href="/plugins/creating-plugins.html" class="mobile-menu-link ">Creating Plugins</a></li></ul></div><div class="mobile-menu-section"><a href="/api/index.html" class="mobile-menu-section-title ">API</a><ul class="mobile-menu-list"><li><a href="/api/index.html" class="mobile-menu-link ">Overview</a></li><li><a href="/api/plugin-api.html" class="mobile-menu-link ">Plugin API</a></li><li><a href="/api/javascript-api.html" class="mobile-menu-link ">JavaScript API</a></li><li><a href="/api/hmr-api.html" class="mobile-menu-link ">HMR API</a></li><li><a href="/api/cli-plugins.html" class="mobile-menu-link ">CLI Plugins</a></li></ul></div></nav><div class="mobile-menu-footer"><a href="https://github.com/org-press/org-press" class="mobile-menu-link" target="_blank" rel="noopener noreferrer">GitHub</a></div></div><div class="alpha-banner"><span class="alpha-banner-icon">⚠️</span><span class="alpha-banner-text"><strong>Early Alpha</strong> — Org-press is experimental. Perfect for hackers and tinkerers, not ready for production. Documentation may be incomplete or inaccurate.</span></div><div class="docs-container"><aside class="sidebar"><div class="sidebar-content"><nav class="sidebar-nav" aria-label="Section navigation"><div class="sidebar-section"><h3 class="sidebar-section-title">Guide</h3><ul class="sidebar-list"><li class="sidebar-item "><a href="/guide/index.html" class="sidebar-link ">What is Org-Press?</a></li><li class="sidebar-item "><a href="/guide/getting-started.html" class="sidebar-link ">Getting Started</a></li><li class="sidebar-item "><a href="/guide/why-org-press.html" class="sidebar-link ">Why Org-Press?</a></li><li class="sidebar-item "><a href="/guide/features.html" class="sidebar-link ">Features</a></li><li class="sidebar-item "><a href="/guide/rendering-modes.html" class="sidebar-link ">Rendering Modes</a></li><li class="sidebar-item "><a href="/guide/cli.html" class="sidebar-link ">CLI Reference</a></li><li class="sidebar-item "><a href="/guide/using-plugins.html" class="sidebar-link ">Using Plugins</a></li><li class="sidebar-item "><a href="/guide/block-imports.html" class="sidebar-link ">Block Imports</a></li><li class="sidebar-item "><a href="/guide/static-assets.html" class="sidebar-link ">Static Assets</a></li><li class="sidebar-item "><a href="/guide/building.html" class="sidebar-link ">Building for Production</a></li><li class="sidebar-item "><a href="/guide/deploying.html" class="sidebar-link ">Deploying</a></li><li class="sidebar-item "><a href="/guide/troubleshooting.html" class="sidebar-link ">Troubleshooting</a></li></ul></div></nav></div></aside><main class="docs-content"><article class="docs-article"><div class="docs-body"><div><h1 id="the-problem-with-v1">The Problem with V1</h1><p>The original plugin system grew organically, accumulating complexity over time. What started as a simple way to handle code blocks evolved into a tangled web of special cases, hardcoded behaviors, and fragmented APIs.
+</p><h2 id="pain-points">Pain Points</h2><ol><li><strong>Fragmented Plugin Types</strong> - Block plugins, drawer plugins, and CLI plugins were all different interfaces
+</li><li><strong>Hardcoded Core Behaviors</strong> - TOC generation, heading IDs, and syntax highlighting were baked into core
+</li><li><strong>Complex Configuration</strong> - Users had to understand <code class="inline-verbatim">plugins</code>, <code class="inline-verbatim">drawerPlugins</code>, and internal registries
+</li><li><strong>Bridge Layer Hell</strong> - The v1/v2 coexistence created a compatibility layer that satisfied no one
+</li></ol><div id="org-block-0-result" data-org-block="block-content-blog-plugin-system-v2-org-0" class="org-block-result"></div><p>The diagram above shows the v1 architecture: a bloated core with hardcoded behaviors, and three separate plugin interfaces that couldn't share logic.
+</p><h1 id="design-principles-for-v2">Design Principles for V2</h1><p>We started fresh with five guiding principles:
+</p><ol><li><strong>Core is just orchestration</strong> - Pipeline stages + plugin registration, nothing else
+</li><li><strong>Everything is a plugin</strong> - TOC, headings, highlight, code blocks, drawers
+</li><li><strong>Simple things are simple</strong> - Factory functions for common patterns
+</li><li><strong>Complex things are possible</strong> - Full <code class="inline-verbatim">setup(ctx)</code> API as escape hatch
+</li><li><strong>Leverage existing ecosystem</strong> - Rehype/uniorg plugins work directly
+</li></ol><h1 id="the-new-architecture">The New Architecture</h1><div id="org-block-1-result" data-org-block="block-content-blog-plugin-system-v2-org-1" class="org-block-result"></div><p>The v2 architecture is clean and unified:
+</p><ul><li><strong>Core</strong> handles only orchestration
+</li><li><strong>PluginRegistry</strong> loads and sorts plugins by priority
+</li><li><strong>PluginContextImpl</strong> provides the <code class="inline-verbatim">setup()</code> API for plugins
+</li><li><strong>All plugins</strong> implement the same <code class="inline-verbatim">OrgPressPlugin</code> interface
+</li></ul><h1 id="factory-functions">Factory Functions</h1><p>Instead of implementing the full <code class="inline-verbatim">OrgPressPlugin</code> interface, most plugins use factory functions:
+</p><div id="org-block-2-result" data-org-block="block-content-blog-plugin-system-v2-org-2" class="org-block-result"></div><table><thead><tr><th>Factory</th><th>Purpose</th><th>Example Use Case</th></tr></thead><tbody><tr><td><code class="inline-verbatim">CreateDrawer</code></td><td>Transform org drawers to HTML</td><td>AI assistant outputs, notes, warnings</td></tr><tr><td><code class="inline-verbatim">CreateBlock</code></td><td>Handle specific code block languages</td><td>Python, Ruby, custom DSLs</td></tr><tr><td><code class="inline-verbatim">CreateTransformer</code></td><td>Pipeline stages for <code class="inline-verbatim">:use</code></td><td>DOM rendering, server execution</td></tr><tr><td><code class="inline-verbatim">CreateCommand</code></td><td>CLI commands</td><td><code class="inline-verbatim">orgp fmt</code>, <code class="inline-verbatim">orgp lint</code></td></tr><tr><td><code class="inline-verbatim">CreatePlugin</code></td><td>Full control escape hatch</td><td>Complex multi-stage plugins</td></tr></tbody></table><h1 id="before-and-after-configuration">Before and After: Configuration</h1><h2 id="v1-fragmented-configuration">V1: Fragmented Configuration</h2><pre class="src-block"><code class="hljs language-typescript"><span class="hljs-comment">// Old v1 config - multiple plugin arrays, confusing</span>
+<span class="hljs-keyword">export</span> <span class="hljs-keyword">default</span> {
+  <span class="hljs-attr">plugins</span>: [javascriptPlugin, typescriptPlugin], <span class="hljs-comment">// blocks only</span>
+  <span class="hljs-attr">drawerPlugins</span>: [aiDrawerPlugin],               <span class="hljs-comment">// separate!</span>
+  <span class="hljs-comment">// CLI plugins? Who knows where they go</span>
+};
+</code></pre><h2 id="v2-unified-configuration">V2: Unified Configuration</h2><pre class="src-block"><code class="hljs language-typescript"><span class="hljs-keyword">import</span> { defaultPlugins, aiDrawerPlugin, <span class="hljs-title class_">CreateDrawer</span> } <span class="hljs-keyword">from</span> <span class="hljs-string">'org-press'</span>;
+
+<span class="hljs-keyword">export</span> <span class="hljs-keyword">default</span> {
+  <span class="hljs-attr">plugins</span>: [
+    ...defaultPlugins,  <span class="hljs-comment">// All core functionality</span>
+    aiDrawerPlugin,     <span class="hljs-comment">// Optional drawer</span>
+    <span class="hljs-title class_">CreateDrawer</span>(<span class="hljs-string">'NOTE'</span>, <span class="hljs-function">(<span class="hljs-params">d</span>) =></span> <span class="hljs-string">`&#x3C;aside class="note"><span class="hljs-subst">${d.html}</span>&#x3C;/aside>`</span>),
+  ],
+};
+</code></pre><h1 id="before-and-after-creating-plugins">Before and After: Creating Plugins</h1><h2 id="v1-different-interfaces-for-different-things">V1: Different Interfaces for Different Things</h2><pre class="src-block"><code class="hljs language-typescript"><span class="hljs-comment">// Block plugin (v1)</span>
+<span class="hljs-keyword">const</span> <span class="hljs-attr">myBlockPlugin</span>: <span class="hljs-title class_">BlockPlugin</span> = {
+  <span class="hljs-attr">name</span>: <span class="hljs-string">'python'</span>,
+  <span class="hljs-attr">languages</span>: [<span class="hljs-string">'python'</span>, <span class="hljs-string">'py'</span>],
+  <span class="hljs-attr">transform</span>: <span class="hljs-title function_">async</span> (block, ctx) => ({ <span class="hljs-attr">code</span>: block.<span class="hljs-property">value</span> }),
+};
+
+<span class="hljs-comment">// Drawer plugin (v1) - completely different interface!</span>
+<span class="hljs-keyword">const</span> <span class="hljs-attr">myDrawerPlugin</span>: <span class="hljs-title class_">DrawerPlugin</span> = {
+  <span class="hljs-attr">name</span>: <span class="hljs-string">'ai-drawer'</span>,
+  <span class="hljs-attr">drawers</span>: [<span class="hljs-string">'AI'</span>],
+  <span class="hljs-attr">transformDrawer</span>: <span class="hljs-function">(<span class="hljs-params">drawer, ctx</span>) =></span> <span class="hljs-string">`&#x3C;div><span class="hljs-subst">${drawer.html}</span>&#x3C;/div>`</span>,
+};
+
+<span class="hljs-comment">// CLI plugin (v1) - embedded in BlockPlugin?!</span>
+<span class="hljs-keyword">const</span> <span class="hljs-attr">myCLIPlugin</span>: <span class="hljs-title class_">BlockPlugin</span> = {
+  <span class="hljs-attr">name</span>: <span class="hljs-string">'formatter'</span>,
+  <span class="hljs-attr">cli</span>: {
+    <span class="hljs-attr">command</span>: <span class="hljs-string">'fmt'</span>,
+    <span class="hljs-attr">description</span>: <span class="hljs-string">'Format code'</span>,
+    <span class="hljs-attr">execute</span>: <span class="hljs-title function_">async</span> (args, ctx) => { <span class="hljs-comment">/* ... */</span> <span class="hljs-keyword">return</span> <span class="hljs-number">0</span>; },
+  },
+};
+</code></pre><h2 id="v2-consistent-factory-functions">V2: Consistent Factory Functions</h2><pre class="src-block"><code class="hljs language-typescript"><span class="hljs-keyword">import</span> { <span class="hljs-title class_">CreateBlock</span>, <span class="hljs-title class_">CreateDrawer</span>, <span class="hljs-title class_">CreateCommand</span> } <span class="hljs-keyword">from</span> <span class="hljs-string">'org-press'</span>;
+
+<span class="hljs-comment">// Block handler - clean factory</span>
+<span class="hljs-keyword">const</span> pythonPlugin = <span class="hljs-title class_">CreateBlock</span>(<span class="hljs-string">'python'</span>, {
+  <span class="hljs-attr">languages</span>: [<span class="hljs-string">'python'</span>, <span class="hljs-string">'py'</span>],
+  <span class="hljs-attr">transform</span>: <span class="hljs-function">(<span class="hljs-params">code, ctx</span>) =></span> ({ <span class="hljs-attr">html</span>: <span class="hljs-string">`&#x3C;pre><span class="hljs-subst">${code}</span>&#x3C;/pre>`</span> }),
+});
+
+<span class="hljs-comment">// Drawer handler - same pattern</span>
+<span class="hljs-keyword">const</span> aiDrawer = <span class="hljs-title class_">CreateDrawer</span>(<span class="hljs-string">'AI'</span>, <span class="hljs-function">(<span class="hljs-params">drawer</span>) =></span>
+  <span class="hljs-string">`&#x3C;details class="ai">&#x3C;summary>AI&#x3C;/summary><span class="hljs-subst">${drawer.html}</span>&#x3C;/details>`</span>
+);
+
+<span class="hljs-comment">// CLI command - same pattern</span>
+<span class="hljs-keyword">const</span> fmtCommand = <span class="hljs-title class_">CreateCommand</span>(<span class="hljs-string">'fmt'</span>, {
+  <span class="hljs-attr">description</span>: <span class="hljs-string">'Format code blocks'</span>,
+  <span class="hljs-attr">args</span>: [{ <span class="hljs-attr">name</span>: <span class="hljs-string">'check'</span>, <span class="hljs-attr">type</span>: <span class="hljs-string">'boolean'</span>, <span class="hljs-attr">description</span>: <span class="hljs-string">'Check only'</span> }],
+  <span class="hljs-attr">execute</span>: <span class="hljs-title function_">async</span> (args, ctx) => { <span class="hljs-comment">/* ... */</span> <span class="hljs-keyword">return</span> <span class="hljs-number">0</span>; },
+});
+</code></pre><h1 id="the-presets-system">The Presets System</h1><p>Instead of magic configuration resolution, v2 uses simple arrays:
+</p><div id="org-block-7-result" data-org-block="block-content-blog-plugin-system-v2-org-7" class="org-block-result"></div><pre class="src-block"><code class="hljs language-typescript"><span class="hljs-comment">// Use defaults - most common</span>
+<span class="hljs-keyword">const</span> defaultConfig = {
+  <span class="hljs-attr">plugins</span>: [...defaultPlugins],
+};
+</code></pre><pre class="src-block"><code class="hljs language-typescript"><span class="hljs-comment">// Add optional plugins</span>
+<span class="hljs-keyword">const</span> withOptionalPlugins = {
+  <span class="hljs-attr">plugins</span>: [...defaultPlugins, aiDrawerPlugin, noteDrawerPlugin],
+};
+</code></pre><pre class="src-block"><code class="hljs language-typescript"><span class="hljs-comment">// Start minimal, add only what you need</span>
+<span class="hljs-keyword">const</span> minimalConfig = {
+  <span class="hljs-attr">plugins</span>: [
+    ...minimalPlugins,
+    domPlugin,
+    <span class="hljs-title class_">CreateDrawer</span>(<span class="hljs-string">'AI'</span>, <span class="hljs-function">(<span class="hljs-params">d</span>) =></span> <span class="hljs-string">`&#x3C;div><span class="hljs-subst">${d.html}</span>&#x3C;/div>`</span>),
+  ],
+};
+</code></pre><h1 id="plugin-context-api">Plugin Context API</h1><p>For advanced use cases, <code class="inline-verbatim">CreatePlugin</code> provides full access to the plugin context:
+</p><pre class="src-block"><code class="hljs language-typescript"><span class="hljs-keyword">import</span> { <span class="hljs-title class_">CreatePlugin</span> } <span class="hljs-keyword">from</span> <span class="hljs-string">'org-press'</span>;
+
+<span class="hljs-keyword">const</span> analyticsPlugin = <span class="hljs-title class_">CreatePlugin</span>(<span class="hljs-string">'analytics'</span>, <span class="hljs-function">(<span class="hljs-params">ctx</span>) =></span> {
+  <span class="hljs-comment">// Register lifecycle hooks</span>
+  ctx.<span class="hljs-title function_">hook</span>(<span class="hljs-string">'build:start'</span>, <span class="hljs-function">() =></span> <span class="hljs-variable language_">console</span>.<span class="hljs-title function_">log</span>(<span class="hljs-string">'Build started'</span>));
+  ctx.<span class="hljs-title function_">hook</span>(<span class="hljs-string">'build:end'</span>, <span class="hljs-function">(<span class="hljs-params">stats</span>) =></span> <span class="hljs-title function_">sendToAnalytics</span>(stats));
+
+  <span class="hljs-comment">// Register multiple drawer handlers</span>
+  ctx.<span class="hljs-title function_">onDrawer</span>([<span class="hljs-string">'NOTE'</span>, <span class="hljs-string">'WARNING'</span>, <span class="hljs-string">'TIP'</span>], <span class="hljs-function">(<span class="hljs-params">drawer</span>) =></span>
+    <span class="hljs-string">`&#x3C;div class="callout callout-<span class="hljs-subst">${drawer.name.toLowerCase()}</span>"><span class="hljs-subst">${drawer.html}</span>&#x3C;/div>`</span>
+  );
+
+  <span class="hljs-comment">// Register block handler with custom matching</span>
+  ctx.<span class="hljs-title function_">onBlock</span>({
+    <span class="hljs-attr">matches</span>: <span class="hljs-function">(<span class="hljs-params">block</span>) =></span> block.<span class="hljs-property">language</span> === <span class="hljs-string">'chart'</span> || block.<span class="hljs-property">meta</span>?.<span class="hljs-title function_">includes</span>(<span class="hljs-string">':chart'</span>),
+    <span class="hljs-attr">transform</span>: <span class="hljs-function">(<span class="hljs-params">code, blockCtx</span>) =></span> ({
+      <span class="hljs-attr">html</span>: <span class="hljs-title function_">renderChart</span>(<span class="hljs-title class_">JSON</span>.<span class="hljs-title function_">parse</span>(code)),
+      <span class="hljs-attr">script</span>: <span class="hljs-string">`initChart('<span class="hljs-subst">${blockCtx.blockId}</span>')`</span>,
+    }),
+  });
+
+  <span class="hljs-comment">// Add CLI command</span>
+  ctx.<span class="hljs-title function_">addCommand</span>(<span class="hljs-string">'stats'</span>, {
+    <span class="hljs-attr">description</span>: <span class="hljs-string">'Show content statistics'</span>,
+    <span class="hljs-attr">execute</span>: <span class="hljs-title function_">async</span> (args, cmdCtx) => {
+      <span class="hljs-keyword">const</span> stats = <span class="hljs-keyword">await</span> <span class="hljs-title function_">gatherStats</span>(cmdCtx.<span class="hljs-property">contentDir</span>);
+      <span class="hljs-variable language_">console</span>.<span class="hljs-title function_">table</span>(stats);
+      <span class="hljs-keyword">return</span> <span class="hljs-number">0</span>;
+    },
+  });
+});
+</code></pre><h1 id="migration-guide">Migration Guide</h1><p>Migrating from v1 to v2 is straightforward:
+</p><h2 id="step-1-update-imports">Step 1: Update imports</h2><pre class="src-block"><code class="hljs language-typescript"><span class="hljs-comment">// Before</span>
+<span class="hljs-keyword">import</span> { loadPlugins, <span class="hljs-title class_">BlockPlugin</span> } <span class="hljs-keyword">from</span> <span class="hljs-string">'org-press'</span>;
+
+<span class="hljs-comment">// After</span>
+<span class="hljs-keyword">import</span> { defaultPlugins, <span class="hljs-title class_">CreateBlock</span>, <span class="hljs-title class_">OrgPressPlugin</span> } <span class="hljs-keyword">from</span> <span class="hljs-string">'org-press'</span>;
+</code></pre><h2 id="step-2-update-config">Step 2: Update config</h2><pre class="src-block"><code class="hljs language-typescript"><span class="hljs-comment">// Before</span>
+<span class="hljs-keyword">export</span> <span class="hljs-keyword">default</span> {
+  <span class="hljs-attr">plugins</span>: [...myPlugins],
+  <span class="hljs-attr">drawerPlugins</span>: [...myDrawerPlugins],
+};
+
+<span class="hljs-comment">// After</span>
+<span class="hljs-keyword">export</span> <span class="hljs-keyword">default</span> {
+  <span class="hljs-attr">plugins</span>: [...defaultPlugins, ...myPlugins, ...myDrawerPlugins],
+};
+</code></pre><h2 id="step-3-convert-custom-plugins">Step 3: Convert custom plugins</h2><pre class="src-block"><code class="hljs language-typescript"><span class="hljs-comment">// Before: v1 BlockPlugin</span>
+<span class="hljs-keyword">const</span> <span class="hljs-attr">myPlugin</span>: <span class="hljs-title class_">BlockPlugin</span> = {
+  <span class="hljs-attr">name</span>: <span class="hljs-string">'custom'</span>,
+  <span class="hljs-attr">drawers</span>: [<span class="hljs-string">'CUSTOM'</span>],
+  <span class="hljs-attr">transformDrawer</span>: <span class="hljs-function">(<span class="hljs-params">drawer</span>) =></span> <span class="hljs-string">`&#x3C;div><span class="hljs-subst">${drawer.html}</span>&#x3C;/div>`</span>,
+};
+
+<span class="hljs-comment">// After: v2 factory</span>
+<span class="hljs-keyword">const</span> myPlugin = <span class="hljs-title class_">CreateDrawer</span>(<span class="hljs-string">'CUSTOM'</span>, <span class="hljs-function">(<span class="hljs-params">drawer</span>) =></span>
+  <span class="hljs-string">`&#x3C;div><span class="hljs-subst">${drawer.html}</span>&#x3C;/div>`</span>
+);
+</code></pre><h1 id="summary">Summary</h1><p>The v2 plugin system delivers on its promises:
+</p><table><thead><tr><th>Aspect</th><th>V1</th><th>V2</th></tr></thead><tbody><tr><td>Plugin interfaces</td><td>3 different types</td><td>1 unified interface</td></tr><tr><td>Configuration</td><td><code class="inline-verbatim">plugins</code> + <code class="inline-verbatim">drawerPlugins</code></td><td>Single <code class="inline-verbatim">plugins</code> array</td></tr><tr><td>Core behaviors</td><td>Hardcoded</td><td>All pluggable</td></tr><tr><td>Learning curve</td><td>Steep</td><td>Gradual (factories)</td></tr><tr><td>Ecosystem</td><td>Isolated</td><td>Rehype/uniorg compatible</td></tr><tr><td>Extensibility</td><td>Limited</td><td>Full <code class="inline-verbatim">setup(ctx)</code> API</td></tr></tbody></table><p>The result is a plugin system that's simple for common cases, powerful for advanced cases, and consistent throughout.
+</p><pre class="src-block"><code class="hljs language-typescript"><span class="hljs-comment">// This is all you need for most projects</span>
+<span class="hljs-keyword">import</span> { defaultPlugins } <span class="hljs-keyword">from</span> <span class="hljs-string">'org-press'</span>;
+
+<span class="hljs-keyword">export</span> <span class="hljs-keyword">default</span> {
+  <span class="hljs-attr">plugins</span>: [...defaultPlugins],
+};
+</code></pre></div></div></article></main><aside class="toc"><div class="toc-content"><h4 class="toc-title">On this page</h4><nav class="toc-nav" aria-label="Table of contents"><ul class="toc-list"><li class="toc-item "><a href="#pain-points" class="toc-link">Pain Points</a></li><li class="toc-item "><a href="#v1-fragmented-configuration" class="toc-link">V1: Fragmented Configuration</a></li><li class="toc-item "><a href="#v2-unified-configuration" class="toc-link">V2: Unified Configuration</a></li><li class="toc-item "><a href="#v1-different-interfaces-for-different-things" class="toc-link">V1: Different Interfaces for Different Things</a></li><li class="toc-item "><a href="#v2-consistent-factory-functions" class="toc-link">V2: Consistent Factory Functions</a></li><li class="toc-item "><a href="#step-1-update-imports" class="toc-link">Step 1: Update imports</a></li><li class="toc-item "><a href="#step-2-update-config" class="toc-link">Step 2: Update config</a></li><li class="toc-item "><a href="#step-3-convert-custom-plugins" class="toc-link">Step 3: Convert custom plugins</a></li></ul></nav></div></aside></div><footer class="site-footer"><div class="footer-content"><div class="footer-grid"><div class="footer-column"><h4>Guide</h4><ul><li><a href="/guide/index.html">What is Org-Press?</a></li><li><a href="/guide/getting-started.html">Getting Started</a></li><li><a href="/guide/features.html">Features</a></li><li><a href="/guide/cli.html">CLI Reference</a></li><li><a href="/guide/building.html">Building</a></li></ul></div><div class="footer-column"><h4>Config</h4><ul><li><a href="/config/index.html">Overview</a></li><li><a href="/config/shared-options.html">Shared Options</a></li><li><a href="/config/build-options.html">Build Options</a></li><li><a href="/config/server-options.html">Server Options</a></li></ul></div><div class="footer-column"><h4>Plugins</h4><ul><li><a href="/plugins/index.html">Overview</a></li><li><a href="/plugins/excalidraw.html">Excalidraw</a></li><li><a href="/plugins/jscad.html">JSCAD</a></li><li><a href="/plugins/creating-plugins.html">Creating Plugins</a></li></ul></div><div class="footer-column"><h4>API</h4><ul><li><a href="/api/index.html">Overview</a></li><li><a href="/api/plugin-api.html">Plugin API</a></li><li><a href="/api/javascript-api.html">JavaScript API</a></li></ul></div><div class="footer-column"><h4>Resources</h4><ul><li><a href="/examples/index.html">Examples</a></li><li><a href="https://github.com/org-press/org-press" target="_blank" rel="noopener">GitHub</a></li><li><a href="https://github.com/org-press/org-press/releases" target="_blank" rel="noopener">Releases</a></li></ul></div></div><div class="footer-bottom"><p class="footer-copyright">Released under the GPL-2.0 License.</p><p class="footer-credit">Built with <a href="https://github.com/org-press/org-press">org-press</a></p></div></div></footer></div><script src="https://analytics.ideable.dev/api/script.js" data-site-id="5dc60eeeac5d" defer=""></script></body></html>

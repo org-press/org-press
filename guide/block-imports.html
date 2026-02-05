@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charSet="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/><title>Block Imports | org-press</title><meta name="description" content="Import and share code blocks across org files"/><script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script><script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/highlight.min.js"></script><link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/styles/github.min.css" media="(prefers-color-scheme: light)"/><link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/styles/github-dark.min.css" media="(prefers-color-scheme: dark)"/><script>
+          // Register org-mode language for highlight.js
+          if (typeof hljs !== 'undefined') {
+            hljs.registerLanguage('org', function(hljs) {
+              return {
+                name: 'Org',
+                aliases: ['org', 'org-mode', 'orgmode'],
+                case_insensitive: true,
+                contains: [
+                  // Headlines
+                  {
+                    className: 'section',
+                    begin: /^\*+\s/,
+                    end: /$/,
+                    contains: [
+                      { className: 'keyword', begin: /\b(TODO|DONE|WAITING|CANCELLED|NEXT|HOLD)\b/ }
+                    ]
+                  },
+                  // Keywords (#+KEYWORD:)
+                  {
+                    className: 'meta',
+                    begin: /^#\+[A-Za-z_]+:/,
+                    end: /$/,
+                    contains: [{ className: 'string', begin: /\s/, end: /$/ }]
+                  },
+                  // Begin/end blocks
+                  { className: 'keyword', begin: /^#\+(begin|end)_[a-z]+/i, relevance: 10 },
+                  // Property drawers
+                  { className: 'attribute', begin: /^:\w+:/, end: /$/ },
+                  // Links [[url][description]]
+                  {
+                    className: 'link',
+                    begin: /\[\[/,
+                    end: /\]\]/,
+                    contains: [{ className: 'string', begin: /\]\[/, end: /(?=\]\])/ }]
+                  },
+                  // Comments (lines starting with #, but not #+)
+                  { className: 'comment', begin: /^#[^+]/, end: /$/ },
+                  // Timestamps
+                  { className: 'number', begin: /<\d{4}-\d{2}-\d{2}/, end: />/ },
+                  // Tags :tag1:tag2:
+                  { className: 'tag', begin: /\s:[a-zA-Z0-9_@#%:]+:\s*$/ }
+                ]
+              };
+            });
+            // Run highlighting after DOM is ready
+            document.addEventListener('DOMContentLoaded', function() {
+              hljs.highlightAll();
+            });
+          }
+        </script><script>
+          (function() {
+            // Set current path as data attribute for CSS styling
+            document.documentElement.dataset.path = window.location.pathname;
+
+            // Mobile menu toggle using event delegation
+            document.addEventListener('click', function(e) {
+              var button = e.target.closest('.mobile-menu-button');
+              if (button) {
+                e.stopPropagation();
+                document.body.classList.toggle('mobile-menu-open');
+                return;
+              }
+              // Close menu when clicking a link inside the menu
+              var menuLink = e.target.closest('.mobile-menu a');
+              if (menuLink) {
+                document.body.classList.remove('mobile-menu-open');
+                return;
+              }
+              // Close menu when clicking outside
+              if (document.body.classList.contains('mobile-menu-open')) {
+                var menu = document.querySelector('.mobile-menu');
+                if (menu && !menu.contains(e.target)) {
+                  document.body.classList.remove('mobile-menu-open');
+                }
+              }
+            });
+
+            // Highlight current page in navigation
+            document.addEventListener('DOMContentLoaded', function() {
+              var path = window.location.pathname;
+              // Highlight sidebar links
+              document.querySelectorAll('.sidebar-link').forEach(function(link) {
+                if (link.getAttribute('href') === path) {
+                  link.classList.add('active');
+                  link.closest('.sidebar-item')?.classList.add('active');
+                }
+              });
+              // Highlight top nav links
+              document.querySelectorAll('.top-nav-link').forEach(function(link) {
+                var href = link.getAttribute('href');
+                var match = link.dataset.match;
+                if (path === href || (match && path.startsWith(match))) {
+                  link.classList.add('active');
+                }
+              });
+            });
+          })();
+        </script><link rel="stylesheet" href="/assets/theme-DsForQV0.css"/><script type="module" src="/assets/entry-client-l0sNRNKZ.js"></script></head><body><div class="docs-layout"><header class="top-nav"><div class="top-nav-container"><a href="/index.html" class="top-nav-logo"><span class="logo-text">Org-Press</span></a><nav class="top-nav-links"><a href="/guide/index.html" class="top-nav-link active" data-match="^\/(guide(\/|$)|getting-started|index\.html$)">Guide</a><a href="/config/index.html" class="top-nav-link " data-match="^\/config(\/|$)">Config</a><a href="/plugins/index.html" class="top-nav-link " data-match="^\/plugins(\/|$)">Plugins</a><a href="/api/index.html" class="top-nav-link " data-match="^\/api(\/|$)">API</a></nav><div class="top-nav-social"><a href="https://github.com/org-press/org-press/blob/main/docs/content/guide/block-imports.org?plain=1" class="top-nav-source-link" target="_blank" rel="noopener noreferrer" title="View page source on GitHub">:view-source</a><a href="https://github.com/org-press/org-press" class="top-nav-social-link" target="_blank" rel="noopener noreferrer" aria-label="GitHub"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"></path></svg></a></div><button class="mobile-menu-button" aria-label="Toggle navigation menu" aria-expanded="false"><span class="hamburger-line"></span><span class="hamburger-line"></span><span class="hamburger-line"></span></button></div></header><div class="mobile-menu"><nav class="mobile-menu-nav"><div class="mobile-menu-section"><a href="/guide/index.html" class="mobile-menu-section-title active">Guide</a><ul class="mobile-menu-list"><li><a href="/guide/index.html" class="mobile-menu-link ">What is Org-Press?</a></li><li><a href="/guide/getting-started.html" class="mobile-menu-link ">Getting Started</a></li><li><a href="/guide/why-org-press.html" class="mobile-menu-link ">Why Org-Press?</a></li><li><a href="/guide/features.html" class="mobile-menu-link ">Features</a></li><li><a href="/guide/rendering-modes.html" class="mobile-menu-link ">Rendering Modes</a></li><li><a href="/guide/cli.html" class="mobile-menu-link ">CLI Reference</a></li><li><a href="/guide/using-plugins.html" class="mobile-menu-link ">Using Plugins</a></li><li><a href="/guide/block-imports.html" class="mobile-menu-link ">Block Imports</a></li><li><a href="/guide/static-assets.html" class="mobile-menu-link ">Static Assets</a></li><li><a href="/guide/building.html" class="mobile-menu-link ">Building for Production</a></li><li><a href="/guide/deploying.html" class="mobile-menu-link ">Deploying</a></li><li><a href="/guide/troubleshooting.html" class="mobile-menu-link ">Troubleshooting</a></li></ul></div><div class="mobile-menu-section"><a href="/config/index.html" class="mobile-menu-section-title ">Config</a><ul class="mobile-menu-list"><li><a href="/config/index.html" class="mobile-menu-link ">Overview</a></li><li><a href="/config/shared-options.html" class="mobile-menu-link ">Shared Options</a></li><li><a href="/config/build-options.html" class="mobile-menu-link ">Build Options</a></li><li><a href="/config/server-options.html" class="mobile-menu-link ">Server Options</a></li><li><a href="/config/plugin-options.html" class="mobile-menu-link ">Plugin Options</a></li></ul></div><div class="mobile-menu-section"><a href="/plugins/index.html" class="mobile-menu-section-title ">Plugins</a><ul class="mobile-menu-list"><li><a href="/plugins/index.html" class="mobile-menu-link ">Overview</a></li><li class="mobile-menu-group"><span class="mobile-menu-group-title">Official Plugins</span><ul class="mobile-menu-sublist"><li><a href="/plugins/react.html" class="mobile-menu-link ">React</a></li><li><a href="/plugins/echarts.html" class="mobile-menu-link ">ECharts</a></li><li><a href="/plugins/excalidraw.html" class="mobile-menu-link ">Excalidraw</a></li><li><a href="/plugins/jscad.html" class="mobile-menu-link ">JSCAD</a></li><li><a href="/plugins/test.html" class="mobile-menu-link ">Test</a></li></ul></li><li><a href="/plugins/creating-plugins.html" class="mobile-menu-link ">Creating Plugins</a></li></ul></div><div class="mobile-menu-section"><a href="/api/index.html" class="mobile-menu-section-title ">API</a><ul class="mobile-menu-list"><li><a href="/api/index.html" class="mobile-menu-link ">Overview</a></li><li><a href="/api/plugin-api.html" class="mobile-menu-link ">Plugin API</a></li><li><a href="/api/javascript-api.html" class="mobile-menu-link ">JavaScript API</a></li><li><a href="/api/hmr-api.html" class="mobile-menu-link ">HMR API</a></li><li><a href="/api/cli-plugins.html" class="mobile-menu-link ">CLI Plugins</a></li></ul></div></nav><div class="mobile-menu-footer"><a href="https://github.com/org-press/org-press" class="mobile-menu-link" target="_blank" rel="noopener noreferrer">GitHub</a></div></div><div class="alpha-banner"><span class="alpha-banner-icon">⚠️</span><span class="alpha-banner-text"><strong>Early Alpha</strong> — Org-press is experimental. Perfect for hackers and tinkerers, not ready for production. Documentation may be incomplete or inaccurate.</span></div><div class="docs-container"><aside class="sidebar"><div class="sidebar-content"><nav class="sidebar-nav" aria-label="Section navigation"><div class="sidebar-section"><h3 class="sidebar-section-title">Guide</h3><ul class="sidebar-list"><li class="sidebar-item "><a href="/guide/index.html" class="sidebar-link ">What is Org-Press?</a></li><li class="sidebar-item "><a href="/guide/getting-started.html" class="sidebar-link ">Getting Started</a></li><li class="sidebar-item "><a href="/guide/why-org-press.html" class="sidebar-link ">Why Org-Press?</a></li><li class="sidebar-item "><a href="/guide/features.html" class="sidebar-link ">Features</a></li><li class="sidebar-item "><a href="/guide/rendering-modes.html" class="sidebar-link ">Rendering Modes</a></li><li class="sidebar-item "><a href="/guide/cli.html" class="sidebar-link ">CLI Reference</a></li><li class="sidebar-item "><a href="/guide/using-plugins.html" class="sidebar-link ">Using Plugins</a></li><li class="sidebar-item "><a href="/guide/block-imports.html" class="sidebar-link ">Block Imports</a></li><li class="sidebar-item "><a href="/guide/static-assets.html" class="sidebar-link ">Static Assets</a></li><li class="sidebar-item "><a href="/guide/building.html" class="sidebar-link ">Building for Production</a></li><li class="sidebar-item "><a href="/guide/deploying.html" class="sidebar-link ">Deploying</a></li><li class="sidebar-item "><a href="/guide/troubleshooting.html" class="sidebar-link ">Troubleshooting</a></li></ul></div></nav></div></aside><main class="docs-content"><article class="docs-article"><div class="docs-body"><div><h1 id="block-imports">Block Imports</h1><p>Import named blocks from other org files to share code and avoid duplication.
+</p><h2 id="naming-blocks">Naming Blocks</h2><p>Use <code class="inline-verbatim">#+NAME:</code> to give a block an identity:
+</p><pre><code>#+NAME: mathUtils
+#+begin_src typescript
+export function add(a: number, b: number): number {
+  return a + b;
+}
+
+export function multiply(a: number, b: number): number {
+  return a * b;
+}
+#+end_src</code></pre>
+<p>Named blocks can be imported from other files.
+</p><h2 id="basic-imports">Basic Imports</h2><p>Import using the <code class="inline-verbatim">?name=</code> query parameter:
+</p><pre><code>// In another file
+import { add, multiply } from './math.org?name=mathUtils';
+
+const result = add(2, 3);      // 5
+const product = multiply(4, 5); // 20</code></pre>
+<h2 id="import-syntax">Import Syntax</h2><h3 id="named-imports">Named Imports</h3><pre><code>import { functionA, functionB } from './utils.org?name=helpers';</code></pre>
+<h3 id="default-import">Default Import</h3><p>If a block has a default export:
+</p><pre><code>#+NAME: config
+#+begin_src typescript
+export default {
+  apiUrl: 'https://api.example.com',
+  timeout: 5000,
+};
+#+end_src</code></pre>
+<pre><code>import config from './settings.org?name=config';</code></pre>
+<h3 id="namespace-import">Namespace Import</h3><pre><code>import * as Utils from './utils.org?name=helpers';
+
+Utils.formatDate(new Date());</code></pre>
+<h2 id="path-resolution">Path Resolution</h2><h3 id="relative-paths">Relative Paths</h3><pre><code>// Same directory
+import { x } from './file.org?name=block';
+
+// Parent directory
+import { x } from '../shared/utils.org?name=helpers';
+
+// Nested path
+import { x } from './lib/deep/module.org?name=exports';</code></pre>
+<h3 id="absolute-paths">Absolute Paths</h3><p>Paths starting with <code class="inline-verbatim">/</code> are relative to the content root:
+</p><pre><code>import { theme } from '/shared/themes.org?name=dark';</code></pre>
+<h2 id="typescript-support">TypeScript Support</h2><p>Block imports are fully typed. The LSP provides:
+</p><ul><li>Autocompletion for exported symbols
+</li><li>Go-to-definition across files
+</li><li>Type checking at import boundaries
+</li><li>Hover documentation
+</li></ul><pre><code>#+NAME: types
+#+begin_src typescript
+export interface User {
+  id: string;
+  name: string;
+  email: string;
+}
+
+export function createUser(name: string, email: string): User {
+  return { id: crypto.randomUUID(), name, email };
+}
+#+end_src</code></pre>
+<p>When you import <code class="inline-verbatim">createUser</code>, your IDE knows its signature.
+</p><h2 id="circular-imports">Circular Imports</h2><p>Circular imports are allowed and handled correctly:
+</p><pre><code>// a.org
+#+NAME: a
+#+begin_src typescript
+import { b } from './b.org?name=b';
+export const a = () => b() + 1;
+#+end_src
+
+// b.org
+#+NAME: b
+#+begin_src typescript
+import { a } from './a.org?name=a';
+export const b = () => 42;
+#+end_src</code></pre>
+<p>However, avoid circular dependencies when possible for clarity.
+</p><h2 id="multiple-blocks-per-file">Multiple Blocks per File</h2><p>A file can have many named blocks:
+</p><pre><code>#+NAME: validators
+#+begin_src typescript
+export function isEmail(s: string): boolean {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s);
+}
+#+end_src
+
+#+NAME: formatters
+#+begin_src typescript
+export function formatCurrency(n: number): string {
+  return '$' + n.toFixed(2);
+}
+#+end_src
+
+#+NAME: constants
+#+begin_src typescript
+export const API_URL = 'https://api.example.com';
+export const TIMEOUT = 5000;
+#+end_src</code></pre>
+<p>Import each by name:
+</p><pre><code>import { isEmail } from './utils.org?name=validators';
+import { formatCurrency } from './utils.org?name=formatters';
+import { API_URL } from './utils.org?name=constants';</code></pre>
+<h2 id="use-cases">Use Cases</h2><h3 id="shared-utilities">Shared Utilities</h3><p>Create a utilities file with common helpers:
+</p><pre><code>// content/lib/utils.org
+#+NAME: dateUtils
+#+begin_src typescript
+export function formatDate(d: Date): string {
+  return d.toISOString().split('T')[0];
+}
+
+export function parseDate(s: string): Date {
+  return new Date(s);
+}
+#+end_src</code></pre>
+<h3 id="configuration-sharing">Configuration Sharing</h3><p>Share configuration across pages:
+</p><pre><code>// content/config.org
+#+NAME: siteConfig
+#+begin_src typescript
+export const config = {
+  siteName: 'My Documentation',
+  baseUrl: 'https://docs.example.com',
+  author: 'Your Name',
+};
+#+end_src</code></pre>
+<h3 id="component-libraries">Component Libraries</h3><p>Build reusable React components:
+</p><pre><code>// content/components/buttons.org
+#+NAME: Button
+#+begin_src tsx
+export function Button({
+  children,
+  variant = 'primary'
+}: {
+  children: React.ReactNode;
+  variant?: 'primary' | 'secondary';
+}) {
+  return (
+    <button class="{&#x60;btn" btn-${variant}&#x60;}="">
+      {children}
+    </button>
+  );
+}
+#+end_src</code></pre>
+<h2 id="best-practices">Best Practices</h2><ol><li><strong>Use descriptive names</strong> - <code class="inline-verbatim">userValidation</code> over <code class="inline-verbatim">utils</code></li><li><strong>One concept per block</strong> - Don't mix unrelated exports
+</li><li><strong>Keep imports shallow</strong> - Avoid deep directory nesting
+</li><li><strong>Export only what's needed</strong> - Internal helpers stay private
+</li></ol><h2 id="see-also">See Also</h2><ul><li><a href="/guide/features.html">Features</a> - Other org-press features
+</li><li><a href="/examples/block-imports.html">Examples</a> - Working examples
+</li><li><a href="/api/javascript-api.html">JavaScript API</a> - Programmatic access
+</li></ul></div></div></article></main><aside class="toc"><div class="toc-content"><h4 class="toc-title">On this page</h4><nav class="toc-nav" aria-label="Table of contents"><ul class="toc-list"><li class="toc-item "><a href="#naming-blocks" class="toc-link">Naming Blocks</a></li><li class="toc-item "><a href="#basic-imports" class="toc-link">Basic Imports</a></li><li class="toc-item "><a href="#import-syntax" class="toc-link">Import Syntax</a></li><li class="toc-item toc-item-nested"><a href="#named-imports" class="toc-link">Named Imports</a></li><li class="toc-item toc-item-nested"><a href="#default-import" class="toc-link">Default Import</a></li><li class="toc-item toc-item-nested"><a href="#namespace-import" class="toc-link">Namespace Import</a></li><li class="toc-item "><a href="#path-resolution" class="toc-link">Path Resolution</a></li><li class="toc-item toc-item-nested"><a href="#relative-paths" class="toc-link">Relative Paths</a></li><li class="toc-item toc-item-nested"><a href="#absolute-paths" class="toc-link">Absolute Paths</a></li><li class="toc-item "><a href="#typescript-support" class="toc-link">TypeScript Support</a></li><li class="toc-item "><a href="#circular-imports" class="toc-link">Circular Imports</a></li><li class="toc-item "><a href="#multiple-blocks-per-file" class="toc-link">Multiple Blocks per File</a></li><li class="toc-item "><a href="#use-cases" class="toc-link">Use Cases</a></li><li class="toc-item toc-item-nested"><a href="#shared-utilities" class="toc-link">Shared Utilities</a></li><li class="toc-item toc-item-nested"><a href="#configuration-sharing" class="toc-link">Configuration Sharing</a></li><li class="toc-item toc-item-nested"><a href="#component-libraries" class="toc-link">Component Libraries</a></li><li class="toc-item "><a href="#best-practices" class="toc-link">Best Practices</a></li><li class="toc-item "><a href="#see-also" class="toc-link">See Also</a></li></ul></nav></div></aside></div><footer class="site-footer"><div class="footer-content"><div class="footer-grid"><div class="footer-column"><h4>Guide</h4><ul><li><a href="/guide/index.html">What is Org-Press?</a></li><li><a href="/guide/getting-started.html">Getting Started</a></li><li><a href="/guide/features.html">Features</a></li><li><a href="/guide/cli.html">CLI Reference</a></li><li><a href="/guide/building.html">Building</a></li></ul></div><div class="footer-column"><h4>Config</h4><ul><li><a href="/config/index.html">Overview</a></li><li><a href="/config/shared-options.html">Shared Options</a></li><li><a href="/config/build-options.html">Build Options</a></li><li><a href="/config/server-options.html">Server Options</a></li></ul></div><div class="footer-column"><h4>Plugins</h4><ul><li><a href="/plugins/index.html">Overview</a></li><li><a href="/plugins/excalidraw.html">Excalidraw</a></li><li><a href="/plugins/jscad.html">JSCAD</a></li><li><a href="/plugins/creating-plugins.html">Creating Plugins</a></li></ul></div><div class="footer-column"><h4>API</h4><ul><li><a href="/api/index.html">Overview</a></li><li><a href="/api/plugin-api.html">Plugin API</a></li><li><a href="/api/javascript-api.html">JavaScript API</a></li></ul></div><div class="footer-column"><h4>Resources</h4><ul><li><a href="/examples/index.html">Examples</a></li><li><a href="https://github.com/org-press/org-press" target="_blank" rel="noopener">GitHub</a></li><li><a href="https://github.com/org-press/org-press/releases" target="_blank" rel="noopener">Releases</a></li></ul></div></div><div class="footer-bottom"><p class="footer-copyright">Released under the GPL-2.0 License.</p><p class="footer-credit">Built with <a href="https://github.com/org-press/org-press">org-press</a></p></div></div></footer></div><script src="https://analytics.ideable.dev/api/script.js" data-site-id="5dc60eeeac5d" defer=""></script></body></html>

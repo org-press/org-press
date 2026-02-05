@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charSet="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/><title>Modes API | org-press</title><meta name="description" content="Unified composable block rendering system"/><script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script><script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/highlight.min.js"></script><link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/styles/github.min.css" media="(prefers-color-scheme: light)"/><link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/styles/github-dark.min.css" media="(prefers-color-scheme: dark)"/><script>
+          // Register org-mode language for highlight.js
+          if (typeof hljs !== 'undefined') {
+            hljs.registerLanguage('org', function(hljs) {
+              return {
+                name: 'Org',
+                aliases: ['org', 'org-mode', 'orgmode'],
+                case_insensitive: true,
+                contains: [
+                  // Headlines
+                  {
+                    className: 'section',
+                    begin: /^\*+\s/,
+                    end: /$/,
+                    contains: [
+                      { className: 'keyword', begin: /\b(TODO|DONE|WAITING|CANCELLED|NEXT|HOLD)\b/ }
+                    ]
+                  },
+                  // Keywords (#+KEYWORD:)
+                  {
+                    className: 'meta',
+                    begin: /^#\+[A-Za-z_]+:/,
+                    end: /$/,
+                    contains: [{ className: 'string', begin: /\s/, end: /$/ }]
+                  },
+                  // Begin/end blocks
+                  { className: 'keyword', begin: /^#\+(begin|end)_[a-z]+/i, relevance: 10 },
+                  // Property drawers
+                  { className: 'attribute', begin: /^:\w+:/, end: /$/ },
+                  // Links [[url][description]]
+                  {
+                    className: 'link',
+                    begin: /\[\[/,
+                    end: /\]\]/,
+                    contains: [{ className: 'string', begin: /\]\[/, end: /(?=\]\])/ }]
+                  },
+                  // Comments (lines starting with #, but not #+)
+                  { className: 'comment', begin: /^#[^+]/, end: /$/ },
+                  // Timestamps
+                  { className: 'number', begin: /<\d{4}-\d{2}-\d{2}/, end: />/ },
+                  // Tags :tag1:tag2:
+                  { className: 'tag', begin: /\s:[a-zA-Z0-9_@#%:]+:\s*$/ }
+                ]
+              };
+            });
+            // Run highlighting after DOM is ready
+            document.addEventListener('DOMContentLoaded', function() {
+              hljs.highlightAll();
+            });
+          }
+        </script><script>
+          (function() {
+            // Set current path as data attribute for CSS styling
+            document.documentElement.dataset.path = window.location.pathname;
+
+            // Mobile menu toggle using event delegation
+            document.addEventListener('click', function(e) {
+              var button = e.target.closest('.mobile-menu-button');
+              if (button) {
+                e.stopPropagation();
+                document.body.classList.toggle('mobile-menu-open');
+                return;
+              }
+              // Close menu when clicking a link inside the menu
+              var menuLink = e.target.closest('.mobile-menu a');
+              if (menuLink) {
+                document.body.classList.remove('mobile-menu-open');
+                return;
+              }
+              // Close menu when clicking outside
+              if (document.body.classList.contains('mobile-menu-open')) {
+                var menu = document.querySelector('.mobile-menu');
+                if (menu && !menu.contains(e.target)) {
+                  document.body.classList.remove('mobile-menu-open');
+                }
+              }
+            });
+
+            // Highlight current page in navigation
+            document.addEventListener('DOMContentLoaded', function() {
+              var path = window.location.pathname;
+              // Highlight sidebar links
+              document.querySelectorAll('.sidebar-link').forEach(function(link) {
+                if (link.getAttribute('href') === path) {
+                  link.classList.add('active');
+                  link.closest('.sidebar-item')?.classList.add('active');
+                }
+              });
+              // Highlight top nav links
+              document.querySelectorAll('.top-nav-link').forEach(function(link) {
+                var href = link.getAttribute('href');
+                var match = link.dataset.match;
+                if (path === href || (match && path.startsWith(match))) {
+                  link.classList.add('active');
+                }
+              });
+            });
+          })();
+        </script><link rel="stylesheet" href="/assets/theme-DsForQV0.css"/><script type="module" src="/assets/entry-client-l0sNRNKZ.js"></script></head><body><div class="docs-layout"><header class="top-nav"><div class="top-nav-container"><a href="/index.html" class="top-nav-logo"><span class="logo-text">Org-Press</span></a><nav class="top-nav-links"><a href="/guide/index.html" class="top-nav-link " data-match="^\/(guide(\/|$)|getting-started|index\.html$)">Guide</a><a href="/config/index.html" class="top-nav-link " data-match="^\/config(\/|$)">Config</a><a href="/plugins/index.html" class="top-nav-link " data-match="^\/plugins(\/|$)">Plugins</a><a href="/api/index.html" class="top-nav-link active" data-match="^\/api(\/|$)">API</a></nav><div class="top-nav-social"><a href="https://github.com/org-press/org-press/blob/main/docs/content/api/modes-api.org?plain=1" class="top-nav-source-link" target="_blank" rel="noopener noreferrer" title="View page source on GitHub">:view-source</a><a href="https://github.com/org-press/org-press" class="top-nav-social-link" target="_blank" rel="noopener noreferrer" aria-label="GitHub"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"></path></svg></a></div><button class="mobile-menu-button" aria-label="Toggle navigation menu" aria-expanded="false"><span class="hamburger-line"></span><span class="hamburger-line"></span><span class="hamburger-line"></span></button></div></header><div class="mobile-menu"><nav class="mobile-menu-nav"><div class="mobile-menu-section"><a href="/guide/index.html" class="mobile-menu-section-title ">Guide</a><ul class="mobile-menu-list"><li><a href="/guide/index.html" class="mobile-menu-link ">What is Org-Press?</a></li><li><a href="/guide/getting-started.html" class="mobile-menu-link ">Getting Started</a></li><li><a href="/guide/why-org-press.html" class="mobile-menu-link ">Why Org-Press?</a></li><li><a href="/guide/features.html" class="mobile-menu-link ">Features</a></li><li><a href="/guide/rendering-modes.html" class="mobile-menu-link ">Rendering Modes</a></li><li><a href="/guide/cli.html" class="mobile-menu-link ">CLI Reference</a></li><li><a href="/guide/using-plugins.html" class="mobile-menu-link ">Using Plugins</a></li><li><a href="/guide/block-imports.html" class="mobile-menu-link ">Block Imports</a></li><li><a href="/guide/static-assets.html" class="mobile-menu-link ">Static Assets</a></li><li><a href="/guide/building.html" class="mobile-menu-link ">Building for Production</a></li><li><a href="/guide/deploying.html" class="mobile-menu-link ">Deploying</a></li><li><a href="/guide/troubleshooting.html" class="mobile-menu-link ">Troubleshooting</a></li></ul></div><div class="mobile-menu-section"><a href="/config/index.html" class="mobile-menu-section-title ">Config</a><ul class="mobile-menu-list"><li><a href="/config/index.html" class="mobile-menu-link ">Overview</a></li><li><a href="/config/shared-options.html" class="mobile-menu-link ">Shared Options</a></li><li><a href="/config/build-options.html" class="mobile-menu-link ">Build Options</a></li><li><a href="/config/server-options.html" class="mobile-menu-link ">Server Options</a></li><li><a href="/config/plugin-options.html" class="mobile-menu-link ">Plugin Options</a></li></ul></div><div class="mobile-menu-section"><a href="/plugins/index.html" class="mobile-menu-section-title ">Plugins</a><ul class="mobile-menu-list"><li><a href="/plugins/index.html" class="mobile-menu-link ">Overview</a></li><li class="mobile-menu-group"><span class="mobile-menu-group-title">Official Plugins</span><ul class="mobile-menu-sublist"><li><a href="/plugins/react.html" class="mobile-menu-link ">React</a></li><li><a href="/plugins/echarts.html" class="mobile-menu-link ">ECharts</a></li><li><a href="/plugins/excalidraw.html" class="mobile-menu-link ">Excalidraw</a></li><li><a href="/plugins/jscad.html" class="mobile-menu-link ">JSCAD</a></li><li><a href="/plugins/test.html" class="mobile-menu-link ">Test</a></li></ul></li><li><a href="/plugins/creating-plugins.html" class="mobile-menu-link ">Creating Plugins</a></li></ul></div><div class="mobile-menu-section"><a href="/api/index.html" class="mobile-menu-section-title active">API</a><ul class="mobile-menu-list"><li><a href="/api/index.html" class="mobile-menu-link ">Overview</a></li><li><a href="/api/plugin-api.html" class="mobile-menu-link ">Plugin API</a></li><li><a href="/api/javascript-api.html" class="mobile-menu-link ">JavaScript API</a></li><li><a href="/api/hmr-api.html" class="mobile-menu-link ">HMR API</a></li><li><a href="/api/cli-plugins.html" class="mobile-menu-link ">CLI Plugins</a></li></ul></div></nav><div class="mobile-menu-footer"><a href="https://github.com/org-press/org-press" class="mobile-menu-link" target="_blank" rel="noopener noreferrer">GitHub</a></div></div><div class="alpha-banner"><span class="alpha-banner-icon">⚠️</span><span class="alpha-banner-text"><strong>Early Alpha</strong> — Org-press is experimental. Perfect for hackers and tinkerers, not ready for production. Documentation may be incomplete or inaccurate.</span></div><div class="docs-container"><aside class="sidebar"><div class="sidebar-content"><nav class="sidebar-nav" aria-label="Section navigation"><div class="sidebar-section"><h3 class="sidebar-section-title">API</h3><ul class="sidebar-list"><li class="sidebar-item "><a href="/api/index.html" class="sidebar-link ">Overview</a></li><li class="sidebar-item "><a href="/api/plugin-api.html" class="sidebar-link ">Plugin API</a></li><li class="sidebar-item "><a href="/api/javascript-api.html" class="sidebar-link ">JavaScript API</a></li><li class="sidebar-item "><a href="/api/hmr-api.html" class="sidebar-link ">HMR API</a></li><li class="sidebar-item "><a href="/api/cli-plugins.html" class="sidebar-link ">CLI Plugins</a></li></ul></div></nav></div></aside><main class="docs-content"><article class="docs-article"><div class="docs-body"><div><h1 id="modes-api">Modes API</h1><p>The Modes API provides a unified, composable system for block rendering in org-press.
+</p><h2 id="overview">Overview</h2><p>The Modes API provides a clean, pipe-based syntax for controlling block rendering:
+</p><pre><code>#+begin_src javascript :use dom | withSourceCode
+console.log("Hello World");
+#+end_src</code></pre>
+<h2 id="key-concepts">Key Concepts</h2><h3 id="mode-plugins">Mode Plugins</h3><p>Mode plugins control the base rendering behavior. They are built-in plugins included in <code class="inline-verbatim">builtinPlugins</code> by default:
+</p><table><thead><tr><th>Mode</th><th>Description</th></tr></thead><tbody><tr><td><code class="inline-code">dom</code></td><td>Execute code and show results (default)</td></tr><tr><td><code class="inline-code">sourceOnly</code></td><td>Show source code only, no execution</td></tr><tr><td><code class="inline-code">silent</code></td><td>Execute but don't show output</td></tr><tr><td><code class="inline-code">raw</code></td><td>Execute and output raw result</td></tr><tr><td><code class="inline-code">server</code></td><td>Execute on server during SSR/build</td></tr></tbody></table><p>These are implemented as plugins (<code class="inline-verbatim">domPlugin</code>, <code class="inline-verbatim">sourceOnlyPlugin</code>, <code class="inline-verbatim">silentPlugin</code>, <code class="inline-verbatim">rawPlugin</code>) with higher priority than language plugins, so they match first when you specify <code class="inline-verbatim">:use dom</code> etc.
+</p><h3 id="wrappers">Wrappers</h3><p>Wrappers transform the render output. They can be chained using the pipe syntax:
+</p><pre><code>:use dom | withSourceCode | withContainer?class=my-class</code></pre>
+<h4 id="built-in-wrappers">Built-in Wrappers</h4><table><thead><tr><th>Wrapper</th><th>Description</th></tr></thead><tbody><tr><td><code class="inline-code">withSourceCode</code></td><td>Show both source code and result</td></tr><tr><td><code class="inline-code">withContainer</code></td><td>Wrap output in a container div</td></tr><tr><td><code class="inline-code">withErrorBoundary</code></td><td>Catch and display errors gracefully</td></tr><tr><td><code class="inline-code">withConsole</code></td><td>Capture and display console output</td></tr><tr><td><code class="inline-code">withCollapse</code></td><td>Make output collapsible</td></tr></tbody></table><h4 id="format-wrappers">Format Wrappers</h4><p>For server execution, format wrappers format the output:
+</p><table><thead><tr><th>Format</th><th>Description</th></tr></thead><tbody><tr><td><code class="inline-code">json</code></td><td>Format output as JSON</td></tr><tr><td><code class="inline-code">yaml</code></td><td>Format output as YAML</td></tr><tr><td><code class="inline-code">csv</code></td><td>Format output as CSV</td></tr><tr><td><code class="inline-code">html</code></td><td>Output raw HTML</td></tr></tbody></table><h2 id="syntax">Syntax</h2><h3 id="basic-usage">Basic Usage</h3><pre><code>#+begin_src javascript :use dom
+// Execute and show result
+"Hello World"
+#+end_src
+
+#+begin_src javascript :use sourceOnly
+// Show code only
+const x = 1;
+#+end_src
+
+#+begin_src javascript :use silent
+// Execute but don't show
+console.log("silent");
+#+end_src</code></pre>
+<h3 id="with-wrappers">With Wrappers</h3><pre><code>#+begin_src javascript :use dom | withSourceCode
+// Show both code and result
+1 + 1
+#+end_src
+
+#+begin_src javascript :use dom | withSourceCode?position=before
+// Source code shown before result
+1 + 1
+#+end_src
+
+#+begin_src javascript :use dom | withConsole | withSourceCode
+// Show console output, then code and result
+console.log("Hello");
+"World"
+#+end_src</code></pre>
+<h3 id="server-execution">Server Execution</h3><pre><code>#+begin_src javascript :use server
+// Runs at build time
+const fs = require('fs');
+return fs.readFileSync('package.json', 'utf8');
+#+end_src
+
+#+begin_src javascript :use server | json
+// Format result as JSON
+return { message: "Hello" };
+#+end_src</code></pre>
+<h2 id="configuration">Configuration</h2><h3 id="default-mode">Default Mode</h3><p>Set a default mode for all blocks in your config:
+</p><pre class="src-block"><code class="hljs language-javascript"><span class="hljs-comment">// .org-press/config.js</span>
+<span class="hljs-keyword">export</span> <span class="hljs-keyword">default</span> {
+  <span class="hljs-attr">defaultUse</span>: <span class="hljs-string">"dom | withErrorBoundary"</span>
+};
+</code></pre><h3 id="language-defaults">Language Defaults</h3><p>Set different defaults per language:
+</p><pre class="src-block"><code class="hljs language-javascript"><span class="hljs-comment">// .org-press/config.js</span>
+<span class="hljs-keyword">export</span> <span class="hljs-keyword">default</span> {
+  <span class="hljs-attr">languageDefaults</span>: {
+    <span class="hljs-attr">javascript</span>: <span class="hljs-string">"dom"</span>,
+    <span class="hljs-attr">typescript</span>: <span class="hljs-string">"dom | withErrorBoundary"</span>,
+    <span class="hljs-attr">python</span>: <span class="hljs-string">"sourceOnly"</span>
+  }
+};
+</code></pre><h2 id="custom-render-functions">Custom Render Functions</h2><p>Plugins can export a <code class="inline-code">render</code> function to customize rendering:
+</p><pre class="src-block"><code class="hljs language-typescript"><span class="hljs-comment">// In a code block or plugin</span>
+<span class="hljs-keyword">export</span> <span class="hljs-keyword">const</span> <span class="hljs-title function_">render</span> = (<span class="hljs-params">result, ctx</span>) => {
+  <span class="hljs-keyword">return</span> {
+    <span class="hljs-attr">html</span>: <span class="hljs-string">`&#x3C;div class="custom-render"><span class="hljs-subst">${result}</span>&#x3C;/div>`</span>,
+    <span class="hljs-attr">css</span>: <span class="hljs-string">`.custom-render { background: #f0f0f0; }`</span>
+  };
+};
+</code></pre><h3 id="renderfn-signature">RenderFn Signature</h3><pre class="src-block"><code class="hljs language-typescript"><span class="hljs-keyword">type</span> <span class="hljs-title class_">RenderFn</span> = <span class="hljs-function">(<span class="hljs-params"><span class="hljs-attr">result</span>: <span class="hljs-built_in">unknown</span>, <span class="hljs-attr">ctx</span>: <span class="hljs-title class_">BlockContext</span></span>) =></span> <span class="hljs-title class_">RenderResult</span>;
+
+<span class="hljs-keyword">interface</span> <span class="hljs-title class_">BlockContext</span> {
+  <span class="hljs-attr">language</span>: <span class="hljs-built_in">string</span>;
+  <span class="hljs-attr">code</span>: <span class="hljs-built_in">string</span>;
+  <span class="hljs-attr">blockIndex</span>: <span class="hljs-built_in">number</span>;
+  <span class="hljs-attr">blockName</span>?: <span class="hljs-built_in">string</span>;
+  <span class="hljs-attr">parameters</span>: <span class="hljs-title class_">Record</span>&#x3C;<span class="hljs-built_in">string</span>, <span class="hljs-built_in">string</span>>;
+}
+
+<span class="hljs-keyword">interface</span> <span class="hljs-title class_">RenderResult</span> {
+  <span class="hljs-attr">html</span>: <span class="hljs-built_in">string</span>;
+  <span class="hljs-attr">css</span>?: <span class="hljs-built_in">string</span>;
+  <span class="hljs-attr">js</span>?: <span class="hljs-built_in">string</span>;
+}
+</code></pre><h2 id="creating-custom-wrappers">Creating Custom Wrappers</h2><p>Wrappers follow the pattern: <code class="inline-code">(config?) => (render) => RenderFn</code></p><pre class="src-block"><code class="hljs language-typescript"><span class="hljs-keyword">import</span> { registerWrapper } <span class="hljs-keyword">from</span> <span class="hljs-string">'org-press'</span>;
+
+<span class="hljs-comment">// Simple wrapper (no config)</span>
+<span class="hljs-keyword">const</span> <span class="hljs-title function_">myWrapper</span> = (<span class="hljs-params">render</span>) => <span class="hljs-function">(<span class="hljs-params">result, ctx</span>) =></span> {
+  <span class="hljs-keyword">const</span> inner = <span class="hljs-title function_">render</span>(result, ctx);
+  <span class="hljs-keyword">return</span> {
+    <span class="hljs-attr">html</span>: <span class="hljs-string">`&#x3C;div class="my-wrapper"><span class="hljs-subst">${inner.html}</span>&#x3C;/div>`</span>,
+    <span class="hljs-attr">css</span>: inner.<span class="hljs-property">css</span>
+  };
+};
+
+<span class="hljs-comment">// Configurable wrapper</span>
+<span class="hljs-keyword">const</span> <span class="hljs-title function_">myConfigurableWrapper</span> = (<span class="hljs-params">config = {}</span>) => <span class="hljs-function">(<span class="hljs-params">render</span>) =></span> <span class="hljs-function">(<span class="hljs-params">result, ctx</span>) =></span> {
+  <span class="hljs-keyword">const</span> inner = <span class="hljs-title function_">render</span>(result, ctx);
+  <span class="hljs-keyword">return</span> {
+    <span class="hljs-attr">html</span>: <span class="hljs-string">`&#x3C;div class="<span class="hljs-subst">${config.<span class="hljs-keyword">class</span> || <span class="hljs-string">'default'</span>}</span>"><span class="hljs-subst">${inner.html}</span>&#x3C;/div>`</span>
+  };
+};
+
+<span class="hljs-comment">// Register wrappers</span>
+<span class="hljs-title function_">registerWrapper</span>(<span class="hljs-string">'myWrapper'</span>, myWrapper);
+<span class="hljs-title function_">registerWrapper</span>(<span class="hljs-string">'myConfigurable'</span>, myConfigurableWrapper);
+</code></pre><p>Usage:
+</p><pre><code>#+begin_src javascript :use dom | myWrapper
+"Hello"
+#+end_src
+
+#+begin_src javascript :use dom | myConfigurable?class=custom-class
+"Hello"
+#+end_src</code></pre>
+<h2 id="migration-from-legacy-system">Migration from Legacy System</h2><p>If you're migrating from the old <code class="inline-code">:exports</code> system:
+</p><table><thead><tr><th>Old Syntax</th><th>New Syntax</th></tr></thead><tbody><tr><td><code class="inline-code">:exports code</code></td><td><code class="inline-code">:use sourceOnly</code></td></tr><tr><td><code class="inline-code">:exports results</code></td><td><code class="inline-code">:use dom</code></td></tr><tr><td><code class="inline-code">:exports both</code></td><td>~:use dom</td><td>withSourceCode~</td></tr><tr><td><code class="inline-code">:exports none</code></td><td><code class="inline-code">:use silent</code></td></tr></tbody></table></div></div></article></main><aside class="toc"><div class="toc-content"><h4 class="toc-title">On this page</h4><nav class="toc-nav" aria-label="Table of contents"><ul class="toc-list"><li class="toc-item "><a href="#overview" class="toc-link">Overview</a></li><li class="toc-item "><a href="#key-concepts" class="toc-link">Key Concepts</a></li><li class="toc-item toc-item-nested"><a href="#mode-plugins" class="toc-link">Mode Plugins</a></li><li class="toc-item toc-item-nested"><a href="#wrappers" class="toc-link">Wrappers</a></li><li class="toc-item "><a href="#syntax" class="toc-link">Syntax</a></li><li class="toc-item toc-item-nested"><a href="#basic-usage" class="toc-link">Basic Usage</a></li><li class="toc-item toc-item-nested"><a href="#with-wrappers" class="toc-link">With Wrappers</a></li><li class="toc-item toc-item-nested"><a href="#server-execution" class="toc-link">Server Execution</a></li><li class="toc-item "><a href="#configuration" class="toc-link">Configuration</a></li><li class="toc-item toc-item-nested"><a href="#default-mode" class="toc-link">Default Mode</a></li><li class="toc-item toc-item-nested"><a href="#language-defaults" class="toc-link">Language Defaults</a></li><li class="toc-item "><a href="#custom-render-functions" class="toc-link">Custom Render Functions</a></li><li class="toc-item toc-item-nested"><a href="#renderfn-signature" class="toc-link">RenderFn Signature</a></li><li class="toc-item "><a href="#creating-custom-wrappers" class="toc-link">Creating Custom Wrappers</a></li><li class="toc-item "><a href="#migration-from-legacy-system" class="toc-link">Migration from Legacy System</a></li></ul></nav></div></aside></div><footer class="site-footer"><div class="footer-content"><div class="footer-grid"><div class="footer-column"><h4>Guide</h4><ul><li><a href="/guide/index.html">What is Org-Press?</a></li><li><a href="/guide/getting-started.html">Getting Started</a></li><li><a href="/guide/features.html">Features</a></li><li><a href="/guide/cli.html">CLI Reference</a></li><li><a href="/guide/building.html">Building</a></li></ul></div><div class="footer-column"><h4>Config</h4><ul><li><a href="/config/index.html">Overview</a></li><li><a href="/config/shared-options.html">Shared Options</a></li><li><a href="/config/build-options.html">Build Options</a></li><li><a href="/config/server-options.html">Server Options</a></li></ul></div><div class="footer-column"><h4>Plugins</h4><ul><li><a href="/plugins/index.html">Overview</a></li><li><a href="/plugins/excalidraw.html">Excalidraw</a></li><li><a href="/plugins/jscad.html">JSCAD</a></li><li><a href="/plugins/creating-plugins.html">Creating Plugins</a></li></ul></div><div class="footer-column"><h4>API</h4><ul><li><a href="/api/index.html">Overview</a></li><li><a href="/api/plugin-api.html">Plugin API</a></li><li><a href="/api/javascript-api.html">JavaScript API</a></li></ul></div><div class="footer-column"><h4>Resources</h4><ul><li><a href="/examples/index.html">Examples</a></li><li><a href="https://github.com/org-press/org-press" target="_blank" rel="noopener">GitHub</a></li><li><a href="https://github.com/org-press/org-press/releases" target="_blank" rel="noopener">Releases</a></li></ul></div></div><div class="footer-bottom"><p class="footer-copyright">Released under the GPL-2.0 License.</p><p class="footer-credit">Built with <a href="https://github.com/org-press/org-press">org-press</a></p></div></div></footer></div><script src="https://analytics.ideable.dev/api/script.js" data-site-id="5dc60eeeac5d" defer=""></script></body></html>

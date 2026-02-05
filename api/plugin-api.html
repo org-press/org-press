@@ -1,0 +1,680 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charSet="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/><title>Plugin API | org-press</title><meta name="description" content="Complete plugin API reference for org-press"/><script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script><script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/highlight.min.js"></script><link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/styles/github.min.css" media="(prefers-color-scheme: light)"/><link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/styles/github-dark.min.css" media="(prefers-color-scheme: dark)"/><script>
+          // Register org-mode language for highlight.js
+          if (typeof hljs !== 'undefined') {
+            hljs.registerLanguage('org', function(hljs) {
+              return {
+                name: 'Org',
+                aliases: ['org', 'org-mode', 'orgmode'],
+                case_insensitive: true,
+                contains: [
+                  // Headlines
+                  {
+                    className: 'section',
+                    begin: /^\*+\s/,
+                    end: /$/,
+                    contains: [
+                      { className: 'keyword', begin: /\b(TODO|DONE|WAITING|CANCELLED|NEXT|HOLD)\b/ }
+                    ]
+                  },
+                  // Keywords (#+KEYWORD:)
+                  {
+                    className: 'meta',
+                    begin: /^#\+[A-Za-z_]+:/,
+                    end: /$/,
+                    contains: [{ className: 'string', begin: /\s/, end: /$/ }]
+                  },
+                  // Begin/end blocks
+                  { className: 'keyword', begin: /^#\+(begin|end)_[a-z]+/i, relevance: 10 },
+                  // Property drawers
+                  { className: 'attribute', begin: /^:\w+:/, end: /$/ },
+                  // Links [[url][description]]
+                  {
+                    className: 'link',
+                    begin: /\[\[/,
+                    end: /\]\]/,
+                    contains: [{ className: 'string', begin: /\]\[/, end: /(?=\]\])/ }]
+                  },
+                  // Comments (lines starting with #, but not #+)
+                  { className: 'comment', begin: /^#[^+]/, end: /$/ },
+                  // Timestamps
+                  { className: 'number', begin: /<\d{4}-\d{2}-\d{2}/, end: />/ },
+                  // Tags :tag1:tag2:
+                  { className: 'tag', begin: /\s:[a-zA-Z0-9_@#%:]+:\s*$/ }
+                ]
+              };
+            });
+            // Run highlighting after DOM is ready
+            document.addEventListener('DOMContentLoaded', function() {
+              hljs.highlightAll();
+            });
+          }
+        </script><script>
+          (function() {
+            // Set current path as data attribute for CSS styling
+            document.documentElement.dataset.path = window.location.pathname;
+
+            // Mobile menu toggle using event delegation
+            document.addEventListener('click', function(e) {
+              var button = e.target.closest('.mobile-menu-button');
+              if (button) {
+                e.stopPropagation();
+                document.body.classList.toggle('mobile-menu-open');
+                return;
+              }
+              // Close menu when clicking a link inside the menu
+              var menuLink = e.target.closest('.mobile-menu a');
+              if (menuLink) {
+                document.body.classList.remove('mobile-menu-open');
+                return;
+              }
+              // Close menu when clicking outside
+              if (document.body.classList.contains('mobile-menu-open')) {
+                var menu = document.querySelector('.mobile-menu');
+                if (menu && !menu.contains(e.target)) {
+                  document.body.classList.remove('mobile-menu-open');
+                }
+              }
+            });
+
+            // Highlight current page in navigation
+            document.addEventListener('DOMContentLoaded', function() {
+              var path = window.location.pathname;
+              // Highlight sidebar links
+              document.querySelectorAll('.sidebar-link').forEach(function(link) {
+                if (link.getAttribute('href') === path) {
+                  link.classList.add('active');
+                  link.closest('.sidebar-item')?.classList.add('active');
+                }
+              });
+              // Highlight top nav links
+              document.querySelectorAll('.top-nav-link').forEach(function(link) {
+                var href = link.getAttribute('href');
+                var match = link.dataset.match;
+                if (path === href || (match && path.startsWith(match))) {
+                  link.classList.add('active');
+                }
+              });
+            });
+          })();
+        </script><link rel="stylesheet" href="/assets/theme-DsForQV0.css"/><script type="module" src="/assets/entry-client-l0sNRNKZ.js"></script></head><body><div class="docs-layout"><header class="top-nav"><div class="top-nav-container"><a href="/index.html" class="top-nav-logo"><span class="logo-text">Org-Press</span></a><nav class="top-nav-links"><a href="/guide/index.html" class="top-nav-link " data-match="^\/(guide(\/|$)|getting-started|index\.html$)">Guide</a><a href="/config/index.html" class="top-nav-link " data-match="^\/config(\/|$)">Config</a><a href="/plugins/index.html" class="top-nav-link " data-match="^\/plugins(\/|$)">Plugins</a><a href="/api/index.html" class="top-nav-link active" data-match="^\/api(\/|$)">API</a></nav><div class="top-nav-social"><a href="https://github.com/org-press/org-press/blob/main/docs/content/api/plugin-api.org?plain=1" class="top-nav-source-link" target="_blank" rel="noopener noreferrer" title="View page source on GitHub">:view-source</a><a href="https://github.com/org-press/org-press" class="top-nav-social-link" target="_blank" rel="noopener noreferrer" aria-label="GitHub"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"></path></svg></a></div><button class="mobile-menu-button" aria-label="Toggle navigation menu" aria-expanded="false"><span class="hamburger-line"></span><span class="hamburger-line"></span><span class="hamburger-line"></span></button></div></header><div class="mobile-menu"><nav class="mobile-menu-nav"><div class="mobile-menu-section"><a href="/guide/index.html" class="mobile-menu-section-title ">Guide</a><ul class="mobile-menu-list"><li><a href="/guide/index.html" class="mobile-menu-link ">What is Org-Press?</a></li><li><a href="/guide/getting-started.html" class="mobile-menu-link ">Getting Started</a></li><li><a href="/guide/why-org-press.html" class="mobile-menu-link ">Why Org-Press?</a></li><li><a href="/guide/features.html" class="mobile-menu-link ">Features</a></li><li><a href="/guide/rendering-modes.html" class="mobile-menu-link ">Rendering Modes</a></li><li><a href="/guide/cli.html" class="mobile-menu-link ">CLI Reference</a></li><li><a href="/guide/using-plugins.html" class="mobile-menu-link ">Using Plugins</a></li><li><a href="/guide/block-imports.html" class="mobile-menu-link ">Block Imports</a></li><li><a href="/guide/static-assets.html" class="mobile-menu-link ">Static Assets</a></li><li><a href="/guide/building.html" class="mobile-menu-link ">Building for Production</a></li><li><a href="/guide/deploying.html" class="mobile-menu-link ">Deploying</a></li><li><a href="/guide/troubleshooting.html" class="mobile-menu-link ">Troubleshooting</a></li></ul></div><div class="mobile-menu-section"><a href="/config/index.html" class="mobile-menu-section-title ">Config</a><ul class="mobile-menu-list"><li><a href="/config/index.html" class="mobile-menu-link ">Overview</a></li><li><a href="/config/shared-options.html" class="mobile-menu-link ">Shared Options</a></li><li><a href="/config/build-options.html" class="mobile-menu-link ">Build Options</a></li><li><a href="/config/server-options.html" class="mobile-menu-link ">Server Options</a></li><li><a href="/config/plugin-options.html" class="mobile-menu-link ">Plugin Options</a></li></ul></div><div class="mobile-menu-section"><a href="/plugins/index.html" class="mobile-menu-section-title ">Plugins</a><ul class="mobile-menu-list"><li><a href="/plugins/index.html" class="mobile-menu-link ">Overview</a></li><li class="mobile-menu-group"><span class="mobile-menu-group-title">Official Plugins</span><ul class="mobile-menu-sublist"><li><a href="/plugins/react.html" class="mobile-menu-link ">React</a></li><li><a href="/plugins/echarts.html" class="mobile-menu-link ">ECharts</a></li><li><a href="/plugins/excalidraw.html" class="mobile-menu-link ">Excalidraw</a></li><li><a href="/plugins/jscad.html" class="mobile-menu-link ">JSCAD</a></li><li><a href="/plugins/test.html" class="mobile-menu-link ">Test</a></li></ul></li><li><a href="/plugins/creating-plugins.html" class="mobile-menu-link ">Creating Plugins</a></li></ul></div><div class="mobile-menu-section"><a href="/api/index.html" class="mobile-menu-section-title active">API</a><ul class="mobile-menu-list"><li><a href="/api/index.html" class="mobile-menu-link ">Overview</a></li><li><a href="/api/plugin-api.html" class="mobile-menu-link ">Plugin API</a></li><li><a href="/api/javascript-api.html" class="mobile-menu-link ">JavaScript API</a></li><li><a href="/api/hmr-api.html" class="mobile-menu-link ">HMR API</a></li><li><a href="/api/cli-plugins.html" class="mobile-menu-link ">CLI Plugins</a></li></ul></div></nav><div class="mobile-menu-footer"><a href="https://github.com/org-press/org-press" class="mobile-menu-link" target="_blank" rel="noopener noreferrer">GitHub</a></div></div><div class="alpha-banner"><span class="alpha-banner-icon">⚠️</span><span class="alpha-banner-text"><strong>Early Alpha</strong> — Org-press is experimental. Perfect for hackers and tinkerers, not ready for production. Documentation may be incomplete or inaccurate.</span></div><div class="docs-container"><aside class="sidebar"><div class="sidebar-content"><nav class="sidebar-nav" aria-label="Section navigation"><div class="sidebar-section"><h3 class="sidebar-section-title">API</h3><ul class="sidebar-list"><li class="sidebar-item "><a href="/api/index.html" class="sidebar-link ">Overview</a></li><li class="sidebar-item "><a href="/api/plugin-api.html" class="sidebar-link ">Plugin API</a></li><li class="sidebar-item "><a href="/api/javascript-api.html" class="sidebar-link ">JavaScript API</a></li><li class="sidebar-item "><a href="/api/hmr-api.html" class="sidebar-link ">HMR API</a></li><li class="sidebar-item "><a href="/api/cli-plugins.html" class="sidebar-link ">CLI Plugins</a></li></ul></div></nav></div></aside><main class="docs-content"><article class="docs-article"><div class="docs-body"><div><h1 id="plugin-api">Plugin API</h1><p>The plugin system provides factory functions for creating plugins. This is the complete API reference.
+</p><h2 id="orgpressplugin-interface">OrgPressPlugin Interface</h2><p>All plugins conform to the <code class="inline-verbatim">OrgPressPlugin</code> interface:
+</p><pre><code>interface OrgPressPlugin {
+  /** Unique plugin name */
+  name: string;
+
+  /**
+   * Plugin priority (higher = runs first)
+   * Default: 0
+   * Built-in plugins use 10
+   * User plugins typically use 50-100
+   */
+  priority?: number;
+
+  /**
+   * Setup function called during plugin initialization
+   * Use this for complex plugins that need full PluginContext access
+   */
+  setup?: (ctx: PluginContext) => void | Promise&#x3C;void>;
+
+  // Internal markers (set by factory functions)
+  _type?: PluginType;
+  _config?: unknown;
+}
+
+type PluginType =
+  | "drawer"      // CreateDrawer
+  | "block"       // CreateBlock
+  | "element"     // CreateElement
+  | "transformer" // CreateTransformer
+  | "rehype"      // CreateRehypePlugin
+  | "uniorg"      // CreateUniorgPlugin
+  | "command"     // CreateCommand
+  | "vite"        // CreateVitePlugin
+  | "middleware"  // CreateMiddlewarePlugin
+  | "generic";    // CreatePlugin
+</code></pre>
+<h2 id="factory-functions">Factory Functions</h2><h3 id="createblock">CreateBlock</h3><p>Create plugins for handling code blocks by language.
+</p><pre><code>function CreateBlock(
+  language: string | string[],
+  options: BlockOptions
+): OrgPressPlugin;
+
+interface BlockOptions {
+  /** Transform function for the code block */
+  transform: (code: string, ctx: BlockContext) => TransformResult | Promise&#x3C;TransformResult>;
+
+  /** Optional React wrapper component */
+  wrapper?: unknown;
+
+  /** Optional client-side script */
+  clientScript?: string;
+
+  /** Default file extension for generated modules */
+  defaultExtension?: string;
+
+  /** Plugin priority (higher = runs first) */
+  priority?: number;
+}
+
+interface BlockContext {
+  blockId: string;      // Unique ID (e.g., "block-0")
+  language: string;     // Block language
+  params: Record&#x3C;string, string>;  // Parsed parameters
+  orgFilePath: string;  // Relative path to org file
+  blockIndex: number;   // 0-based index
+  base: string;         // Base URL path
+}
+
+interface TransformResult {
+  code?: string;   // Transformed code
+  html?: string;   // HTML output
+  script?: string; // Additional script
+  css?: string;    // Additional CSS
+}
+</code></pre>
+<p><strong>Example:</strong></p><pre><code>import { CreateBlock } from "org-press";
+
+const myBlock = CreateBlock(["mylang", "ml"], {
+  transform: (code, ctx) => ({
+    html: `&#x3C;pre id="${ctx.blockId}">${code}&#x3C;/pre>`,
+    css: `#${ctx.blockId} { background: #f5f5f5; }`,
+  }),
+  priority: 50,
+});
+</code></pre>
+<h3 id="createdrawer">CreateDrawer</h3><p>Create plugins for handling org-mode drawers.
+</p><pre><code>function CreateDrawer(
+  name: string | string[],
+  transform: DrawerTransformFn
+): OrgPressPlugin;
+
+type DrawerTransformFn = (
+  drawer: DrawerNode,
+  ctx: TransformContext
+) => string | null | Promise&#x3C;string | null>;
+
+interface DrawerNode {
+  name: string;        // Drawer name (e.g., "NOTE")
+  children: unknown[]; // Raw AST children
+  html: string;        // Pre-rendered HTML content
+}
+
+interface TransformContext {
+  orgFilePath: string;  // Relative path to org file
+  base: string;         // Base URL path
+  config: OrgPressConfig;
+}
+</code></pre>
+<p><strong>Example:</strong></p><pre><code>import { CreateDrawer } from "org-press";
+
+// Single drawer
+const noteDrawer = CreateDrawer("NOTE", (drawer) =>
+  `&#x3C;aside class="note">${drawer.html}&#x3C;/aside>`
+);
+
+// Multiple drawers
+const callouts = CreateDrawer(
+  ["NOTE", "TIP", "WARNING"],
+  (drawer) => `&#x3C;aside class="callout-${drawer.name.toLowerCase()}">${drawer.html}&#x3C;/aside>`
+);
+
+// Remove drawer from output
+const hideProps = CreateDrawer("PROPERTIES", () => null);
+</code></pre>
+<h3 id="createtransformer">CreateTransformer</h3><p>Create pipeline stages for the <code class="inline-verbatim">:use</code> parameter.
+</p><pre><code>function CreateTransformer(
+  name: string,
+  options: TransformerOptions
+): OrgPressPlugin;
+
+interface TransformerOptions {
+  /** Build-time transform (Node.js environment) */
+  onBuild?: (input: TransformerInput, ctx: BuildContext) => TransformerOutput;
+
+  /** Server-side execution (Node.js environment) */
+  onServer?: (code: string, ctx: ServerContext) => Promise&#x3C;unknown>;
+
+  /**
+   * Client-side code (browser environment)
+   * - Function: Dynamic import for code splitting
+   * - String: Inline script
+   */
+  client?: (() => Promise&#x3C;ClientModule>) | string;
+}
+
+interface TransformerInput {
+  code: string;                    // Original source code
+  language: string;                // Block language
+  params: Record&#x3C;string, string>; // Block parameters
+  html?: string;                   // HTML from previous transformer
+  result?: unknown;                // Result from onServer
+  clientData?: unknown;            // Data for client
+}
+
+interface TransformerOutput {
+  html?: string;        // HTML output
+  result?: unknown;     // Pass to next transformer
+  clientData?: unknown; // Data for client hydration
+  script?: string;      // Additional script
+  css?: string;         // Additional styles
+}
+
+interface BuildContext {
+  id: string;           // Unique block ID
+  code: string;         // Original source code
+  orgFilePath: string;  // Relative path to org file
+  blockIndex: number;   // Block index
+  params: Record&#x3C;string, string>;
+}
+
+interface ServerContext extends BuildContext {
+  execute: (code: string) => Promise&#x3C;unknown>; // Code execution
+  contentHelpers?: ContentHelpers;
+}
+
+interface ClientModule {
+  onMount?: (element: HTMLElement, ctx: ClientContext) => void | (() => void);
+  onUnmount?: (element: HTMLElement) => void;
+  onUpdate?: (element: HTMLElement, ctx: ClientContext) => void;
+}
+
+interface ClientContext {
+  blockId: string;
+  data?: unknown;  // From clientData
+  params: Record&#x3C;string, string>;
+}
+</code></pre>
+<p><strong>Example:</strong></p><pre><code>import { CreateTransformer } from "org-press";
+
+// Simple HTML wrapper
+const wrapper = CreateTransformer("wrapper", {
+  onBuild: (input, ctx) => ({
+    html: `&#x3C;div class="wrapped">${input.html}&#x3C;/div>`,
+  }),
+});
+
+// With server execution
+const serverData = CreateTransformer("serverData", {
+  onServer: async (code, ctx) => {
+    const fs = await import("fs/promises");
+    return JSON.parse(await fs.readFile(code.trim(), "utf-8"));
+  },
+  onBuild: (input, ctx) => ({
+    html: `&#x3C;pre>${JSON.stringify(input.result)}&#x3C;/pre>`,
+  }),
+});
+
+// With client interactivity
+const interactive = CreateTransformer("interactive", {
+  onBuild: (input, ctx) => ({
+    html: `&#x3C;button id="${ctx.id}">Click&#x3C;/button>`,
+    clientData: { count: 0 },
+  }),
+  client: `
+    export function onMount(el, ctx) {
+      let count = ctx.data.count;
+      el.onclick = () => el.textContent = ++count;
+    }
+  `,
+});
+</code></pre>
+<h3 id="createcommand">CreateCommand</h3><p>Create CLI commands for the <code class="inline-verbatim">orgp</code> tool.
+</p><pre><code>function CreateCommand(
+  name: string,
+  options: CommandOptions
+): OrgPressPlugin;
+
+interface CommandOptions {
+  /** Command description for help text */
+  description: string;
+
+  /** Command argument definitions */
+  args?: ArgDefinition[];
+
+  /** Execute the command (return exit code) */
+  execute: (args: ParsedArgs, ctx: CommandContext) => Promise&#x3C;number>;
+}
+
+interface ArgDefinition {
+  name: string;
+  type: "string" | "boolean" | "number";
+  description?: string;
+  required?: boolean;
+  default?: string | boolean | number;
+  alias?: string;  // Short flag (e.g., "v" for --verbose)
+}
+
+interface ParsedArgs {
+  [key: string]: string | boolean | number | string[] | undefined;
+  _: string[];  // Positional arguments
+}
+
+interface CommandContext {
+  config: OrgPressConfig;
+  projectRoot: string;
+  contentDir: string;
+}
+</code></pre>
+<p><strong>Example:</strong></p><pre><code>import { CreateCommand } from "org-press";
+
+const lintCommand = CreateCommand("lint", {
+  description: "Lint org files for issues",
+  args: [
+    { name: "fix", type: "boolean", alias: "f", description: "Auto-fix" },
+    { name: "pattern", type: "string", default: "**/*.org" },
+  ],
+  execute: async (args, ctx) => {
+    const fix = args.fix as boolean;
+    console.log(`Linting in ${ctx.contentDir}`);
+    // ... lint logic
+    return 0; // Exit code
+  },
+});
+
+// Usage: orgp lint --fix -pattern "docs/**/*.org"
+</code></pre>
+<h3 id="createviteplugin">CreateVitePlugin</h3><p>Register Vite plugins from org-press plugins.
+</p><pre><code>function CreateVitePlugin(
+  name: string,
+  config: VitePluginConfig
+): OrgPressPlugin;
+
+interface VitePluginConfig extends Omit&#x3C;VitePlugin, "name"> {
+  /** When to run: 'pre' | 'post' | undefined */
+  enforce?: "pre" | "post";
+  /** When to apply: 'build' | 'serve' | undefined (both) */
+  apply?: "build" | "serve";
+  // ... all other Vite plugin hooks
+}
+</code></pre>
+<p><strong>Example:</strong></p><pre><code>import { CreateVitePlugin } from "org-press";
+
+// Add virtual module support
+const virtualModule = CreateVitePlugin("virtual-config", {
+  resolveId(id) {
+    if (id === "virtual:my-config") {
+      return "\0virtual:my-config";
+    }
+  },
+  load(id) {
+    if (id === "\0virtual:my-config") {
+      return `export default ${JSON.stringify({ key: "value" })}`;
+    }
+  },
+});
+
+// Add custom transform
+const customTransform = CreateVitePlugin("my-transform", {
+  enforce: "pre",
+  apply: "build",
+  transform(code, id) {
+    if (id.endsWith(".special")) {
+      return transformCode(code);
+    }
+  },
+});
+</code></pre>
+<h3 id="createmiddlewareplugin">CreateMiddlewarePlugin</h3><p>Register dev server middleware for custom API routes.
+</p><pre><code>function CreateMiddlewarePlugin(
+  path: string,
+  optionsOrHandler: MiddlewareOptions | MiddlewareHandler
+): OrgPressPlugin;
+
+type HttpMethod = "GET" | "POST" | "PUT" | "DELETE" | "PATCH" | "HEAD" | "OPTIONS";
+
+interface MiddlewareOptions {
+  /** HTTP methods to handle. Default: all methods */
+  methods?: HttpMethod[];
+  /** Handler function */
+  handler: MiddlewareHandler;
+}
+
+type MiddlewareHandler = (
+  req: IncomingMessage,
+  res: ServerResponse,
+  next: () => void
+) => void | Promise&#x3C;void>;
+</code></pre>
+<p><strong>Example:</strong></p><pre><code>import { CreateMiddlewarePlugin } from "org-press";
+
+// Simple handler (shorthand)
+const pingApi = CreateMiddlewarePlugin("/api/ping", (req, res) => {
+  res.end("pong");
+});
+
+// With method filtering
+const dataApi = CreateMiddlewarePlugin("/api/data", {
+  methods: ["GET", "POST"],
+  handler: async (req, res, next) => {
+    if (req.method === "GET") {
+      res.setHeader("Content-Type", "application/json");
+      res.end(JSON.stringify({ items: [] }));
+    } else {
+      // Handle POST
+      let body = "";
+      req.on("data", (chunk) => (body += chunk));
+      req.on("end", () => {
+        res.setHeader("Content-Type", "application/json");
+        res.end(JSON.stringify({ received: JSON.parse(body) }));
+      });
+    }
+  },
+});
+</code></pre>
+<h3 id="createplugin">CreatePlugin</h3><p>Full control escape hatch for complex plugins.
+</p><pre><code>function CreatePlugin(
+  name: string,
+  setup: PluginSetupFunction
+): OrgPressPlugin;
+
+type PluginSetupFunction = (ctx: PluginContext) => void | Promise&#x3C;void>;
+</code></pre>
+<p><strong>Example:</strong></p><pre><code>import { CreatePlugin } from "org-press";
+
+const complexPlugin = CreatePlugin("my-plugin", (ctx) => {
+  // Multiple drawer types
+  ctx.onDrawer(["NOTE", "TIP"], (drawer) =>
+    `&#x3C;aside>${drawer.html}&#x3C;/aside>`
+  );
+
+  // Code block handling
+  ctx.onBlock("mylang", (block, blockCtx) => ({
+    html: `&#x3C;div>${block.value}&#x3C;/div>`,
+  }));
+
+  // CLI command
+  ctx.addCommand("mycommand", {
+    description: "Do something",
+    execute: async () => 0,
+  });
+
+  // Pipeline hooks
+  ctx.hook("build:start", () => console.log("Building..."));
+});
+</code></pre>
+<h3 id="createrehypeplugin">CreateRehypePlugin</h3><p>Wrap rehype plugins for use in org-press.
+</p><pre><code>function CreateRehypePlugin(
+  plugin: RehypePlugin,
+  options?: unknown
+): OrgPressPlugin;
+</code></pre>
+<p><strong>Example:</strong></p><pre><code>import { CreateRehypePlugin } from "org-press";
+import rehypeHighlight from "rehype-highlight";
+
+const highlightPlugin = CreateRehypePlugin(rehypeHighlight, {
+  languages: { javascript: js, typescript: ts },
+});
+</code></pre>
+<h3 id="createuniorgplugin">CreateUniorgPlugin</h3><p>Wrap uniorg plugins for use in org-press.
+</p><pre><code>function CreateUniorgPlugin(
+  plugin: UniorgPlugin,
+  options?: unknown
+): OrgPressPlugin;
+</code></pre>
+<h2 id="plugincontext-api">PluginContext API</h2><p>The <code class="inline-verbatim">PluginContext</code> is available in <code class="inline-verbatim">CreatePlugin</code> setup functions:
+</p><pre><code>interface PluginContext {
+  // === Element Handlers ===
+
+  /** Register handler for any AST element type */
+  onElement(type: string, handler: ElementHandler): void;
+
+  /** Register drawer handler */
+  onDrawer(name: string | string[], handler: DrawerHandler): void;
+
+  /** Register code block handler */
+  onBlock(language: string | string[], handler: BlockHandler): void;
+
+  // === Pipeline Hooks ===
+
+  /** Hook into pipeline stages */
+  hook(stage: PipelineStage, handler: StageHandler): void;
+
+  // === Unified Ecosystem ===
+
+  /** Add rehype plugin to render pipeline */
+  useRehype(plugin: RehypePlugin, options?: unknown): void;
+
+  /** Add uniorg plugin to parse pipeline */
+  useUniorg(plugin: UniorgPlugin, options?: unknown): void;
+
+  // === Extensions ===
+
+  /** Add CLI command */
+  addCommand(name: string, options: CommandOptions): void;
+
+  /** Add transformer for :use parameter */
+  addTransformer(name: string, options: TransformerOptions): void;
+
+  // === Vite Integration ===
+
+  /** Register a Vite plugin */
+  addVitePlugin(plugin: VitePlugin): void;
+
+  /** Register dev server middleware */
+  addMiddleware(path: string, options: MiddlewareOptions): void;
+
+  // === Shared State ===
+
+  /** Provide value for other plugins */
+  provide&#x3C;T>(key: string, value: T): void;
+
+  /** Inject value from another plugin */
+  inject&#x3C;T>(key: string): T | undefined;
+
+  // === Utilities ===
+
+  config: OrgPressConfig;
+  projectRoot: string;
+  logger: Logger;
+}
+</code></pre>
+<h2 id="pipeline-stages">Pipeline Stages</h2><p>Available stages for <code class="inline-verbatim">ctx.hook()</code>:
+</p><pre><code>type PipelineStage =
+  | "parse:before"     // Before uniorg parsing
+  | "parse:after"      // After uniorg, before transforms
+  | "transform:before" // Before element transforms
+  | "transform:after"  // After element transforms
+  | "render:before"    // Before rehype processing
+  | "render:after"     // After HTML generation
+  | "build:start"      // Build started
+  | "build:end";       // Build finished
+
+interface StagePayload {
+  stage: PipelineStage;
+  source?: string;                    // parse:before
+  ast?: OrgData;                      // parse:after, transform:*
+  html?: string;                      // render:after
+  metadata?: Record&#x3C;string, unknown>; // All stages after parse
+}
+</code></pre>
+<h2 id="plugin-presets">Plugin Presets</h2><p>Pre-configured plugin arrays for common setups:
+</p><pre><code>import {
+  defaultPlugins,  // Standard content plugins
+  minimalPlugins,  // Empty array
+  cliPlugins,      // CLI command plugins
+  allPlugins,      // defaultPlugins + cliPlugins
+} from "org-press";
+</code></pre>
+<h3 id="defaultplugins">defaultPlugins</h3><table><thead><tr><th>Plugin</th><th>Description</th></tr></thead><tbody><tr><td><code class="inline-verbatim">domPlugin</code></td><td>DOM rendering for <code class="inline-verbatim">:use dom</code></td></tr><tr><td><code class="inline-verbatim">javascriptPlugin</code></td><td>JavaScript/JS handling</td></tr><tr><td><code class="inline-verbatim">typescriptPlugin</code></td><td>TypeScript/TS handling</td></tr><tr><td><code class="inline-verbatim">cssPlugin</code></td><td>CSS handling</td></tr><tr><td><code class="inline-verbatim">serverPlugin</code></td><td>Server-side execution</td></tr></tbody></table><h3 id="cliplugins">cliPlugins</h3><table><thead><tr><th>Plugin</th><th>Description</th></tr></thead><tbody><tr><td><code class="inline-verbatim">fmtPlugin</code></td><td><code class="inline-verbatim">orgp fmt</code> command</td></tr><tr><td><code class="inline-verbatim">lintPlugin</code></td><td><code class="inline-verbatim">orgp lint</code> command</td></tr><tr><td><code class="inline-verbatim">typeCheckPlugin</code></td><td><code class="inline-verbatim">orgp type-check</code> command</td></tr></tbody></table><h3 id="usage">Usage</h3><pre><code>// Standard setup
+export default {
+  plugins: [...defaultPlugins],
+};
+
+// Add custom plugins
+export default {
+  plugins: [
+    ...defaultPlugins,
+    CreateDrawer("NOTE", (d) => `&#x3C;aside>${d.html}&#x3C;/aside>`),
+    myCustomPlugin,
+  ],
+};
+
+// Minimal - full control
+export default {
+  plugins: [
+    CreateBlock("javascript", { transform: (code) => ({ code }) }),
+    // Only what you need
+  ],
+};
+</code></pre>
+<h2 id="type-exports">Type Exports</h2><p>All types are exported from <code class="inline-verbatim">org-press</code>:
+</p><pre><code>import type {
+  // Core
+  OrgPressPlugin,
+  PluginType,
+  PluginContext,
+
+  // Pipeline
+  PipelineStage,
+  StagePayload,
+  StageHandler,
+
+  // Nodes
+  DrawerNode,
+  CodeBlockNode,
+
+  // Transform
+  TransformContext,
+  BlockTransformContext,
+  TransformResult,
+
+  // Transformer
+  TransformerOptions,
+  TransformerInput,
+  TransformerOutput,
+  BuildContext,
+  ServerContext,
+  ClientModule,
+  ClientContext,
+
+  // Handlers
+  ElementHandler,
+  DrawerHandler,
+  BlockHandler,
+
+  // Command
+  CommandOptions,
+  CommandContext,
+  ArgDefinition,
+  ParsedArgs,
+
+  // Vite/Middleware
+  VitePluginConfig,
+  MiddlewareOptions,
+  MiddlewareHandler,
+  HttpMethod,
+
+  // Ecosystem
+  RehypePlugin,
+  UniorgPlugin,
+
+  // Utilities
+  Logger,
+  OrgPressConfig,
+} from "org-press";
+</code></pre>
+<h2 id="see-also">See Also</h2><ul><li><a href="/plugins/creating-plugins.html">Creating Plugins</a> - Tutorial with examples
+</li><li><a href="/api/modes-api.html">Modes API</a> - Understanding <code class="inline-verbatim">:use</code> pipeline
+</li><li><a href="/api/cli-plugins.html">CLI Plugins</a> - CLI command details
+</li></ul></div></div></article></main><aside class="toc"><div class="toc-content"><h4 class="toc-title">On this page</h4><nav class="toc-nav" aria-label="Table of contents"><ul class="toc-list"><li class="toc-item "><a href="#orgpressplugin-interface" class="toc-link">OrgPressPlugin Interface</a></li><li class="toc-item "><a href="#factory-functions" class="toc-link">Factory Functions</a></li><li class="toc-item toc-item-nested"><a href="#createblock" class="toc-link">CreateBlock</a></li><li class="toc-item toc-item-nested"><a href="#createdrawer" class="toc-link">CreateDrawer</a></li><li class="toc-item toc-item-nested"><a href="#createtransformer" class="toc-link">CreateTransformer</a></li><li class="toc-item toc-item-nested"><a href="#createcommand" class="toc-link">CreateCommand</a></li><li class="toc-item toc-item-nested"><a href="#createviteplugin" class="toc-link">CreateVitePlugin</a></li><li class="toc-item toc-item-nested"><a href="#createmiddlewareplugin" class="toc-link">CreateMiddlewarePlugin</a></li><li class="toc-item toc-item-nested"><a href="#createplugin" class="toc-link">CreatePlugin</a></li><li class="toc-item toc-item-nested"><a href="#createrehypeplugin" class="toc-link">CreateRehypePlugin</a></li><li class="toc-item toc-item-nested"><a href="#createuniorgplugin" class="toc-link">CreateUniorgPlugin</a></li><li class="toc-item "><a href="#plugincontext-api" class="toc-link">PluginContext API</a></li><li class="toc-item "><a href="#pipeline-stages" class="toc-link">Pipeline Stages</a></li><li class="toc-item "><a href="#plugin-presets" class="toc-link">Plugin Presets</a></li><li class="toc-item toc-item-nested"><a href="#defaultplugins" class="toc-link">defaultPlugins</a></li><li class="toc-item toc-item-nested"><a href="#cliplugins" class="toc-link">cliPlugins</a></li><li class="toc-item toc-item-nested"><a href="#usage" class="toc-link">Usage</a></li><li class="toc-item "><a href="#type-exports" class="toc-link">Type Exports</a></li><li class="toc-item "><a href="#see-also" class="toc-link">See Also</a></li></ul></nav></div></aside></div><footer class="site-footer"><div class="footer-content"><div class="footer-grid"><div class="footer-column"><h4>Guide</h4><ul><li><a href="/guide/index.html">What is Org-Press?</a></li><li><a href="/guide/getting-started.html">Getting Started</a></li><li><a href="/guide/features.html">Features</a></li><li><a href="/guide/cli.html">CLI Reference</a></li><li><a href="/guide/building.html">Building</a></li></ul></div><div class="footer-column"><h4>Config</h4><ul><li><a href="/config/index.html">Overview</a></li><li><a href="/config/shared-options.html">Shared Options</a></li><li><a href="/config/build-options.html">Build Options</a></li><li><a href="/config/server-options.html">Server Options</a></li></ul></div><div class="footer-column"><h4>Plugins</h4><ul><li><a href="/plugins/index.html">Overview</a></li><li><a href="/plugins/excalidraw.html">Excalidraw</a></li><li><a href="/plugins/jscad.html">JSCAD</a></li><li><a href="/plugins/creating-plugins.html">Creating Plugins</a></li></ul></div><div class="footer-column"><h4>API</h4><ul><li><a href="/api/index.html">Overview</a></li><li><a href="/api/plugin-api.html">Plugin API</a></li><li><a href="/api/javascript-api.html">JavaScript API</a></li></ul></div><div class="footer-column"><h4>Resources</h4><ul><li><a href="/examples/index.html">Examples</a></li><li><a href="https://github.com/org-press/org-press" target="_blank" rel="noopener">GitHub</a></li><li><a href="https://github.com/org-press/org-press/releases" target="_blank" rel="noopener">Releases</a></li></ul></div></div><div class="footer-bottom"><p class="footer-copyright">Released under the GPL-2.0 License.</p><p class="footer-credit">Built with <a href="https://github.com/org-press/org-press">org-press</a></p></div></div></footer></div><script src="https://analytics.ideable.dev/api/script.js" data-site-id="5dc60eeeac5d" defer=""></script></body></html>
